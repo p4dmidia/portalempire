@@ -19,14 +19,12 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Fecha dropdowns ao mudar de rota
   useEffect(() => {
     setIsMobileMenuOpen(false);
     setIsSearchOpen(false);
-    setOpenDropdown(null);
   }, [pathname]);
 
   // Foca no input quando abre busca
@@ -42,23 +40,6 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
     router.push(`/busca?q=${encodeURIComponent(searchQuery.trim())}`);
     setIsSearchOpen(false);
   };
-
-  // Organizar categorias do menu
-  // Priorizar Notícias, Política, Economia, Cidades, Polícia, Esportes
-  const categoriasPrincipais = [
-    "noticias",
-    "politica",
-    "economia",
-    "policia",
-    "esportes",
-  ];
-
-  // Identificar categorias visíveis no menu principal
-  const catNoticias = categorias.find((c) => c.slug === "noticias");
-  const catPolitica = categorias.find((c) => c.slug === "politica");
-  const catEconomia = categorias.find((c) => c.slug === "economia");
-  const catPolicia = categorias.find((c) => c.slug === "policia");
-  const catEsportes = categorias.find((c) => c.slug === "esportes");
 
   // Outras categorias que vão para o dropdown "+ Mais"
   const catMais = categorias.filter(
@@ -107,11 +88,7 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           </Link>
 
           {/* Notícias com Dropdown */}
-          <div
-            className="relative h-full flex items-center group"
-            onMouseEnter={() => setOpenDropdown("noticias")}
-            onMouseLeave={() => setOpenDropdown(null)}
-          >
+          <div className="relative h-full flex items-center group">
             <Link
               href="/categoria/noticias"
               className="relative flex items-center gap-1 h-full px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors"
@@ -145,11 +122,7 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           </div>
 
           {/* Política com Dropdown */}
-          <div
-            className="relative h-full flex items-center group"
-            onMouseEnter={() => setOpenDropdown("politica")}
-            onMouseLeave={() => setOpenDropdown(null)}
-          >
+          <div className="relative h-full flex items-center group">
             <Link
               href="/categoria/politica"
               className="relative flex items-center gap-1 h-full px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors"
@@ -176,11 +149,7 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           </div>
 
           {/* Economia com Dropdown */}
-          <div
-            className="relative h-full flex items-center group"
-            onMouseEnter={() => setOpenDropdown("economia")}
-            onMouseLeave={() => setOpenDropdown(null)}
-          >
+          <div className="relative h-full flex items-center group">
             <Link
               href="/categoria/economia"
               className="relative flex items-center gap-1 h-full px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors"
@@ -207,11 +176,7 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           </div>
 
           {/* Cidades com Dropdown */}
-          <div
-            className="relative h-full flex items-center group"
-            onMouseEnter={() => setOpenDropdown("cidades")}
-            onMouseLeave={() => setOpenDropdown(null)}
-          >
+          <div className="relative h-full flex items-center group">
             <Link
               href="/cidades"
               className="relative flex items-center gap-1 h-full px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors"
@@ -264,11 +229,7 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           </Link>
 
           {/* + Mais Dropdown */}
-          <div
-            className="relative h-full flex items-center group"
-            onMouseEnter={() => setOpenDropdown("mais")}
-            onMouseLeave={() => setOpenDropdown(null)}
-          >
+          <div className="relative h-full flex items-center group">
             <button className="relative flex items-center gap-1 h-full px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors cursor-pointer">
               <span>+ Mais</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />

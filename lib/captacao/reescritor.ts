@@ -103,7 +103,7 @@ export function reescreverComAlgoritmo(dados: DadosNoticiaParaReescrita): Notici
     .split(/(?<=[.?!])\s+/)
     .filter((f) => f.length > 15);
 
-  let primeiroPonto = frases[0] || textoLimpo;
+  const primeiroPonto = frases[0] || textoLimpo;
   // Variação na introdução do resumo
   const introducoesLead = [
     "De acordo com informações recentes,",

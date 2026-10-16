@@ -165,7 +165,7 @@ export function TopHeroMagazine({
             COLUNA 2: MANCHETES DO MEIO (LISTA COM THUMB 112px)
            ======================================================== */}
         <div className="lg:col-span-3 xl:col-span-4 divide-y divide-slate-100 dark:divide-slate-800 min-w-0">
-          {manchetesMeio.map((mat, idx) => (
+          {manchetesMeio.map((mat) => (
             <Link
               key={mat.id}
               href={`/materia/${mat.slug}`}

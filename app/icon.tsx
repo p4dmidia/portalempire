@@ -14,7 +14,7 @@ export default function Icon() {
   try {
     const fileBuffer = fs.readFileSync(filePath);
     imgSrc = `data:image/png;base64,${fileBuffer.toString("base64")}`;
-  } catch (e) {
+  } catch {
     imgSrc = "";
   }
 

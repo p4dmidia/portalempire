@@ -13,10 +13,9 @@ import { TopHeroMagazine } from "@/components/portal/TopHeroMagazine";
 import { FaixaUltimasNoticias } from "@/components/portal/FaixaUltimasNoticias";
 import { BlocoEditoria } from "@/components/portal/BlocoEditoria";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
-import { ColunistasCarrossel } from "@/components/portal/ColunistasCarrossel";
 import { FaixaFontes } from "@/components/portal/FaixaFontes";
 import { AdSlot } from "@/components/portal/AdSlot";
-import { MapPin, Tv, Video, ChevronRight, MessageCircle } from "lucide-react";
+import { MapPin, Video, ChevronRight, MessageCircle } from "lucide-react";
 
 export const revalidate = 60; // ISR: 60 segundos de revalidação
 

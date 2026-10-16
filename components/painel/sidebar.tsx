@@ -6,7 +6,6 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { Profile, UserRole } from "@/lib/auth/types";
 import {
-  Newspaper,
   LayoutDashboard,
   Users,
   FileText,
