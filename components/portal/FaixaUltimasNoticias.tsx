@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { MateriaData } from "@/lib/portal/queries";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { otimizarUrlImagem } from "@/lib/portal/image-utils";
 
 interface FaixaUltimasNoticiasProps {
   materias: MateriaData[];
@@ -80,10 +81,7 @@ export function FaixaUltimasNoticias({
             {/* Imagem Superior */}
             <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
               <Image
-                src={
-                  mat.imagem_url ||
-                  "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=400"
-                }
+                src={otimizarUrlImagem(mat.imagem_url)}
                 alt={mat.titulo}
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"

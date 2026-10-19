@@ -1,11 +1,57 @@
+import { otimizarUrlImagem } from "@/lib/portal/image-utils";
+
 /**
- * Módulo de Extração de Conteúdo Completo de Matérias
- * Faz o download da página original da notícia e extrai o texto integral
- * dos parágrafos, eliminando ruídos, anúncios e chamadas externas.
+ * Módulo de Extração de Conteúdo e Imagem Original de Matérias
+ * Faz o download da página original da notícia e extrai:
+ * 1. O texto integral dos parágrafos, eliminando ruídos, anúncios e chamadas externas.
+ * 2. A imagem editorial principal em alta resolução (og:image / twitter:image).
  */
 
-export async function extrairConteudoCompleto(url: string): Promise<string | null> {
-  if (!url || !url.startsWith("http")) return null;
+export function extrairImagemMeta(html: string): string | null {
+  if (!html) return null;
+
+  // 1. og:image ou og:image:url
+  const ogMatch =
+    html.match(/<meta[^>]+property=["']og:image(?::url)?["'][^>]+content=["']([^"']+)["']/i) ||
+    html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::url)?["']/i);
+
+  if (ogMatch && ogMatch[1]) {
+    const raw = ogMatch[1].trim();
+    if (!raw.includes("logo") && !raw.includes("favicon") && !raw.includes("fallbackImage")) {
+      return otimizarUrlImagem(raw);
+    }
+  }
+
+  // 2. twitter:image ou twitter:image:src
+  const twitterMatch =
+    html.match(/<meta[^>]+name=["']twitter:image(?::src)?["'][^>]+content=["']([^"']+)["']/i) ||
+    html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image(?::src)?["']/i);
+
+  if (twitterMatch && twitterMatch[1]) {
+    const raw = twitterMatch[1].trim();
+    if (!raw.includes("logo") && !raw.includes("favicon") && !raw.includes("fallbackImage")) {
+      return otimizarUrlImagem(raw);
+    }
+  }
+
+  // 3. link rel="image_src"
+  const linkMatch = html.match(/<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i);
+  if (linkMatch && linkMatch[1]) {
+    return otimizarUrlImagem(linkMatch[1].trim());
+  }
+
+  return null;
+}
+
+export interface DetalhesMateriaOriginal {
+  conteudoHtml: string | null;
+  imagemUrl: string | null;
+}
+
+export async function extrairDetalhesMateriaOriginal(url: string): Promise<DetalhesMateriaOriginal> {
+  if (!url || !url.startsWith("http")) {
+    return { conteudoHtml: null, imagemUrl: null };
+  }
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 12000);
@@ -26,11 +72,16 @@ export async function extrairConteudoCompleto(url: string): Promise<string | nul
     clearTimeout(timeoutId);
 
     if (!response.ok) {
-      return null;
+      return { conteudoHtml: null, imagemUrl: null };
     }
 
     const html = await response.text();
-    if (!html || html.length < 500) return null;
+    if (!html || html.length < 500) {
+      return { conteudoHtml: null, imagemUrl: null };
+    }
+
+    // Extrai imagem editorial principal de alta resolução
+    const imagemUrl = extrairImagemMeta(html);
 
     // 1. Localizar o bloco principal do artigo
     let corpoHtml = html;
@@ -127,15 +178,13 @@ export async function extrairConteudoCompleto(url: string): Promise<string | nul
       }
     }
 
-    // Se encontrou menos de 3 parágrafos, a extração pode ter falhado ou ser página protegida
     if (paragrafosValidos.length < 3) {
-      return null;
+      return { conteudoHtml: null, imagemUrl };
     }
 
     // 3. Montar o HTML completo com os parágrafos da matéria
     const htmlCompleto = paragrafosValidos
       .map((p, index) => {
-        // O primeiro parágrafo é destacado como lead
         if (index === 0) {
           return `<p class="lead text-xl font-medium leading-relaxed text-slate-900 dark:text-slate-100 mb-6">${p}</p>`;
         }
@@ -143,10 +192,18 @@ export async function extrairConteudoCompleto(url: string): Promise<string | nul
       })
       .join("\n");
 
-    return htmlCompleto;
+    return { conteudoHtml: htmlCompleto, imagemUrl };
   } catch (error) {
     clearTimeout(timeoutId);
-    console.warn(`[Extrator Conteúdo] Não foi possível extrair conteúdo completo de ${url}:`, error);
-    return null;
+    console.warn(`[Extrator Conteúdo] Não foi possível extrair dados completos de ${url}:`, error);
+    return { conteudoHtml: null, imagemUrl: null };
   }
+}
+
+/**
+ * Função mantida para retrocompatibilidade
+ */
+export async function extrairConteudoCompleto(url: string): Promise<string | null> {
+  const detalhes = await extrairDetalhesMateriaOriginal(url);
+  return detalhes.conteudoHtml;
 }

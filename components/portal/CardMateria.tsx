@@ -5,6 +5,7 @@ import { ptBR } from "date-fns/locale";
 import { LabelEditoria } from "./LabelEditoria";
 import type { MateriaData } from "@/lib/portal/queries";
 import { Clock, Sparkles, MapPin } from "lucide-react";
+import { otimizarUrlImagem } from "@/lib/portal/image-utils";
 
 interface CardMateriaProps {
   materia: MateriaData;
@@ -29,9 +30,7 @@ export function CardMateria({
       ? materia.fonte_nome || "Redação"
       : materia.autor?.nome || "Redação";
 
-  const imagemPadrao =
-    materia.imagem_url ||
-    "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=800";
+  const imagemPadrao = otimizarUrlImagem(materia.imagem_url);
 
   // VARIAÇÃO 1: GRANDE (Destaque Principal)
   if (variacao === "grande") {

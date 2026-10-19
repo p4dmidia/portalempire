@@ -6,6 +6,7 @@ import Image from "next/image";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { MateriaData } from "@/lib/portal/queries";
+import { otimizarUrlImagem } from "@/lib/portal/image-utils";
 
 interface TopHeroMagazineProps {
   destaques: MateriaData[];
@@ -72,10 +73,7 @@ export function TopHeroMagazine({
             <div className="relative rounded-xl overflow-hidden shadow-md group aspect-[16/10] bg-slate-900">
               <Link href={`/materia/${slideAtual.slug}`} className="block w-full h-full relative">
                 <Image
-                  src={
-                    slideAtual.imagem_url ||
-                    "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=1200"
-                  }
+                  src={otimizarUrlImagem(slideAtual.imagem_url)}
                   alt={slideAtual.titulo}
                   fill
                   priority
@@ -135,10 +133,7 @@ export function TopHeroMagazine({
                 >
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
                     <Image
-                      src={
-                        mat.imagem_url ||
-                        "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=600"
-                      }
+                      src={otimizarUrlImagem(mat.imagem_url)}
                       alt={mat.titulo}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -174,10 +169,7 @@ export function TopHeroMagazine({
               {/* Thumbnail 112px */}
               <div className="relative w-24 h-16 sm:w-28 sm:h-20 shrink-0 rounded-md overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-800">
                 <Image
-                  src={
-                    mat.imagem_url ||
-                    "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=300"
-                  }
+                  src={otimizarUrlImagem(mat.imagem_url)}
                   alt={mat.titulo}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -227,10 +219,7 @@ export function TopHeroMagazine({
                   {/* Thumbnail 76px */}
                   <div className="relative w-20 h-14 shrink-0 rounded-md overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-800">
                     <Image
-                      src={
-                        mat.imagem_url ||
-                        "https://images.unsplash.com/photo-1504711434969-e33886168f5c?auto=format&fit=crop&q=80&w=240"
-                      }
+                      src={otimizarUrlImagem(mat.imagem_url)}
                       alt={mat.titulo}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"

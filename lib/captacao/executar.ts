@@ -5,7 +5,7 @@ import { parseFeedUrl } from "./parser";
 import { normalizarUrl, gerarHashUrl, limparResumo, extrairImagem } from "./normalizar";
 import { classificarMateria } from "./classificar";
 import { reescreverNoticiaCaptada } from "./reescritor";
-import { extrairConteudoCompleto } from "./extrator-conteudo";
+import { extrairDetalhesMateriaOriginal } from "./extrator-conteudo";
 
 export interface ExecutarCaptacaoOptions {
   fonteId?: string;
@@ -33,6 +33,7 @@ export interface ResultadoExecucaoCaptacao {
   total_erros: number;
   detalhes: ResultadoFonteCaptacao[];
   arquivadas_antigas?: number;
+  materias_deletadas_antigas?: number;
   ignorado_global?: boolean;
 }
 
@@ -274,15 +275,20 @@ export async function executarCaptacao(
             }
           }
 
-          // Extrair o conteúdo jornalístico integral da matéria a partir da página original
+          let imagemFinal = imagemUrl;
+
+          // Extrair o conteúdo jornalístico integral e imagem editorial em alta resolução da página original
           if (linkNormalizado) {
             try {
-              const conteudoCompleto = await extrairConteudoCompleto(linkNormalizado);
-              if (conteudoCompleto && conteudoCompleto.length > 250) {
-                conteudoHtmlFinal = conteudoCompleto;
+              const detalhes = await extrairDetalhesMateriaOriginal(linkNormalizado);
+              if (detalhes.conteudoHtml && detalhes.conteudoHtml.length > 250) {
+                conteudoHtmlFinal = detalhes.conteudoHtml;
+              }
+              if (detalhes.imagemUrl) {
+                imagemFinal = detalhes.imagemUrl;
               }
             } catch (errExtracao) {
-              console.warn("[Captacao] Falha ao extrair texto completo:", errExtracao);
+              console.warn("[Captacao] Falha ao extrair texto/imagem da página original:", errExtracao);
             }
           }
 
@@ -315,7 +321,7 @@ export async function executarCaptacao(
             subtitulo: subtituloFinal,
             resumo: resumoFinal || null,
             conteudo_html: conteudoHtmlFinal,
-            imagem_url: imagemUrl,
+            imagem_url: imagemFinal,
             imagem_credito: `Foto: ${fonte.veiculo}`,
             origem: "captacao",
             fonte_id: fonte.id,
@@ -429,28 +435,60 @@ export async function executarCaptacao(
     }
   );
 
-  // 6. Arquivamento automático de matérias antigas (se configurado)
-  let totalArquivadas = 0;
-  const { data: configArquivamento } = await supabase
-    .from("configuracoes")
-    .select("valor")
-    .eq("chave", "captacao_arquivar_dias")
-    .maybeSingle();
+  // 6. Exclusão e limpeza automática de matérias antigas (máx 7 dias / 1 semana) para otimização de banco e site
+  let totalDeletadas = 0;
+  try {
+    const { data: configRetencao } = await supabase
+      .from("configuracoes")
+      .select("valor")
+      .eq("chave", "captacao_arquivar_dias")
+      .maybeSingle();
 
-  const diasParaArquivar = Number(configArquivamento?.valor);
-  if (diasParaArquivar && diasParaArquivar > 0) {
-    const dataLimite = new Date();
-    dataLimite.setDate(dataLimite.getDate() - diasParaArquivar);
+    // Padrão estrito de retenção: 7 dias (1 semana)
+    const diasRetencao =
+      configRetencao?.valor !== undefined && configRetencao?.valor !== null && Number(configRetencao.valor) > 0
+        ? Number(configRetencao.valor)
+        : 7;
 
-    const { data: arquivadas } = await supabase
-      .from("materias")
-      .update({ status: "arquivado" })
-      .eq("origem", "captacao")
-      .eq("status", "publicado")
-      .lt("publicado_em", dataLimite.toISOString())
-      .select("id");
+    // 6.1 Tenta chamar a RPC PostgreSQL `limpar_materias_antigas` (SECURITY DEFINER, sem bloqueios de RLS)
+    const { data: rpcRes, error: rpcErr } = await (supabase as any).rpc("limpar_materias_antigas", {
+      dias_retencao: diasRetencao,
+    });
 
-    totalArquivadas = arquivadas?.length || 0;
+    if (!rpcErr && rpcRes && typeof rpcRes.materias_excluidas === "number") {
+      totalDeletadas = rpcRes.materias_excluidas;
+      if (totalDeletadas > 0) {
+        console.log(
+          `[Limpeza Automática RPC] ${totalDeletadas} matérias antigas (> ${diasRetencao} dias) foram excluídas com sucesso.`
+        );
+      }
+    } else {
+      // Fallback via query direta se a RPC ainda não tiver sido criada no Supabase
+      const dataLimite = new Date();
+      dataLimite.setDate(dataLimite.getDate() - diasRetencao);
+      const dataLimiteIso = dataLimite.toISOString();
+
+      const { data: deletadas, error: errDelete } = await supabase
+        .from("materias")
+        .delete()
+        .eq("origem", "captacao")
+        .or(`publicado_em.lt.${dataLimiteIso},created_at.lt.${dataLimiteIso}`)
+        .select("id");
+
+      if (!errDelete && deletadas) {
+        totalDeletadas = deletadas.length;
+        if (totalDeletadas > 0) {
+          console.log(`[Limpeza Automática] ${totalDeletadas} matérias com mais de ${diasRetencao} dias foram deletadas do banco.`);
+        }
+      }
+
+      await supabase
+        .from("captacao_logs")
+        .delete()
+        .lt("iniciado_em", dataLimiteIso);
+    }
+  } catch (errLimpeza) {
+    console.warn("[Limpeza Automática] Falha ao excluir dados antigos:", errLimpeza);
   }
 
   // 7. Revalidação de Cache das páginas afetadas
@@ -480,6 +518,7 @@ export async function executarCaptacao(
     total_duplicados: totalDuplicados,
     total_erros: totalErros,
     detalhes,
-    arquivadas_antigas: totalArquivadas,
+    arquivadas_antigas: totalDeletadas,
+    materias_deletadas_antigas: totalDeletadas,
   };
 }

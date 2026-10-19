@@ -62,7 +62,7 @@ export default async function AdminCaptacaoPage() {
 
   const configMap = {
     captacao_ativa_global: true,
-    captacao_arquivar_dias: 30,
+    captacao_arquivar_dias: 7,
   };
 
   configs?.forEach((c) => {

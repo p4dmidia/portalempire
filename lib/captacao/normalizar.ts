@@ -1,5 +1,6 @@
 import crypto from "crypto";
 import type { ParsedFeedItem } from "./parser";
+import { otimizarUrlImagem } from "@/lib/portal/image-utils";
 
 /**
  * Remove parâmetros de rastreamento (UTM, fbclid, gclid, etc.) e fragmentos (#) de uma URL.
@@ -111,7 +112,7 @@ export function limparResumo(htmlOrText?: string, maxChars = 400): string {
  * 1. enclosure (se tipo for imagem ou extensão for de imagem)
  * 2. media:content (tag customizada do RSS)
  * 3. media:thumbnail
- * 4. Primeira tag <img> encontrada na description / content / contentEncoded
+ * 4. Primeira tag <img> encontrada na description / content / contentEncoded (filtrando 'leia também')
  */
 export function extrairImagem(item: ParsedFeedItem): string | null {
   // 1. Enclosure
@@ -119,18 +120,18 @@ export function extrairImagem(item: ParsedFeedItem): string | null {
     const url = item.enclosure.url;
     const type = item.enclosure.type?.toLowerCase() || "";
     if (type.startsWith("image/") || /\.(jpg|jpeg|png|webp|gif|avif)(\?.*)?$/i.test(url)) {
-      return url;
+      return otimizarUrlImagem(url);
     }
   }
 
   // 2. media:content
   if (item["media:content"]?.$?.url) {
-    return item["media:content"].$.url;
+    return otimizarUrlImagem(item["media:content"].$.url);
   }
 
   // 3. media:thumbnail
   if (item["media:thumbnail"]?.$?.url) {
-    return item["media:thumbnail"].$.url;
+    return otimizarUrlImagem(item["media:thumbnail"].$.url);
   }
 
   // 4. Primeira imagem em description, content ou contentEncoded
@@ -140,14 +141,32 @@ export function extrairImagem(item: ParsedFeedItem): string | null {
     item.description,
   ];
 
-  for (const html of fontesHtml) {
-    if (html && typeof html === "string") {
-      const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-      if (match && match[1]) {
-        const src = match[1];
-        // Ignora imagens de tracking/pixel de 1x1
-        if (!src.includes("1x1") && !src.includes("tracking") && !src.includes("beacon")) {
-          return src;
+  for (const rawHtml of fontesHtml) {
+    if (rawHtml && typeof rawHtml === "string") {
+      // Remove blocos de "leia também", chamadas de posts relacionados (ex: CNN read-too, listas)
+      const htmlSemRelacionados = rawHtml
+        .replace(/<(?:li|div|aside|section)[^>]*(?:read-too|leia-tambem|veja-tambem|relacionad)[^>]*>[\s\S]*?<\/(?:li|div|aside|section)>/gi, "")
+        .replace(/<picture[^>]*class=["'][^"']*read-too[^"']*["'][^>]*>[\s\S]*?<\/picture>/gi, "");
+
+      const matches = [...htmlSemRelacionados.matchAll(/<img[^>]+src=["']([^"']+)["'][^>]*>/gi)];
+      for (const m of matches) {
+        const tag = m[0];
+        const src = m[1];
+        // Ignora imagens de tracking, beacons, pixels e ícones minúsculos
+        if (
+          src.includes("1x1") ||
+          src.includes("tracking") ||
+          src.includes("beacon") ||
+          src.includes("avatar") ||
+          src.includes("gravatar") ||
+          tag.includes("read-too")
+        ) {
+          continue;
+        }
+
+        const otimizada = otimizarUrlImagem(src);
+        if (otimizada) {
+          return otimizada;
         }
       }
     }

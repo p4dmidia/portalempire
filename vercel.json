@@ -1,6 +1,14 @@
 {
   "crons": [
     {
+      "path": "/api/cron/captacao",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/cron/publicar-agendadas",
+      "schedule": "*/5 * * * *"
+    },
+    {
       "path": "/api/cron/anuncios",
       "schedule": "0 3 * * *"
     }

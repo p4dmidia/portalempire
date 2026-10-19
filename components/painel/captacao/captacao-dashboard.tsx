@@ -152,8 +152,12 @@ export function CaptacaoDashboard({
       if (!res.ok) throw new Error(data.error || "Erro ao executar captação.");
 
       const d = data.data;
+      const deletadasInfo =
+        d.materias_deletadas_antigas && d.materias_deletadas_antigas > 0
+          ? ` | ${d.materias_deletadas_antigas} matérias antigas (> 7 dias) excluídas do banco e site`
+          : "";
       setMensagemSucesso(
-        `Captação finalizada! ${d.fontes_processadas} fontes processadas, ${d.total_novos} matérias novas importadas (${d.total_duplicados} duplicadas ignoradas, ${d.total_erros} erros).`
+        `Captação finalizada! ${d.fontes_processadas} fontes processadas, ${d.total_novos} matérias novas importadas (${d.total_duplicados} duplicadas ignoradas, ${d.total_erros} erros)${deletadasInfo}.`
       );
       await refreshData();
     } catch (err: unknown) {
@@ -954,15 +958,15 @@ export function CaptacaoDashboard({
 
               <div className="space-y-2">
                 <Label htmlFor="arquivar_dias" className="font-semibold text-sm">
-                  Arquivamento Automático de Notícias Antigas (Dias)
+                  Exclusão e Limpeza Automática do Banco de Dados (Retenção em Dias)
                 </Label>
                 <p className="text-xs text-slate-500">
-                  Matérias captadas via RSS com mais de N dias serão automaticamente movidas de &quot;publicado&quot; para &quot;arquivado&quot;. Defina 0 para nunca arquivar automaticamente.
+                  Matérias captadas via RSS com mais de N dias serão automaticamente deletadas permanentemente do banco de dados e do site para economizar espaço e otimizar a velocidade. Recomendado: 7 dias (1 semana).
                 </p>
                 <Input
                   id="arquivar_dias"
                   type="number"
-                  min={0}
+                  min={1}
                   max={365}
                   value={config.captacao_arquivar_dias}
                   onChange={(e) =>

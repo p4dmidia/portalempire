@@ -44,29 +44,11 @@ function hexToHsl(hex: string): string {
   return `${hDeg} ${sPct}% ${lPct}%`;
 }
 
-let lastBackgroundSyncTime = 0;
-
-function verificarSyncEmSegundoPlano() {
-  const agora = Date.now();
-  // Se passaram mais de 3 minutos desde a última verificação em segundo plano, dispara
-  if (agora - lastBackgroundSyncTime > 3 * 60 * 1000) {
-    lastBackgroundSyncTime = agora;
-    import("@/lib/captacao/executar")
-      .then((mod) => mod.executarCaptacao({ manual: false }))
-      .catch((err) => {
-        // Silencioso em background
-        console.warn("[Auto-Sync] Erro na captura em segundo plano:", err?.message || err);
-      });
-  }
-}
-
 export default async function PublicLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Dispara sincronização em segundo plano sem bloquear a renderização
-  verificarSyncEmSegundoPlano();
 
   const [portal, categorias, cidades, urgentes, ultimasFallback] = await Promise.all([
     getPortalData(),

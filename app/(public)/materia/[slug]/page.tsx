@@ -17,8 +17,10 @@ import {
   Tag,
   ArrowLeft,
   Sparkles,
+  Eye,
 } from "lucide-react";
-import { extrairConteudoCompleto } from "@/lib/captacao/extrator-conteudo";
+import { extrairDetalhesMateriaOriginal } from "@/lib/captacao/extrator-conteudo";
+import { otimizarUrlImagem } from "@/lib/portal/image-utils";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export const revalidate = 60;
@@ -56,13 +58,13 @@ export async function generateMetadata({
       url: canonicalUrl,
       type: "article",
       publishedTime: materia.publicado_em || materia.created_at,
-      images: materia.imagem_url ? [{ url: materia.imagem_url }] : [],
+      images: materia.imagem_url ? [{ url: otimizarUrlImagem(materia.imagem_url) }] : [],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: materia.imagem_url ? [materia.imagem_url] : [],
+      images: materia.imagem_url ? [otimizarUrlImagem(materia.imagem_url)] : [],
     },
   };
 }
@@ -78,31 +80,46 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
   // Obter ou extrair o conteúdo completo da matéria
   let conteudoHtml = materia.conteudo_html;
 
-  // Se for matéria captada e o conteúdo estiver ausente, curto ou em formato de resumo inicial,
-  // busca o texto integral na fonte original e salva no banco de dados para os próximos acessos
-  if (
-    materia.origem === "captacao" &&
-    materia.url_original &&
-    (!conteudoHtml || conteudoHtml.length < 600 || conteudoHtml.includes("lead-noticia"))
-  ) {
-    try {
-      const conteudoCompleto = await extrairConteudoCompleto(materia.url_original);
-      if (conteudoCompleto && conteudoCompleto.length > 200) {
-        conteudoHtml = conteudoCompleto;
-        materia.conteudo_html = conteudoCompleto;
+  // Se for matéria captada e o conteúdo estiver ausente/curto, OU a imagem estiver em baixa resolução (ex: miniatura w=200/fit=300),
+  // busca os dados completos e a imagem editorial oficial na fonte original
+  const precisaRecarregarConteudo =
+    !conteudoHtml || conteudoHtml.length < 600 || conteudoHtml.includes("lead-noticia");
+  const precisaRecarregarImagem =
+    !materia.imagem_url ||
+    materia.imagem_url.includes("w=200") ||
+    materia.imagem_url.includes("w=193") ||
+    materia.imagem_url.includes("fit=300") ||
+    materia.imagem_url.includes("read-too");
 
-        // Persiste assincronamente no Supabase para velocidade máxima
+  if (materia.origem === "captacao" && materia.url_original && (precisaRecarregarConteudo || precisaRecarregarImagem)) {
+    try {
+      const detalhes = await extrairDetalhesMateriaOriginal(materia.url_original);
+      const updatesParaSalvar: Record<string, unknown> = {};
+
+      if (detalhes.conteudoHtml && detalhes.conteudoHtml.length > 200 && precisaRecarregarConteudo) {
+        conteudoHtml = detalhes.conteudoHtml;
+        materia.conteudo_html = detalhes.conteudoHtml;
+        updatesParaSalvar.conteudo_html = detalhes.conteudoHtml;
+      }
+
+      if (detalhes.imagemUrl && precisaRecarregarImagem) {
+        materia.imagem_url = detalhes.imagemUrl;
+        updatesParaSalvar.imagem_url = detalhes.imagemUrl;
+      }
+
+      // Persiste assincronamente no Supabase para velocidade máxima
+      if (Object.keys(updatesParaSalvar).length > 0) {
         try {
           const admin = getSupabaseAdmin();
           admin
             .from("materias")
-            .update({ conteudo_html: conteudoCompleto })
+            .update(updatesParaSalvar)
             .eq("id", materia.id)
             .then(() => {});
         } catch {}
       }
     } catch (err) {
-      console.warn("Falha ao carregar conteúdo completo sob demanda:", err);
+      console.warn("Falha ao carregar conteúdo/imagem completos sob demanda:", err);
     }
   }
 
@@ -239,30 +256,42 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
               </div>
             </div>
 
-            {materia.origem === "captacao" && materia.fonte_nome && (
-              <span className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-bold px-3 py-1 rounded-full border border-blue-200 dark:border-blue-900">
-                Via {materia.fonte_nome}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-full text-[11.5px] font-medium border border-slate-200/60 dark:border-slate-700">
+                <Eye className="w-3.5 h-3.5 text-slate-400" />
+                {(materia.visualizacoes || 0).toLocaleString("pt-BR")} visualizações
               </span>
-            )}
+
+              {materia.origem === "captacao" && materia.fonte_nome && (
+                <span className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-bold px-3 py-1 rounded-full border border-blue-200 dark:border-blue-900 text-xs">
+                  Via {materia.fonte_nome}
+                </span>
+              )}
+            </div>
           </div>
         </header>
 
         {/* Imagem Principal da Matéria */}
         {materia.imagem_url && (
           <figure className="space-y-2">
-            <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-md">
+            <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden bg-slate-900 shadow-md border border-slate-200/50 dark:border-slate-800">
+              {/* Fundo sutilmente desfocado que preenche as laterais de imagens verticais ou fora do padrão 16:9, evitando distorções */}
+              <div
+                className="absolute inset-0 bg-cover bg-center blur-2xl opacity-35 scale-110 pointer-events-none"
+                style={{ backgroundImage: `url(${otimizarUrlImagem(materia.imagem_url)})` }}
+              />
               <Image
-                src={materia.imagem_url}
+                src={otimizarUrlImagem(materia.imagem_url)}
                 alt={materia.titulo}
                 fill
                 priority
-                className="object-cover"
+                className="object-cover relative z-10"
                 sizes="(max-width: 1024px) 100vw, 896px"
               />
             </div>
             {materia.imagem_credito && (
               <figcaption className="text-right text-[11px] text-slate-400 italic">
-                Foto: {materia.imagem_credito}
+                {materia.imagem_credito}
               </figcaption>
             )}
           </figure>
