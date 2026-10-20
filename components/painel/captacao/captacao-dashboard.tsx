@@ -26,6 +26,7 @@ import {
   AlertCircle,
   Loader2,
   ShieldAlert,
+  Sparkles,
 } from "lucide-react";
 import { FonteFormDialog, type FonteRSS } from "./fonte-form-dialog";
 import { TestarFeedDialog } from "./testar-feed-dialog";
@@ -110,6 +111,7 @@ export function CaptacaoDashboard({
   // Loading actions
   const [executandoGlobal, setExecutandoGlobal] = useState(false);
   const [executandoFonteId, setExecutandoFonteId] = useState<string | null>(null);
+  const [sincronizandoCatalogo, setSincronizandoCatalogo] = useState(false);
   const [salvandoConfig, setSalvandoConfig] = useState(false);
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
   const [mensagemErro, setMensagemErro] = useState<string | null>(null);
@@ -197,6 +199,30 @@ export function CaptacaoDashboard({
       setMensagemErro(err instanceof Error ? err.message : "Erro ao executar.");
     } finally {
       setExecutandoFonteId(null);
+    }
+  };
+
+  const handleSincronizarCatalogo = async () => {
+    if (sincronizandoCatalogo) return;
+    setSincronizandoCatalogo(true);
+    setMensagemErro(null);
+    setMensagemSucesso(null);
+
+    try {
+      const res = await fetch("/api/admin/captacao/sincronizar-fontes", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao sincronizar catálogo de fontes.");
+
+      setMensagemSucesso(
+        `Catálogo de portais sincronizado com sucesso! ${data.novas_inseridas} novas fontes cadastradas (${data.ja_existentes} já existiam).`
+      );
+      await refreshData();
+    } catch (err: unknown) {
+      setMensagemErro(err instanceof Error ? err.message : "Erro ao sincronizar catálogo.");
+    } finally {
+      setSincronizandoCatalogo(false);
     }
   };
 
@@ -323,6 +349,26 @@ export function CaptacaoDashboard({
           >
             <RefreshCw className={`w-4 h-4 ${isPending ? "animate-spin" : ""}`} />
             Atualizar
+          </Button>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSincronizarCatalogo}
+            disabled={sincronizandoCatalogo || isPending}
+            className="gap-1.5 border-emerald-300 text-emerald-700 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400 dark:hover:bg-emerald-950/40"
+          >
+            {sincronizandoCatalogo ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                Sincronizando Catálogo...
+              </>
+            ) : (
+              <>
+                <Sparkles className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                Importar Novos Portais
+              </>
+            )}
           </Button>
 
           <Button

@@ -164,7 +164,7 @@ export async function executarCaptacao(
   const agora = new Date();
 
   // Filtrar fontes vencidas pelo intervalo (se não for execução forçada/manual individual)
-  const fontesParaExecutar = (todasFontes || []).filter((fonte) => {
+  let fontesParaExecutar = (todasFontes || []).filter((fonte) => {
     if (options.forcar || options.fonteId) return true;
     if (!fonte.ultima_execucao) return true;
     const ultima = new Date(fonte.ultima_execucao);
@@ -174,12 +174,26 @@ export async function executarCaptacao(
     return agora.getTime() - ultima.getTime() >= intervaloMs;
   });
 
+  // Ordenar fontes: as que nunca rodaram primeiro, seguidas pelas que rodaram há mais tempo
+  fontesParaExecutar.sort((a, b) => {
+    const timeA = a.ultima_execucao ? new Date(a.ultima_execucao).getTime() : 0;
+    const timeB = b.ultima_execucao ? new Date(b.ultima_execucao).getTime() : 0;
+    return timeA - timeB;
+  });
+
+  // Em execuções automáticas de cron geral, processa um lote de até 15 fontes por ciclo
+  // para garantir resposta ágil (<25s) e rotação contínua de todo o catálogo
+  const fontesLote =
+    !options.fonteId && !options.forcar && fontesParaExecutar.length > 15
+      ? fontesParaExecutar.slice(0, 15)
+      : fontesParaExecutar;
+
   const categoriasAfetadas = new Set<string>();
   const cidadesAfetadas = new Set<string>();
 
   // 5. Processar com concorrência máxima de 5
   const detalhes = await mapConcorrencia(
-    fontesParaExecutar,
+    fontesLote,
     5,
     async (fonte): Promise<ResultadoFonteCaptacao> => {
       const inicioFonte = new Date().toISOString();
