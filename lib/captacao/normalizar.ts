@@ -119,7 +119,15 @@ export function extrairImagem(item: ParsedFeedItem): string | null {
   if (item.enclosure?.url) {
     const url = item.enclosure.url;
     const type = item.enclosure.type?.toLowerCase() || "";
-    if (type.startsWith("image/") || /\.(jpg|jpeg|png|webp|gif|avif)(\?.*)?$/i.test(url)) {
+    if (
+      !type ||
+      type.startsWith("image/") ||
+      /\.(jpg|jpeg|png|webp|gif|avif)(\?.*)?$/i.test(url) ||
+      url.includes("/media/") ||
+      url.includes("/imagem") ||
+      url.includes("/foto") ||
+      url.includes("/capa/")
+    ) {
       return otimizarUrlImagem(url);
     }
   }
