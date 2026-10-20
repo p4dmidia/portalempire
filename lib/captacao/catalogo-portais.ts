@@ -66,7 +66,7 @@ export const FONTES_CATALOGO: FonteCatalogo[] = [
   { nome: "Diário de Uberlândia", veiculo: "Diário de Uberlândia", url_feed: "https://diariodeuberlandia.com.br/", categoria_slug: "cidades", cidade_slug: "uberlandia" },
   { nome: "Jornal Correio de Uberlândia", veiculo: "Correio de Uberlândia", url_feed: "https://jornalcorreiodeuberlandia.com.br/", categoria_slug: "cidades", cidade_slug: "uberlandia" },
   { nome: "Uberlândia Notícia", veiculo: "Uberlândia Notícia", url_feed: "https://uberlandianoticia.com.br/", categoria_slug: "cidades", cidade_slug: "uberlandia" },
-  { nome: "Paranaíba Mais", veiculo: "Paranaíba Mais", url_feed: "https://paranaibamais.com.br/", categoria_slug: "cidades", cidade_slug: "uberlandia" },
+  { nome: "Paranaíba Mais", veiculo: "Paranaíba Mais", url_feed: "https://paranaibamais.com.br/feed/", categoria_slug: "cidades", cidade_slug: "uberlandia" },
   { nome: "Jornal de Uberaba", veiculo: "Jornal de Uberaba", url_feed: "https://www.jornaldeuberaba.com.br/", categoria_slug: "cidades", cidade_slug: "uberaba" },
   { nome: "Gazeta do Triângulo", veiculo: "Gazeta do Triângulo", url_feed: "https://gazetadotriangulo.com.br/", categoria_slug: "cidades", cidade_slug: "araguari" },
   { nome: "Portal Uai - Minas Gerais", veiculo: "Uai", url_feed: "https://www.uai.com.br/", categoria_slug: "cidades", cidade_slug: "belo-horizonte" },
@@ -82,13 +82,13 @@ export const FONTES_CATALOGO: FonteCatalogo[] = [
   // Rio Grande do Sul e Santa Catarina
   { nome: "POA 24 Horas", veiculo: "POA 24 Horas", url_feed: "https://poa24horas.com.br/", categoria_slug: "cidades", cidade_slug: "porto-alegre" },
   { nome: "Agora RS - Porto Alegre", veiculo: "Agora RS", url_feed: "https://agorars.com/rs/porto-alegre/", categoria_slug: "cidades", cidade_slug: "porto-alegre" },
-  { nome: "Folha de Porto Alegre", veiculo: "Folha de Porto Alegre", url_feed: "https://folhadeportoalegre.com/", categoria_slug: "cidades", cidade_slug: "porto-alegre" },
+  { nome: "Folha de Porto Alegre", veiculo: "Folha de Porto Alegre", url_feed: "https://folhadeportoalegre.com/feed/", categoria_slug: "cidades", cidade_slug: "porto-alegre" },
   { nome: "Tribuna de Porto Alegre", veiculo: "Tribuna de Porto Alegre", url_feed: "https://tribunadeportoalegre.com.br/", categoria_slug: "cidades", cidade_slug: "porto-alegre" },
   { nome: "Plantão Gaúcho", veiculo: "Plantão Gaúcho", url_feed: "https://plantaogaucho.com.br/", categoria_slug: "cidades", cidade_slug: "porto-alegre" },
   { nome: "Grupo Oceano - Rio Grande", veiculo: "Grupo Oceano", url_feed: "https://www.grupooceano.com.br/noticias", categoria_slug: "cidades", cidade_slug: "rio-grande" },
   { nome: "R7 Rio Grande do Sul", veiculo: "R7 RS", url_feed: "https://noticias.r7.com/rio-grande-do-sul/", categoria_slug: "cidades", cidade_slug: "porto-alegre" },
-  { nome: "SCC10 - Santa Catarina", veiculo: "SCC10", url_feed: "https://scc10.com.br/", categoria_slug: "cidades", cidade_slug: "florianopolis" },
-  { nome: "NSC Total - Santa Catarina", veiculo: "NSC Total", url_feed: "https://www.nsctotal.com.br/", categoria_slug: "cidades", cidade_slug: "florianopolis" },
+  { nome: "SCC10 - Santa Catarina", veiculo: "SCC10", url_feed: "https://scc10.com.br/feed/", categoria_slug: "cidades", cidade_slug: "florianopolis" },
+  { nome: "NSC Total - Santa Catarina", veiculo: "NSC Total", url_feed: "https://www.nsctotal.com.br/feed", categoria_slug: "cidades", cidade_slug: "florianopolis" },
   { nome: "Folha do Estado SC", veiculo: "Folha do Estado SC", url_feed: "https://folhadoestadosc.com.br/", categoria_slug: "cidades", cidade_slug: "florianopolis" },
 
   // Goiás e Distrito Federal
@@ -103,7 +103,7 @@ export const FONTES_CATALOGO: FonteCatalogo[] = [
   { nome: "Rio Portal", veiculo: "Rio Portal", url_feed: "https://rioportal.com.br/", categoria_slug: "cidades", cidade_slug: "rio-de-janeiro" },
   { nome: "R7 Rio de Janeiro", veiculo: "R7 Rio", url_feed: "https://noticias.r7.com/rio-de-janeiro/?estado=rj", categoria_slug: "cidades", cidade_slug: "rio-de-janeiro" },
   { nome: "ES365 - Espírito Santo", veiculo: "ES365", url_feed: "https://es365.com.br/", categoria_slug: "cidades", cidade_slug: "vitoria" },
-  { nome: "Folha Vitória", veiculo: "Folha Vitória", url_feed: "https://www.folhavitoria.com.br/", categoria_slug: "cidades", cidade_slug: "vitoria" },
+  { nome: "Folha Vitória", veiculo: "Folha Vitória", url_feed: "https://www.folhavitoria.com.br/feed/", categoria_slug: "cidades", cidade_slug: "vitoria" },
 
   // Bahia, Sergipe e Alagoas
   { nome: "Portal Notícias Bahia", veiculo: "Portal Bahia", url_feed: "https://portalnoticiasbahia.com.br/", categoria_slug: "cidades", cidade_slug: "salvador" },
@@ -113,7 +113,7 @@ export const FONTES_CATALOGO: FonteCatalogo[] = [
   { nome: "Tribuna Hoje - Alagoas", veiculo: "Tribuna Hoje", url_feed: "https://tribunahoje.jor.br/", categoria_slug: "cidades", cidade_slug: "maceio" },
 
   // Centro-Oeste: Mato Grosso e Mato Grosso do Sul
-  { nome: "Agora MT", veiculo: "Agora MT", url_feed: "https://www.agoramt.com.br/", categoria_slug: "cidades", cidade_slug: "cuiaba" },
+  { nome: "Agora MT", veiculo: "Agora MT", url_feed: "https://www.agoramt.com.br/feed", categoria_slug: "cidades", cidade_slug: "cuiaba" },
   { nome: "MT Notícia", veiculo: "MT Notícia", url_feed: "https://mtenoticia.com.br/", categoria_slug: "cidades", cidade_slug: "cuiaba" },
   { nome: "Portal Mato Grosso", veiculo: "Portal Mato Grosso", url_feed: "https://portalmatogrosso.com.br/", categoria_slug: "cidades", cidade_slug: "cuiaba" },
   { nome: "Portal de Notícias MS", veiculo: "Portal MS", url_feed: "https://portaldenoticiasms.com.br/", categoria_slug: "cidades", cidade_slug: "campo-grande" },
@@ -172,7 +172,7 @@ export const FONTES_CATALOGO: FonteCatalogo[] = [
   { nome: "Valor Econômico", veiculo: "Valor Econômico", url_feed: "https://valor.globo.com/", categoria_slug: "economia" },
 
   // Tecnologia e Ciência
-  { nome: "TecMundo", veiculo: "TecMundo", url_feed: "https://tecmundo.net/", categoria_slug: "geral" },
+  { nome: "TecMundo", veiculo: "TecMundo", url_feed: "https://www.tecmundo.com.br/", categoria_slug: "geral" },
   { nome: "Canaltech", veiculo: "Canaltech", url_feed: "https://canaltech.com.br/ultimas/", categoria_slug: "geral" },
 
   // Esportes
@@ -181,7 +181,7 @@ export const FONTES_CATALOGO: FonteCatalogo[] = [
   { nome: "ESPN Brasil", veiculo: "ESPN Brasil", url_feed: "https://www.espn.com.br/", categoria_slug: "esportes" },
 
   // Cultura, Entretenimento e Famosos
-  { nome: "Revista Caras", veiculo: "Caras", url_feed: "https://caras.com.br/", categoria_slug: "entretenimento" },
+  { nome: "Revista Caras", veiculo: "Caras", url_feed: "https://caras.com.br/feed", categoria_slug: "entretenimento" },
   { nome: "IstoÉ Gente", veiculo: "IstoÉ", url_feed: "https://istoe.com.br/gente", categoria_slug: "entretenimento" },
 
   // Educação
@@ -189,7 +189,7 @@ export const FONTES_CATALOGO: FonteCatalogo[] = [
   { nome: "Informe Educação", veiculo: "Informe Educação", url_feed: "https://www.informeeducacao.com.br/", categoria_slug: "educacao" },
 
   // Turismo e Viagens
-  { nome: "Diário do Turismo", veiculo: "Diário do Turismo", url_feed: "https://diariodoturismo.com.br/", categoria_slug: "geral" },
+  { nome: "Diário do Turismo", veiculo: "Diário do Turismo", url_feed: "https://diariodoturismo.com.br/feed/", categoria_slug: "geral" },
   { nome: "MG Turismo", veiculo: "MG Turismo", url_feed: "https://mgturismo.com.br/", categoria_slug: "geral" },
   { nome: "VoeNews Turismo", veiculo: "VoeNews", url_feed: "https://voenews.com.br/", categoria_slug: "geral" },
 
