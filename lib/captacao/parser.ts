@@ -52,15 +52,22 @@ const parser = new Parser<Record<string, unknown>, ParsedFeedItem>({
   },
 });
 
-/**
- * Faz o download e parsing de um feed RSS ou Atom com timeout de 15 segundos e suporte a encoding.
- */
-export async function parseFeedUrl(feedUrl: string): Promise<ParsedFeed> {
+function isHtml(text: string): boolean {
+  const trimmed = text.trim().toLowerCase();
+  return (
+    trimmed.startsWith("<!doctype html") ||
+    trimmed.startsWith("<html") ||
+    (trimmed.includes("<head") && trimmed.includes("<body")) ||
+    (!trimmed.includes("<rss") && !trimmed.includes("<feed") && !trimmed.includes("<channel"))
+  );
+}
+
+async function fetchRawXml(url: string, timeoutMs = 15000): Promise<string> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 15000);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
   try {
-    const response = await fetch(feedUrl, {
+    const response = await fetch(url, {
       signal: controller.signal,
       headers: {
         "User-Agent":
@@ -77,11 +84,82 @@ export async function parseFeedUrl(feedUrl: string): Promise<ParsedFeed> {
     }
 
     const buffer = await response.arrayBuffer();
-    
+
     // Tratamento de encoding (UTF-8 com fallback para ISO-8859-1)
     let xmlText = new TextDecoder("utf-8").decode(buffer);
-    if (xmlText.toLowerCase().includes("encoding=\"iso-8859-1\"") || xmlText.toLowerCase().includes("encoding='iso-8859-1'")) {
+    if (
+      xmlText.toLowerCase().includes('encoding="iso-8859-1"') ||
+      xmlText.toLowerCase().includes("encoding='iso-8859-1'")
+    ) {
       xmlText = new TextDecoder("iso-8859-1").decode(buffer);
+    }
+
+    return xmlText;
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * Faz o download e parsing de um feed RSS ou Atom com timeout de 15 segundos,
+ * autodescoberta inteligente caso o usuário forneça a URL base do site e tratamento de encoding.
+ */
+export async function parseFeedUrl(feedUrl: string): Promise<ParsedFeed> {
+  try {
+    let xmlText = await fetchRawXml(feedUrl);
+
+    // Se o retorno for uma página HTML (ex: o usuário colou a URL principal do site em vez do link direto do RSS)
+    if (isHtml(xmlText)) {
+      // 1. Tenta extrair a tag <link rel="alternate" type="application/rss+xml"> do HTML
+      const match =
+        xmlText.match(/<link[^>]+type=["']application\/(?:rss|atom)\+xml["'][^>]+href=["']([^"']+)["']/i) ||
+        xmlText.match(/<link[^>]+href=["']([^"']+)["'][^>]+type=["']application\/(?:rss|atom)\+xml["']/i);
+
+      const candidatos: string[] = [];
+      if (match && match[1]) {
+        try {
+          candidatos.push(new URL(match[1], feedUrl).toString());
+        } catch {}
+      }
+
+      // 2. Testa os sufixos padrão mais comuns de feeds de notícias (/rss.xml, /feed, /feed/, /rss)
+      const baseUrl = feedUrl.replace(/\/+$/, "");
+      candidatos.push(`${baseUrl}/rss.xml`, `${baseUrl}/feed`, `${baseUrl}/feed/`, `${baseUrl}/rss`);
+
+      let feedEncontrado: any = null;
+      for (const cand of candidatos) {
+        if (cand === feedUrl) continue;
+        try {
+          const candXml = await fetchRawXml(cand, 8000);
+          if (!isHtml(candXml)) {
+            feedEncontrado = await parser.parseString(candXml);
+            if (feedEncontrado && feedEncontrado.items) {
+              console.log(`[Auto-Discovery RSS] Feed localizado com sucesso em: ${cand}`);
+              break;
+            }
+          }
+        } catch {}
+      }
+
+      if (feedEncontrado) {
+        const rawItems = feedEncontrado.items || [];
+        rawItems.sort((a: any, b: any) => {
+          const timeA = a.pubDate ? new Date(a.pubDate).getTime() : 0;
+          const timeB = b.pubDate ? new Date(b.pubDate).getTime() : 0;
+          return timeB - timeA;
+        });
+
+        return {
+          title: feedEncontrado.title,
+          description: feedEncontrado.description,
+          link: feedEncontrado.link || feedUrl,
+          items: rawItems,
+        };
+      }
+
+      throw new Error(
+        `A URL informada ("${feedUrl}") é uma página de site (HTML) e não um feed RSS válido. Tente adicionar o sufixo do feed (ex: ${baseUrl}/rss.xml ou ${baseUrl}/feed).`
+      );
     }
 
     const feed = await parser.parseString(xmlText);
@@ -101,9 +179,15 @@ export async function parseFeedUrl(feedUrl: string): Promise<ParsedFeed> {
       items: rawItems,
     };
   } catch (error: unknown) {
-    clearTimeout(timeoutId);
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("Timeout de 15 segundos excedido ao carregar o feed RSS.");
+    }
+    // Tratamento amigável para erro do parser SAX em HTML com atributos sem valor
+    if (error instanceof Error && error.message.includes("Attribute without value")) {
+      const baseUrl = feedUrl.replace(/\/+$/, "");
+      throw new Error(
+        `A URL fornecida não é um arquivo XML/RSS direto (é uma página web HTML). Para este portal, utilize a URL do feed: ${baseUrl}/rss.xml`
+      );
     }
     throw error;
   }
