@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 export async function PATCH(
@@ -16,16 +17,30 @@ export async function PATCH(
       return NextResponse.json({ error: "Status inválido." }, { status: 400 });
     }
 
-    const supabase = getSupabaseAdmin();
+    const supabase = await createClient();
+    const supabaseAdmin = getSupabaseAdmin();
 
-    const { data: coluna, error } = await supabase
+    let { data: coluna, error } = await supabase
       .from("colunas")
       .update({ status })
       .eq("id", id)
       .select("*, cidade:cidades(slug)")
-      .single();
+      .maybeSingle();
 
-    if (error) throw error;
+    if (error || !coluna) {
+      const resAdmin = await supabaseAdmin
+        .from("colunas")
+        .update({ status })
+        .eq("id", id)
+        .select("*, cidade:cidades(slug)")
+        .maybeSingle();
+      if (resAdmin.data) {
+        coluna = resAdmin.data;
+        error = null;
+      }
+    }
+
+    if (error || !coluna) throw error || new Error("Coluna não encontrada.");
 
     try {
       revalidatePath("/");

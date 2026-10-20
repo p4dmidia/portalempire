@@ -55,7 +55,10 @@ export function ColunasColunistaView({
     if (!confirm(`Tem certeza que deseja excluir a coluna "${nome}"?`)) return;
     try {
       const res = await fetch(`/api/colunas/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Erro ao excluir coluna.");
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.error || "Erro ao excluir coluna.");
+      }
       setColunas((prev) => prev.filter((c) => c.id !== id));
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Erro ao excluir.");

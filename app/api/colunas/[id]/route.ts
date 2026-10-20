@@ -64,12 +64,21 @@ export async function PUT(
     const supabase = await createClient();
     const supabaseAdmin = getSupabaseAdmin();
 
-    // 1. Verificar propriedade da coluna
-    const { data: colunaExistente } = await supabaseAdmin
+    // 1. Verificar propriedade da coluna (usando cliente autenticado com cookies do admin)
+    let { data: colunaExistente } = await supabase
       .from("colunas")
       .select("id, dono_id, slug, status, cidade:cidades(slug)")
       .eq("id", id)
-      .single();
+      .maybeSingle();
+
+    if (!colunaExistente) {
+      const resAdmin = await supabaseAdmin
+        .from("colunas")
+        .select("id, dono_id, slug, status, cidade:cidades(slug)")
+        .eq("id", id)
+        .maybeSingle();
+      colunaExistente = resAdmin.data;
+    }
 
     if (!colunaExistente) {
       return NextResponse.json({ error: "Coluna não encontrada." }, { status: 404 });
@@ -92,7 +101,7 @@ export async function PUT(
       updates.status = dadosValidados.status;
     }
 
-    const { data: colunaAtualizada, error: updateError } = await supabase
+    let { data: colunaAtualizada, error: updateError } = await supabase
       .from("colunas")
       .update(updates)
       .eq("id", id)
@@ -101,7 +110,24 @@ export async function PUT(
         cidade:cidades(id, nome, slug, uf),
         dono:profiles(id, nome, email, foto_url, slug)
       `)
-      .single();
+      .maybeSingle();
+
+    if (updateError || !colunaAtualizada) {
+      const resAdminUp = await supabaseAdmin
+        .from("colunas")
+        .update(updates)
+        .eq("id", id)
+        .select(`
+          *,
+          cidade:cidades(id, nome, slug, uf),
+          dono:profiles(id, nome, email, foto_url, slug)
+        `)
+        .maybeSingle();
+      if (resAdminUp.data) {
+        colunaAtualizada = resAdminUp.data;
+        updateError = null;
+      }
+    }
 
     if (updateError) {
       if (updateError.code === "23505") {
@@ -118,12 +144,12 @@ export async function PUT(
       revalidatePath("/");
       revalidatePath("/colunas");
       revalidatePath(`/coluna/${colunaExistente.slug}`);
-      if (colunaAtualizada.slug !== colunaExistente.slug) {
+      if (colunaAtualizada && colunaAtualizada.slug !== colunaExistente.slug) {
         revalidatePath(`/coluna/${colunaAtualizada.slug}`);
       }
-      const cidSlug = Array.isArray(colunaAtualizada.cidade)
+      const cidSlug = Array.isArray(colunaAtualizada?.cidade)
         ? colunaAtualizada.cidade[0]?.slug
-        : (colunaAtualizada.cidade as { slug?: string } | null)?.slug;
+        : (colunaAtualizada?.cidade as { slug?: string } | null)?.slug;
       if (cidSlug) {
         revalidatePath(`/cidade/${cidSlug}`);
       }
@@ -155,11 +181,21 @@ export async function DELETE(
     const supabase = await createClient();
     const supabaseAdmin = getSupabaseAdmin();
 
-    const { data: coluna } = await supabaseAdmin
+    // 1. Buscar a coluna usando o cliente autenticado do usuário (onde o RLS valida admin/dono)
+    let { data: coluna } = await supabase
       .from("colunas")
-      .select("id, dono_id, slug, cidade:cidades(slug)")
+      .select("id, dono_id, slug, status, cidade:cidades(slug)")
       .eq("id", id)
-      .single();
+      .maybeSingle();
+
+    if (!coluna) {
+      const resAdmin = await supabaseAdmin
+        .from("colunas")
+        .select("id, dono_id, slug, status, cidade:cidades(slug)")
+        .eq("id", id)
+        .maybeSingle();
+      coluna = resAdmin.data;
+    }
 
     if (!coluna) {
       return NextResponse.json({ error: "Coluna não encontrada." }, { status: 404 });
@@ -169,10 +205,19 @@ export async function DELETE(
       return NextResponse.json({ error: "Acesso negado." }, { status: 403 });
     }
 
-    const { error: deleteError } = await supabase
+    // 2. Exclui usando o cliente autenticado (com fallback para admin)
+    let { error: deleteError } = await supabase
       .from("colunas")
       .delete()
       .eq("id", id);
+
+    if (deleteError) {
+      const resDel = await supabaseAdmin
+        .from("colunas")
+        .delete()
+        .eq("id", id);
+      deleteError = resDel.error;
+    }
 
     if (deleteError) throw deleteError;
 
