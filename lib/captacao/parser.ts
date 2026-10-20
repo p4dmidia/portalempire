@@ -287,8 +287,53 @@ function scrapeNewsFromHtml(html: string, pageUrl: string): ParsedFeedItem[] {
 }
 
 /**
+ * Ponte universal de resgate para portais em SPAs (React <div id="root">),
+ * portais com WAF restritivo (Cloudflare 403) ou sem feed público direto.
+ */
+async function fetchGoogleNewsBridge(targetUrl: string): Promise<ParsedFeed | null> {
+  try {
+    const host = new URL(targetUrl).hostname.replace(/^www\./, "");
+    if (!host || !host.includes(".")) return null;
+
+    const bridgeUrl = `https://news.google.com/rss/search?q=site:${host}&hl=pt-BR&gl=BR&ceid=BR:pt-419`;
+    console.log(`[Universal RSS Bridge] Tentando resgate para domínio: ${host}`);
+    const bridgeXml = await fetchRawXml(bridgeUrl, 8000);
+    if (!isHtml(bridgeXml)) {
+      const parsed = await parser.parseString(bridgeXml);
+      const rawItems = parsed.items || [];
+      if (rawItems.length > 0) {
+        console.log(`[Universal RSS Bridge] ${rawItems.length} matérias resgatadas com sucesso para ${host}`);
+        const cleanItems: ParsedFeedItem[] = rawItems.map((item) => {
+          let cleanTitle = (item.title || "").trim();
+          // Remove sufixo comum de veículo adicionado pelo agregador (ex: " - Nome do Portal")
+          cleanTitle = cleanTitle.replace(/\s+-\s+[^-]+$/, "").trim();
+          return {
+            title: cleanTitle || item.title,
+            link: item.link,
+            pubDate: item.pubDate || new Date().toISOString(),
+            summary: item.contentSnippet || item.summary || cleanTitle,
+            contentSnippet: item.contentSnippet || item.summary || cleanTitle,
+          };
+        });
+
+        return {
+          title: parsed.title || `Notícias - ${host}`,
+          description: `Feed de notícias de ${host}`,
+          link: targetUrl,
+          items: cleanItems,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn(`[Universal RSS Bridge] Resgate não obteve itens para ${targetUrl}:`, err);
+  }
+  return null;
+}
+
+/**
  * Faz o download e parsing de um feed RSS ou Atom com timeout,
- * autodescoberta inteligente de feed RSS e fallback para extração HTML de portais modernos.
+ * autodescoberta inteligente de feed RSS, fallback para extração HTML de portais modernos
+ * e ponte universal de resgate para SPAs (React) e portais protegidos por WAF.
  */
 export async function parseFeedUrl(feedUrl: string): Promise<ParsedFeed> {
   let targetUrl = feedUrl.trim();
@@ -300,7 +345,7 @@ export async function parseFeedUrl(feedUrl: string): Promise<ParsedFeed> {
   try {
     xmlText = await fetchRawXml(targetUrl);
   } catch (err) {
-    // Se a URL digitada deu erro (403/404), tenta os caminhos padrões de RSS da raiz em paralelo antes de desistir
+    // Se a URL digitada deu erro (403/404/202), tenta os caminhos padrões de RSS da raiz em paralelo antes de desistir
     try {
       const parsedUrl = new URL(targetUrl);
       const origin = parsedUrl.origin;
@@ -309,6 +354,7 @@ export async function parseFeedUrl(feedUrl: string): Promise<ParsedFeed> {
         `${origin}/feed/`,
         `${origin}/rss`,
         `${origin}/rss.xml`,
+        `${origin}/sitemap.xml`,
       ];
 
       const resultadosFallback = await Promise.allSettled(
@@ -350,18 +396,36 @@ export async function parseFeedUrl(feedUrl: string): Promise<ParsedFeed> {
       // Se a URL tinha pathname (ex: /noticias) e falhou, tenta a raiz do site como HTML
       if (parsedUrl.pathname !== "/" && parsedUrl.pathname !== "") {
         console.log(`[Fallback Raiz] Tentando página inicial: ${origin}`);
-        xmlText = await fetchRawXml(origin);
-        targetUrl = origin;
+        try {
+          xmlText = await fetchRawXml(origin);
+          targetUrl = origin;
+        } catch {
+          // Se a raiz também falhar, tenta o resgate universal antes de jogar erro
+          const bridgeResult = await fetchGoogleNewsBridge(targetUrl);
+          if (bridgeResult && bridgeResult.items.length > 0) {
+            return bridgeResult;
+          }
+          throw err;
+        }
       } else {
+        // Tenta a ponte universal de resgate
+        const bridgeResult = await fetchGoogleNewsBridge(targetUrl);
+        if (bridgeResult && bridgeResult.items.length > 0) {
+          return bridgeResult;
+        }
         throw err;
       }
     } catch {
+      const bridgeResult = await fetchGoogleNewsBridge(targetUrl);
+      if (bridgeResult && bridgeResult.items.length > 0) {
+        return bridgeResult;
+      }
       throw err;
     }
   }
 
   try {
-    // Se o retorno for uma página HTML (ex: portal sem feed RSS direto ou Next.js)
+    // Se o retorno for uma página HTML (ex: portal sem feed RSS direto, Next.js ou React SPA)
     if (isHtml(xmlText)) {
       // 1. Tenta extrair a tag <link rel="alternate" type="application/rss+xml"> do HTML
       const match =
@@ -375,9 +439,15 @@ export async function parseFeedUrl(feedUrl: string): Promise<ParsedFeed> {
         } catch {}
       }
 
-      // 2. Testa os sufixos padrão mais comuns de feeds de notícias (/feed, /feed/, /rss.xml, /rss) em paralelo
+      // 2. Testa os sufixos padrão mais comuns de feeds de notícias em paralelo
       const baseUrl = targetUrl.replace(/\/+$/, "");
-      const sufixosPadrao = [`${baseUrl}/feed`, `${baseUrl}/feed/`, `${baseUrl}/rss.xml`, `${baseUrl}/rss`];
+      const sufixosPadrao = [
+        `${baseUrl}/feed`,
+        `${baseUrl}/feed/`,
+        `${baseUrl}/rss.xml`,
+        `${baseUrl}/rss`,
+        `${baseUrl}/sitemap.xml`,
+      ];
       for (const s of sufixosPadrao) {
         if (!candidatos.includes(s)) candidatos.push(s);
       }
@@ -419,8 +489,7 @@ export async function parseFeedUrl(feedUrl: string): Promise<ParsedFeed> {
         };
       }
 
-      // 3. Fallback inteligente: se o site não possuir feed XML nativo (portais Next.js/HTML como Gazeta de Alphaville, Cotia Agora, etc.),
-      // faz a extração estruturada de matérias diretamente do HTML
+      // 3. Extração estruturada de matérias diretamente do HTML (Gazeta de Alphaville, Cotia Agora, MG Turismo, etc.)
       const itensHtml = scrapeNewsFromHtml(xmlText, targetUrl);
       if (itensHtml.length > 0) {
         console.log(`[HTML Scraper] ${itensHtml.length} notícias captadas da página HTML de: ${targetUrl}`);
@@ -433,6 +502,13 @@ export async function parseFeedUrl(feedUrl: string): Promise<ParsedFeed> {
           link: targetUrl,
           items: itensHtml,
         };
+      }
+
+      // 4. Se o HTML não gerou matérias (ex: React SPA com <div id="root"> ou bloqueio silencioso),
+      // aciona a ponte universal de resgate
+      const bridgeRes = await fetchGoogleNewsBridge(targetUrl);
+      if (bridgeRes && bridgeRes.items.length > 0) {
+        return bridgeRes;
       }
 
       throw new Error(
@@ -458,6 +534,11 @@ export async function parseFeedUrl(feedUrl: string): Promise<ParsedFeed> {
     };
   } catch (error: unknown) {
     if (error instanceof Error && error.name === "AbortError") {
+      // Se deu timeout, tenta a ponte de resgate antes de falhar
+      const bridgeRes = await fetchGoogleNewsBridge(targetUrl);
+      if (bridgeRes && bridgeRes.items.length > 0) {
+        return bridgeRes;
+      }
       throw new Error("Timeout de 15 segundos excedido ao carregar o feed RSS.");
     }
 
@@ -479,6 +560,12 @@ export async function parseFeedUrl(feedUrl: string): Promise<ParsedFeed> {
           items: itensResgate,
         };
       }
+    }
+
+    // Última tentativa de resgate universal antes de estourar erro
+    const bridgeRes = await fetchGoogleNewsBridge(targetUrl);
+    if (bridgeRes && bridgeRes.items.length > 0) {
+      return bridgeRes;
     }
 
     throw error;

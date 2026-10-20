@@ -133,6 +133,28 @@ export async function POST() {
       }
     }
 
+    // 5. Corrigir URLs antigas conhecidas (ex: Lance Futebol com endpoint 404) e limpar status de erro para reexecução limpa
+    try {
+      await supabase
+        .from("fontes_rss")
+        .update({
+          url_feed: "https://www.lance.com.br/futebol-nacional/",
+          ultimo_erro: null,
+          ultimo_status: null,
+        })
+        .or("url_feed.ilike.%lance.com.br/futebol,url_feed.ilike.%lance.com.br/futebol/");
+
+      await supabase
+        .from("fontes_rss")
+        .update({
+          ultimo_erro: null,
+          ultimo_status: null,
+        })
+        .eq("ultimo_status", "erro");
+    } catch (cleanErr) {
+      console.warn("Aviso na limpeza de status de fontes:", cleanErr);
+    }
+
     const mensagemPartes = [];
     if (novasInseridas > 0) mensagemPartes.push(`${novasInseridas} novas fontes adicionadas`);
     if (atualizadas > 0) mensagemPartes.push(`${atualizadas} fontes atualizadas com novas URLs`);

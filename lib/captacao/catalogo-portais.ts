@@ -177,7 +177,8 @@ export const FONTES_CATALOGO: FonteCatalogo[] = [
 
   // Esportes
   { nome: "ge.globo - Esportes", veiculo: "ge.globo", url_feed: "https://ge.globo.com/", categoria_slug: "esportes" },
-  { nome: "Lance! - Notícias do Esporte", veiculo: "Lance!", url_feed: "https://www.lance.com.br/", categoria_slug: "esportes" },
+  { nome: "Lance! - Notícias do Esporte", veiculo: "Lance!", url_feed: "https://www.lance.com.br/futebol-nacional/", categoria_slug: "esportes" },
+  { nome: "Lance! - Futebol", veiculo: "Lance!", url_feed: "https://www.lance.com.br/futebol-nacional/", categoria_slug: "esportes" },
   { nome: "ESPN Brasil", veiculo: "ESPN Brasil", url_feed: "https://www.espn.com.br/", categoria_slug: "esportes" },
 
   // Cultura, Entretenimento e Famosos
