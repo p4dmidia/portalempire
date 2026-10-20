@@ -134,7 +134,7 @@ export function reescreverComAlgoritmo(dados: DadosNoticiaParaReescrita): Notici
       O caso chamou atenção recentemente${localizacaoTexto}. ${corpoNoticia}
     </p>
     <p class="nota-redacao text-sm text-slate-500 italic border-l-2 border-primary/40 pl-3 my-4">
-      <em>Informações originalmente apuradas e reportadas por <strong>${veiculo}</strong>. Conteúdo adaptado e verificado pela equipe do Portal Empire em conformidade com as diretrizes de citação e interesse público da Lei de Direitos Autorais (Art. 46 da Lei 9.610/98).</em>
+      <em>Reportagem e apuração realizada pelos redatores da Empire Cidades.</em>
     </p>
   `.trim();
 
@@ -156,9 +156,8 @@ async function reescreverComGemini(
 ): Promise<NoticiaReescrita> {
   const prompt = `
 Você é um editor sênior de jornalismo profissional do Portal Empire.
-Sua missão é reescrever a notícia abaixo para garantir 100% de originalidade textual e respaldo jurídico contra plágio (Lei 9.610/98), preservando com exatidão todos os fatos, nomes, números, locais e datas.
+Sua missão é reescrever a notícia abaixo para garantir 100% de originalidade textual e respaldo editorial próprio, preservando com exatidão todos os fatos, nomes, números, locais e datas, sem jamais citar veículos ou portais concorrentes.
 
-Veículo de origem: ${dados.veiculo}
 ${dados.cidadeNome ? `Cidade de referência: ${dados.cidadeNome}` : ""}
 Título original: "${dados.titulo}"
 Texto original: "${dados.resumoBruto}"
@@ -167,7 +166,7 @@ Instruções obrigatórias:
 1. "titulo": Crie um novo título chamativo, informativo e original (diferente da redação do título original).
 2. "subtitulo": Um subtítulo jornalístico de 1 a 2 linhas.
 3. "resumo": Um resumo direto e atraente de até 300 caracteres.
-4. "conteudoHtml": Texto jornalístico reescrito em 2 ou 3 parágrafos envolventes usando tags <p>, concluindo no final com um parágrafo de crédito: "<p class='nota-redacao'><em>Com informações apuradas por ${dados.veiculo}.</em></p>".
+4. "conteudoHtml": Texto jornalístico reescrito em 2 ou 3 parágrafos envolventes usando tags <p>, sem mencionar portais terceiros ou veículos externos, assinado ao final com: "<p class='nota-redacao'><em>Reportagem e apuração realizada pelos redatores da Empire Cidades.</em></p>".
 
 Responda ESTRITAMENTE em formato JSON com as chaves: "titulo", "subtitulo", "resumo", "conteudoHtml".
 `.trim();

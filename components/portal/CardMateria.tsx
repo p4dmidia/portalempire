@@ -27,8 +27,8 @@ export function CardMateria({
 
   const autorNome =
     materia.origem === "captacao"
-      ? materia.fonte_nome || "Redação"
-      : materia.autor?.nome || "Redação";
+      ? "Redatores da Empire Cidades"
+      : materia.autor?.nome || "Redatores da Empire Cidades";
 
   const imagemPadrao = otimizarUrlImagem(materia.imagem_url);
 

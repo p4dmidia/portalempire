@@ -139,6 +139,15 @@ export async function extrairDetalhesMateriaOriginal(url: string): Promise<Detal
       "foto:",
       "reprodução/",
       "publicidade",
+      "fonte: g1",
+      "fonte: uol",
+      "fonte: folha",
+      "fonte: cnn",
+      "fonte: r7",
+      "leia mais no g1",
+      "leia mais no uol",
+      "veja mais no g1",
+      "confira no g1",
     ];
 
     for (const m of pMatches) {

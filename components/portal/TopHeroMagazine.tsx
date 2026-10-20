@@ -57,8 +57,7 @@ export function TopHeroMagazine({
 
   const extrairAutor = (mat: MateriaData) => {
     if (mat.autor?.nome) return mat.autor.nome;
-    if (mat.fonte_nome) return mat.fonte_nome;
-    return "Marcelo Henrique de Carvalho";
+    return "Redatores da Empire Cidades";
   };
 
   return (

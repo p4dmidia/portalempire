@@ -144,8 +144,17 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
 
   const autorNome =
     materia.origem === "captacao"
-      ? materia.fonte_nome || "Redação"
-      : materia.autor?.nome || "Redação";
+      ? "Redatores da Empire Cidades"
+      : materia.autor?.nome || "Redatores da Empire Cidades";
+
+  // Limpeza profunda de quaisquer menções a veículos externos ou notas de redação legadas no corpo da matéria
+  if (materia.origem === "captacao" && conteudoHtml) {
+    conteudoHtml = conteudoHtml
+      .replace(/<p[^>]*class=["'][^"']*nota-redacao[^"']*["'][^>]*>[\s\S]*?<\/p>/gi, "")
+      .replace(/<p[^>]*><em>(?:Informações|Com informações|Fonte|Reportagem original|Segundo o|De acordo com)[\s\S]*?<\/em><\/p>/gi, "")
+      .replace(/Informações originalmente apuradas e reportadas por[^<.]*\.?/gi, "Reportagem e apuração realizada pelos redatores da Empire Cidades.")
+      .replace(/(?:Segundo|De acordo com|Conforme apurou|Conforme apurado pelo?)\s+(?:o\s+)?(?:G1|UOL|Folha|CNN|CNN Brasil|Estadão|O Globo|R7|Metrópoles|Terra|InfoMoney|Valor Econômico|Reuters)/gi, "Segundo apuração dos redatores da Empire Cidades");
+  }
 
   // JSON-LD NewsArticle para SEO avançado
   const jsonLd = {
@@ -262,11 +271,6 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
                 {(materia.visualizacoes || 0).toLocaleString("pt-BR")} visualizações
               </span>
 
-              {materia.origem === "captacao" && materia.fonte_nome && (
-                <span className="bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 font-bold px-3 py-1 rounded-full border border-blue-200 dark:border-blue-900 text-xs">
-                  Via {materia.fonte_nome}
-                </span>
-              )}
             </div>
           </div>
         </header>
@@ -289,11 +293,11 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
                 sizes="(max-width: 1024px) 100vw, 896px"
               />
             </div>
-            {materia.imagem_credito && (
-              <figcaption className="text-right text-[11px] text-slate-400 italic">
-                {materia.imagem_credito}
-              </figcaption>
-            )}
+            <figcaption className="text-right text-[11px] text-slate-400 italic">
+              {materia.origem === "captacao"
+                ? "Foto: Divulgação / Redação Empire Cidades"
+                : materia.imagem_credito || "Foto: Divulgação"}
+            </figcaption>
           </figure>
         )}
 

@@ -13,7 +13,6 @@ import { TopHeroMagazine } from "@/components/portal/TopHeroMagazine";
 import { FaixaUltimasNoticias } from "@/components/portal/FaixaUltimasNoticias";
 import { BlocoEditoria } from "@/components/portal/BlocoEditoria";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
-import { FaixaFontes } from "@/components/portal/FaixaFontes";
 import { AdSlot } from "@/components/portal/AdSlot";
 import { MapPin, Video, ChevronRight, MessageCircle } from "lucide-react";
 
@@ -285,9 +284,6 @@ export default async function PortalHomePage() {
           </div>
         </section>
       )}
-
-      {/* 7. Faixa de Fontes e Veículos Parceiros */}
-      <FaixaFontes fontes={fontes} />
     </div>
   );
 }
