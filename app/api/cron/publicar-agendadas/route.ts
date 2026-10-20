@@ -4,10 +4,20 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get("Authorization");
+    const { searchParams } = new URL(request.url);
+    const authHeader = request.headers.get("Authorization") || request.headers.get("authorization");
+    const querySecret = searchParams.get("secret");
+    const isVercelCron = request.headers.get("x-vercel-cron") !== null;
     const cronSecret = process.env.CRON_SECRET;
 
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    if (
+      cronSecret &&
+      cronSecret !== "dummy-cron-secret" &&
+      !isVercelCron &&
+      authHeader !== `Bearer ${cronSecret}` &&
+      querySecret !== cronSecret &&
+      process.env.NODE_ENV === "production"
+    ) {
       return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
     }
 
@@ -58,4 +68,8 @@ export async function POST(request: NextRequest) {
     const message = error instanceof Error ? error.message : "Erro desconhecido";
     return NextResponse.json({ error: message }, { status: 500 });
   }
+}
+
+export async function GET(request: NextRequest) {
+  return POST(request);
 }

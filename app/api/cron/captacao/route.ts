@@ -5,16 +5,19 @@ export const maxDuration = 60; // 60 segundos de timeout na Vercel
 export const dynamic = "force-dynamic";
 
 async function handleCaptacao(request: Request) {
+  const { searchParams } = new URL(request.url);
   const authHeader = request.headers.get("authorization");
+  const querySecret = searchParams.get("secret");
   const isVercelCron = request.headers.get("x-vercel-cron") !== null;
   const cronSecret = process.env.CRON_SECRET;
 
-  // Se houver CRON_SECRET válido configurado, valida (a menos que seja chamada oficial Vercel Cron ou ambiente dev)
+  // Se houver CRON_SECRET válido configurado, valida (aceita Authorization Bearer, query ?secret= ou Vercel Cron nativo)
   if (
     cronSecret &&
     cronSecret !== "dummy-cron-secret" &&
     !isVercelCron &&
     authHeader !== `Bearer ${cronSecret}` &&
+    querySecret !== cronSecret &&
     process.env.NODE_ENV === "production"
   ) {
     return NextResponse.json(
