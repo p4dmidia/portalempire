@@ -106,6 +106,28 @@ export function limparResumo(htmlOrText?: string, maxChars = 400): string {
   return cortado.trim() + "...";
 }
 
+function isUrlImagemValida(url?: string | null): boolean {
+  if (!url || typeof url !== "string") return false;
+  const u = url.toLowerCase();
+  if (
+    u.includes("googleusercontent.com") ||
+    u.includes("gstatic.com") ||
+    u.includes("google.com/images") ||
+    u.includes("news.google.com") ||
+    u.includes("1x1") ||
+    u.includes("pixel") ||
+    u.includes("tracking") ||
+    u.includes("beacon") ||
+    u.includes("avatar") ||
+    u.includes("gravatar") ||
+    u.includes("placeholder") ||
+    u.includes("fallbackimage")
+  ) {
+    return false;
+  }
+  return true;
+}
+
 /**
  * Extrai a melhor URL de imagem disponível no item do feed.
  * Ordem de prioridade:
@@ -116,7 +138,7 @@ export function limparResumo(htmlOrText?: string, maxChars = 400): string {
  */
 export function extrairImagem(item: ParsedFeedItem): string | null {
   // 1. Enclosure
-  if (item.enclosure?.url) {
+  if (item.enclosure?.url && isUrlImagemValida(item.enclosure.url)) {
     const url = item.enclosure.url;
     const type = item.enclosure.type?.toLowerCase() || "";
     if (
@@ -133,12 +155,12 @@ export function extrairImagem(item: ParsedFeedItem): string | null {
   }
 
   // 2. media:content
-  if (item["media:content"]?.$?.url) {
+  if (item["media:content"]?.$?.url && isUrlImagemValida(item["media:content"].$.url)) {
     return otimizarUrlImagem(item["media:content"].$.url);
   }
 
   // 3. media:thumbnail
-  if (item["media:thumbnail"]?.$?.url) {
+  if (item["media:thumbnail"]?.$?.url && isUrlImagemValida(item["media:thumbnail"].$.url)) {
     return otimizarUrlImagem(item["media:thumbnail"].$.url);
   }
 
@@ -160,20 +182,12 @@ export function extrairImagem(item: ParsedFeedItem): string | null {
       for (const m of matches) {
         const tag = m[0];
         const src = m[1];
-        // Ignora imagens de tracking, beacons, pixels e ícones minúsculos
-        if (
-          src.includes("1x1") ||
-          src.includes("tracking") ||
-          src.includes("beacon") ||
-          src.includes("avatar") ||
-          src.includes("gravatar") ||
-          tag.includes("read-too")
-        ) {
+        if (!isUrlImagemValida(src) || tag.includes("read-too")) {
           continue;
         }
 
         const otimizada = otimizarUrlImagem(src);
-        if (otimizada) {
+        if (otimizada && isUrlImagemValida(otimizada)) {
           return otimizada;
         }
       }

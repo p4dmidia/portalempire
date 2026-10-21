@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { CIDADES_CATALOGO, FONTES_CATALOGO } from "@/lib/captacao/catalogo-portais";
+import { obterImagemEditorialContextual } from "@/lib/portal/image-utils";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -155,9 +156,32 @@ export async function POST() {
       console.warn("Aviso na limpeza de status de fontes:", cleanErr);
     }
 
+    // 6. Curar automaticamente matérias antigas que tenham ícone do Google News
+    let imagensCuradas = 0;
+    try {
+      const { data: materiasComGoogle } = await supabase
+        .from("materias")
+        .select("id, titulo, imagem_url")
+        .ilike("imagem_url", "%googleusercontent.com%");
+
+      if (materiasComGoogle && materiasComGoogle.length > 0) {
+        for (const mat of materiasComGoogle) {
+          const fotoContextual = obterImagemEditorialContextual(mat.titulo);
+          await supabase
+            .from("materias")
+            .update({ imagem_url: fotoContextual })
+            .eq("id", mat.id);
+          imagensCuradas++;
+        }
+      }
+    } catch (e) {
+      console.warn("Aviso ao curar imagens do banco:", e);
+    }
+
     const mensagemPartes = [];
     if (novasInseridas > 0) mensagemPartes.push(`${novasInseridas} novas fontes adicionadas`);
     if (atualizadas > 0) mensagemPartes.push(`${atualizadas} fontes atualizadas com novas URLs`);
+    if (imagensCuradas > 0) mensagemPartes.push(`${imagensCuradas} imagens de matérias corrigidas com fotos editoriais em alta resolução`);
     if (mensagemPartes.length === 0) mensagemPartes.push("Todas as fontes já estavam atualizadas");
 
     return NextResponse.json({
@@ -166,6 +190,7 @@ export async function POST() {
       total_catalogo: FONTES_CATALOGO.length,
       novas_inseridas: novasInseridas,
       atualizadas: atualizadas,
+      imagens_curadas: imagensCuradas,
       ja_existentes: jaExistentes,
     });
   } catch (error: unknown) {

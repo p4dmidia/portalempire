@@ -30,7 +30,10 @@ export function CardMateria({
       ? "Redatores da Empire Cidades"
       : materia.autor?.nome || "Redatores da Empire Cidades";
 
-  const imagemPadrao = otimizarUrlImagem(materia.imagem_url);
+  const imagemPadrao = otimizarUrlImagem(
+    materia.imagem_url,
+    `${materia.categoria?.nome || ""} ${materia.titulo || ""}`
+  );
 
   // VARIAÇÃO 1: GRANDE (Destaque Principal)
   if (variacao === "grande") {
