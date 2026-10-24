@@ -7,6 +7,8 @@ import { classificarMateria } from "./classificar";
 import { reescreverNoticiaCaptada } from "./reescritor";
 import { extrairDetalhesMateriaOriginal } from "./extrator-conteudo";
 
+import { CATEGORIAS_PADRAO_SISTEMA } from "@/lib/portal/queries";
+
 export interface ExecutarCaptacaoOptions {
   fonteId?: string;
   manual?: boolean;
@@ -144,7 +146,25 @@ export async function executarCaptacao(
   ]);
 
   const cidades = cidadesRes.data || [];
-  const categorias = categoriasRes.data || [];
+  const categoriasDoBanco = categoriasRes.data || [];
+  const idsNoBanco = new Set(categoriasDoBanco.map((c) => c.id));
+  const slugsNoBanco = new Set(categoriasDoBanco.map((c) => c.slug));
+  const categoriaGeralId =
+    categoriasDoBanco.find((c) => c.slug === "geral" || c.slug === "noticias")?.id ||
+    categoriasDoBanco[0]?.id;
+
+  const categorias = [...categoriasDoBanco];
+  for (const padrao of CATEGORIAS_PADRAO_SISTEMA) {
+    if (!slugsNoBanco.has(padrao.slug)) {
+      categorias.push({
+        id: padrao.id,
+        nome: padrao.nome,
+        slug: padrao.slug,
+        pai_id: padrao.pai_id,
+        palavras_chave: padrao.palavras_chave,
+      });
+    }
+  }
 
   // 4. Selecionar Fontes RSS a executar
   let query = supabase
@@ -325,10 +345,22 @@ export async function executarCaptacao(
           const slug = gerarSlug(tituloFinal);
           const statusMateria = fonte.publicar_automatico ? "publicado" : "rascunho";
 
+          const catClassificada = categorias.find((c) => c.id === classificacao.categoria_id);
+          const categoriaValidaId = idsNoBanco.has(classificacao.categoria_id)
+            ? classificacao.categoria_id
+            : (fonte.categoria_padrao_id && idsNoBanco.has(fonte.categoria_padrao_id)
+                ? fonte.categoria_padrao_id
+                : categoriaGeralId);
+
+          const tagsFinais = [...classificacao.tags_sugeridas];
+          if (catClassificada && !tagsFinais.includes(catClassificada.nome)) {
+            tagsFinais.unshift(catClassificada.nome);
+          }
+
           // Inserir na tabela materias com dados reescritos e respaldo jurídico
           const { error: insertError } = await supabase.from("materias").insert({
             portal_id: portalId,
-            categoria_id: classificacao.categoria_id,
+            categoria_id: categoriaValidaId,
             cidade_id: classificacao.cidade_id,
             titulo: tituloFinal,
             slug,
@@ -344,7 +376,7 @@ export async function executarCaptacao(
             url_original_hash: hash,
             status: statusMateria,
             publicado_em: statusMateria === "publicado" ? publicadoEm.toISOString() : null,
-            tags: classificacao.tags_sugeridas,
+            tags: tagsFinais,
             visualizacoes: 0,
             urgente: false,
             destaque: false,

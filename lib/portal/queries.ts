@@ -157,6 +157,87 @@ export async function getPortalData(): Promise<PortalData | null> {
   }
 }
 
+export const CATEGORIAS_PADRAO_SISTEMA: CategoriaData[] = [
+  {
+    id: "c0000000-0000-0000-0000-000000000019",
+    portal_id: "a0000000-0000-0000-0000-000000000001",
+    nome: "Empreendedorismo",
+    slug: "empreendedorismo",
+    pai_id: null,
+    exibir_menu: true,
+    exibir_home: true,
+    ordem_menu: 5,
+    ordem_home: 5,
+    cor: "#059669",
+    palavras_chave: ["empreendedorismo", "startup", "pitch", "franquia", "pme", "mei", "inovacao"],
+  },
+  {
+    id: "c0000000-0000-0000-0000-000000000020",
+    portal_id: "a0000000-0000-0000-0000-000000000001",
+    nome: "Negócios",
+    slug: "negocios",
+    pai_id: null,
+    exibir_menu: true,
+    exibir_home: true,
+    ordem_menu: 6,
+    ordem_home: 6,
+    cor: "#0284c7",
+    palavras_chave: ["negocios", "mercado", "m&a", "varejo", "ceo", "cfo", "empresas"],
+  },
+  {
+    id: "c0000000-0000-0000-0000-000000000021",
+    portal_id: "a0000000-0000-0000-0000-000000000001",
+    nome: "Turismo",
+    slug: "turismo",
+    pai_id: null,
+    exibir_menu: true,
+    exibir_home: true,
+    ordem_menu: 9,
+    ordem_home: 9,
+    cor: "#0d9488",
+    palavras_chave: ["turismo", "viagem", "viagens", "hotel", "resort", "passagens", "destinos"],
+  },
+  {
+    id: "c0000000-0000-0000-0000-000000000022",
+    portal_id: "a0000000-0000-0000-0000-000000000001",
+    nome: "Gastronomia",
+    slug: "gastronomia",
+    pai_id: null,
+    exibir_menu: true,
+    exibir_home: true,
+    ordem_menu: 10,
+    ordem_home: 10,
+    cor: "#ea580c",
+    palavras_chave: ["gastronomia", "culinaria", "restaurante", "chef", "receitas", "vinho", "gourmet"],
+  },
+  {
+    id: "c0000000-0000-0000-0000-000000000023",
+    portal_id: "a0000000-0000-0000-0000-000000000001",
+    nome: "Beleza",
+    slug: "beleza",
+    pai_id: null,
+    exibir_menu: true,
+    exibir_home: true,
+    ordem_menu: 12,
+    ordem_home: 12,
+    cor: "#ec4899",
+    palavras_chave: ["beleza", "maquiagem", "cosmeticos", "skincare", "cabelos", "tendencias de beleza"],
+  },
+  {
+    id: "c0000000-0000-0000-0000-000000000024",
+    portal_id: "a0000000-0000-0000-0000-000000000001",
+    nome: "Estética",
+    slug: "estetica",
+    pai_id: null,
+    exibir_menu: true,
+    exibir_home: true,
+    ordem_menu: 13,
+    ordem_home: 13,
+    cor: "#a855f7",
+    palavras_chave: ["estetica", "harmonizacao", "botox", "clinica estetica", "cuidados corporais", "spa"],
+  },
+];
+
 /**
  * Busca todas as categorias organizadas com suas subcategorias.
  */
@@ -170,22 +251,29 @@ export async function getCategorias(): Promise<CategoriaData[]> {
 
     if (error) {
       console.error("[Portal Empire] Erro ao buscar categorias:", error.message || error);
-      return [];
     }
 
-    if (!data) return [];
+    const bancoCategorias: CategoriaData[] = (data || []) as CategoriaData[];
+    const slugsExistentes = new Set(bancoCategorias.map((c) => c.slug));
 
-    const todas = data as CategoriaData[];
-    const principais = todas.filter((c) => !c.pai_id);
+    // Incorpora temas oficiais faltantes para garantir presença imediata no portal
+    const categoriasCompletas: CategoriaData[] = [...bancoCategorias];
+    for (const padrao of CATEGORIAS_PADRAO_SISTEMA) {
+      if (!slugsExistentes.has(padrao.slug)) {
+        categoriasCompletas.push(padrao);
+      }
+    }
+
+    const principais = categoriasCompletas.filter((c) => !c.pai_id);
 
     return principais.map((pai) => ({
       ...pai,
-      subcategorias: todas.filter((sub) => sub.pai_id === pai.id),
+      subcategorias: categoriasCompletas.filter((sub) => sub.pai_id === pai.id),
     }));
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[Portal Empire] Falha de conexão ao buscar categorias:", msg);
-    return [];
+    return CATEGORIAS_PADRAO_SISTEMA;
   }
 }
 
@@ -201,28 +289,31 @@ export async function getCategoriaBySlug(slug: string): Promise<CategoriaData | 
       .eq("slug", slug)
       .maybeSingle();
 
-    if (catError) {
-      console.error(`[Portal Empire] Erro ao buscar categoria ${slug}:`, catError.message || catError);
-      return null;
+    if (categoria) {
+      // Se for categoria pai, buscar suas subcategorias
+      const { data: subcategorias } = await supabase
+        .from("categorias")
+        .select("*")
+        .eq("pai_id", categoria.id)
+        .order("ordem_menu", { ascending: true });
+
+      return {
+        ...(categoria as CategoriaData),
+        subcategorias: (subcategorias || []) as CategoriaData[],
+      };
     }
 
-    if (!categoria) return null;
+    // Fallback caso ainda não tenha sido inserida no Postgres
+    const fallback = CATEGORIAS_PADRAO_SISTEMA.find((c) => c.slug === slug);
+    if (fallback) {
+      return fallback;
+    }
 
-    // Se for categoria pai, buscar suas subcategorias
-    const { data: subcategorias } = await supabase
-      .from("categorias")
-      .select("*")
-      .eq("pai_id", categoria.id)
-      .order("ordem_menu", { ascending: true });
-
-    return {
-      ...(categoria as CategoriaData),
-      subcategorias: (subcategorias || []) as CategoriaData[],
-    };
+    return null;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error(`[Portal Empire] Falha ao buscar categoria ${slug}:`, msg);
-    return null;
+    return CATEGORIAS_PADRAO_SISTEMA.find((c) => c.slug === slug) || null;
   }
 }
 
@@ -305,6 +396,15 @@ export async function getMaterias(options?: {
 
         const catIds = [cat.id, ...(subcats || []).map((s) => s.id)];
         query = query.in("categoria_id", catIds);
+      } else {
+        const catFallback = CATEGORIAS_PADRAO_SISTEMA.find((c) => c.slug === options.categoriaSlug);
+        if (catFallback) {
+          const termos = catFallback.palavras_chave.slice(0, 4);
+          const keywordConditions = termos
+            .map((t) => `titulo.ilike.%${t}%,resumo.ilike.%${t}%`)
+            .join(",");
+          query = query.or(`tags.cs.{${options.categoriaSlug}},${keywordConditions}`);
+        }
       }
     }
 

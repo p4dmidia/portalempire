@@ -13,6 +13,178 @@ export interface FonteCatalogo {
   cidade_slug?: string;
 }
 
+export interface CategoriaCatalogo {
+  nome: string;
+  slug: string;
+  cor: string;
+  ordem_menu: number;
+  exibir_menu: boolean;
+  exibir_home: boolean;
+  palavras_chave: string[];
+}
+
+export const CATEGORIAS_CATALOGO: CategoriaCatalogo[] = [
+  {
+    nome: "Empreendedorismo",
+    slug: "empreendedorismo",
+    cor: "#059669",
+    ordem_menu: 5,
+    exibir_menu: true,
+    exibir_home: true,
+    palavras_chave: [
+      "empreendedorismo",
+      "empreendedor",
+      "startup",
+      "startups",
+      "pitch",
+      "venture capital",
+      "aceleradora",
+      "incubadora",
+      "franquia",
+      "franquias",
+      "pequenas empresas",
+      "pme",
+      "mei",
+      "modelo de negocio",
+      "inovacao",
+    ],
+  },
+  {
+    nome: "Negócios",
+    slug: "negocios",
+    cor: "#0284c7",
+    ordem_menu: 6,
+    exibir_menu: true,
+    exibir_home: true,
+    palavras_chave: [
+      "negócios",
+      "negocios",
+      "mercado corporativo",
+      "fusao",
+      "aquisicao",
+      "m&a",
+      "faturamento",
+      "receita",
+      "lucro",
+      "ebitda",
+      "b2b",
+      "varejo",
+      "supply chain",
+      "logistica",
+      "ceo",
+      "cfo",
+      "governanca",
+      "executivo",
+    ],
+  },
+  {
+    nome: "Turismo",
+    slug: "turismo",
+    cor: "#0d9488",
+    ordem_menu: 9,
+    exibir_menu: true,
+    exibir_home: true,
+    palavras_chave: [
+      "turismo",
+      "viagem",
+      "viagens",
+      "hotel",
+      "hoteis",
+      "pousada",
+      "resort",
+      "voo",
+      "passagem aerea",
+      "passagens aereas",
+      "ecoturismo",
+      "destino",
+      "roteiro de viagem",
+      "pontos turisticos",
+      "hospedagem",
+      "milhas",
+    ],
+  },
+  {
+    nome: "Gastronomia",
+    slug: "gastronomia",
+    cor: "#ea580c",
+    ordem_menu: 10,
+    exibir_menu: true,
+    exibir_home: true,
+    palavras_chave: [
+      "gastronomia",
+      "culinaria",
+      "restaurante",
+      "restaurantes",
+      "chef",
+      "prato",
+      "receita",
+      "receitas",
+      "cardapio",
+      "vinho",
+      "vinhos",
+      "enologia",
+      "sommelier",
+      "bar",
+      "bares",
+      "cafe",
+      "cafes",
+      "cafeteria",
+      "sobremesa",
+      "jantar",
+      "almoco",
+      "gourmet",
+    ],
+  },
+  {
+    nome: "Beleza",
+    slug: "beleza",
+    cor: "#ec4899",
+    ordem_menu: 12,
+    exibir_menu: true,
+    exibir_home: true,
+    palavras_chave: [
+      "beleza",
+      "maquiagem",
+      "cosmeticos",
+      "cabelo",
+      "cabelos",
+      "cuidados com a pele",
+      "skincare",
+      "batom",
+      "unhas",
+      "esmalte",
+      "perfume",
+      "perfumes",
+      "fragrancia",
+      "tendencias de beleza",
+    ],
+  },
+  {
+    nome: "Estética",
+    slug: "estetica",
+    cor: "#a855f7",
+    ordem_menu: 13,
+    exibir_menu: true,
+    exibir_home: true,
+    palavras_chave: [
+      "estetica",
+      "estética",
+      "harmonizacao facial",
+      "botox",
+      "preenchimento",
+      "dermatologia",
+      "clinica estetica",
+      "procedimento estetico",
+      "peeling",
+      "massoterapia",
+      "depilacao a laser",
+      "rejuvenescimento",
+      "colageno",
+      "bem-estar",
+    ],
+  },
+];
+
 export const CIDADES_CATALOGO: CidadeCatalogo[] = [
   { nome: "Uberlândia", slug: "uberlandia", uf: "MG", palavras_chave: ["uberlandia", "uberlândia", "triangulo mineiro"] },
   { nome: "Assis", slug: "assis", uf: "SP", palavras_chave: ["assis", "regiao de assis", "assis sp"] },
@@ -163,13 +335,55 @@ export const FONTES_CATALOGO: FonteCatalogo[] = [
   { nome: "Estadão - Últimas Notícias", veiculo: "Estadão", url_feed: "https://www.estadao.com.br/ultimas/", categoria_slug: "brasil" },
   { nome: "Revista IstoÉ", veiculo: "IstoÉ", url_feed: "https://istoe.com.br/", categoria_slug: "brasil" },
 
-  // Economia, Negócios e Empreendedorismo
+  // Economia
   { nome: "Exame", veiculo: "Exame", url_feed: "https://exame.com/", categoria_slug: "economia" },
-  { nome: "G1 Empreendedorismo", veiculo: "G1", url_feed: "https://g1.globo.com/empreendedorismo/", categoria_slug: "economia" },
-  { nome: "InfoMoney Negócios", veiculo: "InfoMoney", url_feed: "https://www.infomoney.com.br/negocios/", categoria_slug: "economia" },
-  { nome: "Forbes Brasil", veiculo: "Forbes Brasil", url_feed: "https://forbes.com.br/", categoria_slug: "economia" },
-  { nome: "Brasil Novas Ideias", veiculo: "Brasil Novas Ideias", url_feed: "https://brasilnovasideias.com.br/", categoria_slug: "economia" },
   { nome: "Valor Econômico", veiculo: "Valor Econômico", url_feed: "https://valor.globo.com/", categoria_slug: "economia" },
+  { nome: "Brasil Novas Ideias", veiculo: "Brasil Novas Ideias", url_feed: "https://brasilnovasideias.com.br/", categoria_slug: "economia" },
+
+  // Empreendedorismo
+  { nome: "PEGN - Pequenas Empresas & Grandes Negócios", veiculo: "PEGN", url_feed: "https://revistapegn.globo.com/rss/pegn", categoria_slug: "empreendedorismo" },
+  { nome: "G1 Empreendedorismo", veiculo: "G1", url_feed: "https://g1.globo.com/empreendedorismo/", categoria_slug: "empreendedorismo" },
+  { nome: "Startupi Inovação e Startups", veiculo: "Startupi", url_feed: "https://startupi.com.br/feed/", categoria_slug: "empreendedorismo" },
+  { nome: "Exame PME", veiculo: "Exame", url_feed: "https://exame.com/negocios/", categoria_slug: "empreendedorismo" },
+
+  // Negócios
+  { nome: "InfoMoney Negócios", veiculo: "InfoMoney", url_feed: "https://www.infomoney.com.br/negocios/", categoria_slug: "negocios" },
+  { nome: "NeoFeed Negócios e Mercado", veiculo: "NeoFeed", url_feed: "https://neofeed.com.br/feed/", categoria_slug: "negocios" },
+  { nome: "Forbes Brasil Negócios", veiculo: "Forbes Brasil", url_feed: "https://forbes.com.br/forbes-money/", categoria_slug: "negocios" },
+
+  // Turismo e Viagens
+  { nome: "Panrotas Turismo", veiculo: "Panrotas", url_feed: "https://www.panrotas.com.br/feed", categoria_slug: "turismo" },
+  { nome: "Diário do Turismo", veiculo: "Diário do Turismo", url_feed: "https://diariodoturismo.com.br/feed/", categoria_slug: "turismo" },
+  { nome: "Mercado e Eventos Turismo", veiculo: "Mercado e Eventos", url_feed: "https://www.mercadoeeventos.com.br/feed/", categoria_slug: "turismo" },
+  { nome: "VoeNews Turismo", veiculo: "VoeNews", url_feed: "https://voenews.com.br/feed/", categoria_slug: "turismo" },
+  { nome: "MG Turismo", veiculo: "MG Turismo", url_feed: "https://mgturismo.com.br/", categoria_slug: "turismo" },
+
+  // Gastronomia
+  { nome: "Prazeres da Mesa", veiculo: "Prazeres da Mesa", url_feed: "https://www.prazeresdamesa.com.br/feed/", categoria_slug: "gastronomia" },
+  { nome: "Paladar Estadão Gastronomia", veiculo: "Paladar Estadão", url_feed: "https://www.estadao.com.br/paladar/", categoria_slug: "gastronomia" },
+  { nome: "TudoGostoso Receitas", veiculo: "TudoGostoso", url_feed: "https://www.tudogostoso.com.br/noticias", categoria_slug: "gastronomia" },
+  { nome: "Receitas Globo", veiculo: "Receitas Globo", url_feed: "https://receitas.globo.com/", categoria_slug: "gastronomia" },
+
+  // Beleza
+  { nome: "Marie Claire Beleza", veiculo: "Marie Claire", url_feed: "https://revistamarieclaire.globo.com/rss/marieclaire", categoria_slug: "beleza" },
+  { nome: "Vogue Beleza & Estilo", veiculo: "Vogue", url_feed: "https://vogue.globo.com/rss/vogue", categoria_slug: "beleza" },
+  { nome: "Metrópoles Claudia Meireles Beleza", veiculo: "Metrópoles", url_feed: "https://www.metropoles.com/colunas/claudia-meireles/feed", categoria_slug: "beleza" },
+  { nome: "Beleza na Web Loucas por Beleza", veiculo: "Beleza na Web", url_feed: "https://www.belezanaweb.com.br/loucas-por-beleza/feed/", categoria_slug: "beleza" },
+
+  // Estética
+  { nome: "Dicas de Mulher Estética & Cuidados", veiculo: "Dicas de Mulher", url_feed: "https://www.dicasdemulher.com.br/feed/", categoria_slug: "estetica" },
+
+  // Agronegócio
+  { nome: "Canal Rural", veiculo: "Canal Rural", url_feed: "https://www.canalrural.com.br/feed/", categoria_slug: "agronegocio" },
+  { nome: "Globo Rural", veiculo: "Globo Rural", url_feed: "https://globorural.globo.com/rss/globorural", categoria_slug: "agronegocio" },
+
+  // Saúde
+  { nome: "VivaBem UOL Saúde", veiculo: "VivaBem UOL", url_feed: "https://noticias.uol.com.br/saude/", categoria_slug: "saude" },
+  { nome: "Minha Vida Saúde", veiculo: "Minha Vida", url_feed: "https://www.minhavida.com.br/feed", categoria_slug: "saude" },
+
+  // Educação
+  { nome: "Veja Educação", veiculo: "Veja", url_feed: "https://veja.abril.com.br/noticias-sobre/educacao/", categoria_slug: "educacao" },
+  { nome: "Informe Educação", veiculo: "Informe Educação", url_feed: "https://www.informeeducacao.com.br/", categoria_slug: "educacao" },
 
   // Tecnologia e Ciência
   { nome: "TecMundo", veiculo: "TecMundo", url_feed: "https://www.tecmundo.com.br/", categoria_slug: "geral" },
@@ -184,15 +398,6 @@ export const FONTES_CATALOGO: FonteCatalogo[] = [
   // Cultura, Entretenimento e Famosos
   { nome: "Revista Caras", veiculo: "Caras", url_feed: "https://caras.com.br/feed", categoria_slug: "entretenimento" },
   { nome: "IstoÉ Gente", veiculo: "IstoÉ", url_feed: "https://istoe.com.br/gente", categoria_slug: "entretenimento" },
-
-  // Educação
-  { nome: "Veja Educação", veiculo: "Veja", url_feed: "https://veja.abril.com.br/noticias-sobre/educacao/", categoria_slug: "educacao" },
-  { nome: "Informe Educação", veiculo: "Informe Educação", url_feed: "https://www.informeeducacao.com.br/", categoria_slug: "educacao" },
-
-  // Turismo e Viagens
-  { nome: "Diário do Turismo", veiculo: "Diário do Turismo", url_feed: "https://diariodoturismo.com.br/feed/", categoria_slug: "geral" },
-  { nome: "MG Turismo", veiculo: "MG Turismo", url_feed: "https://mgturismo.com.br/", categoria_slug: "geral" },
-  { nome: "VoeNews Turismo", veiculo: "VoeNews", url_feed: "https://voenews.com.br/", categoria_slug: "geral" },
 
   // Internacional
   { nome: "BBC News Brasil", veiculo: "BBC Brasil", url_feed: "https://www.bbc.com/portuguese", categoria_slug: "internacional" },

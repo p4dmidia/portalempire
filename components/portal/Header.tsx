@@ -7,6 +7,21 @@ import { usePathname, useRouter } from "next/navigation";
 import type { CategoriaData, CidadeData, PortalData } from "@/lib/portal/queries";
 import { Search, Menu, X, ChevronDown } from "lucide-react";
 
+const TEMAS_EDITORIAIS = [
+  { nome: "Empreendedorismo", slug: "empreendedorismo" },
+  { nome: "Negócios", slug: "negocios" },
+  { nome: "Esportes", slug: "esportes" },
+  { nome: "Turismo", slug: "turismo" },
+  { nome: "Gastronomia", slug: "gastronomia" },
+  { nome: "Saúde", slug: "saude" },
+  { nome: "Educação", slug: "educacao" },
+  { nome: "Agronegócio", slug: "agronegocio" },
+  { nome: "Economia", slug: "economia" },
+  { nome: "Política", slug: "politica" },
+  { nome: "Beleza", slug: "beleza" },
+  { nome: "Estética", slug: "estetica" },
+];
+
 interface HeaderProps {
   portal: PortalData | null;
   categorias: CategoriaData[];
@@ -148,29 +163,86 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
             </div>
           </div>
 
-          {/* Economia com Dropdown */}
+          {/* Economia com Dropdown Expandido (Negócios, Empreendedorismo, Agro) */}
           <div className="relative h-full flex items-center group">
             <Link
               href="/categoria/economia"
-              className="relative flex items-center gap-1 h-full px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors"
+              className="relative flex items-center gap-1 h-full px-2.5 xl:px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors"
             >
               <span>Economia</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
-              <span className="absolute bottom-0 left-3 right-3 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
+              <span className="absolute bottom-0 left-2.5 right-2.5 xl:left-3 xl:right-3 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
             </Link>
 
-            <div className="absolute top-full left-0 hidden group-hover:block bg-white text-slate-900 min-w-[200px] rounded-b-xl shadow-2xl border border-slate-100 py-2 z-50">
+            <div className="absolute top-full left-0 hidden group-hover:block bg-white text-slate-900 min-w-[210px] rounded-b-xl shadow-2xl border border-slate-100 py-2 z-50">
+              <Link
+                href="/categoria/economia"
+                className="block px-4 py-2 text-[13px] font-semibold text-slate-800 hover:text-[#c8102e] hover:bg-slate-50 transition-colors"
+              >
+                Economia Geral
+              </Link>
+              <Link
+                href="/categoria/negocios"
+                className="block px-4 py-2 text-[13px] font-semibold text-slate-800 hover:text-[#c8102e] hover:bg-slate-50 transition-colors"
+              >
+                Negócios & Mercado
+              </Link>
+              <Link
+                href="/categoria/empreendedorismo"
+                className="block px-4 py-2 text-[13px] font-semibold text-slate-800 hover:text-[#c8102e] hover:bg-slate-50 transition-colors"
+              >
+                Empreendedorismo
+              </Link>
               <Link
                 href="/categoria/agronegocio"
                 className="block px-4 py-2 text-[13px] font-semibold text-slate-800 hover:text-[#c8102e] hover:bg-slate-50 transition-colors"
               >
                 Agronegócio
               </Link>
+            </div>
+          </div>
+
+          {/* Gastronomia */}
+          <Link
+            href="/categoria/gastronomia"
+            className="relative flex items-center h-full px-2.5 xl:px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors group"
+          >
+            <span>Gastronomia</span>
+            <span className="absolute bottom-0 left-2.5 right-2.5 xl:left-3 xl:right-3 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
+          </Link>
+
+          {/* Turismo */}
+          <Link
+            href="/categoria/turismo"
+            className="relative flex items-center h-full px-2.5 xl:px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors group"
+          >
+            <span>Turismo</span>
+            <span className="absolute bottom-0 left-2.5 right-2.5 xl:left-3 xl:right-3 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
+          </Link>
+
+          {/* Beleza & Estética com Dropdown */}
+          <div className="relative h-full flex items-center group">
+            <Link
+              href="/categoria/beleza"
+              className="relative flex items-center gap-1 h-full px-2.5 xl:px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors"
+            >
+              <span>Beleza & Estética</span>
+              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
+              <span className="absolute bottom-0 left-2.5 right-2.5 xl:left-3 xl:right-3 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
+            </Link>
+
+            <div className="absolute top-full left-0 hidden group-hover:block bg-white text-slate-900 min-w-[200px] rounded-b-xl shadow-2xl border border-slate-100 py-2 z-50">
               <Link
-                href="/categoria/economia"
+                href="/categoria/beleza"
                 className="block px-4 py-2 text-[13px] font-semibold text-slate-800 hover:text-[#c8102e] hover:bg-slate-50 transition-colors"
               >
-                Mercado & Finanças
+                Beleza & Cuidados
+              </Link>
+              <Link
+                href="/categoria/estetica"
+                className="block px-4 py-2 text-[13px] font-semibold text-slate-800 hover:text-[#c8102e] hover:bg-slate-50 transition-colors"
+              >
+                Estética & Bem-Estar
               </Link>
             </div>
           </div>
@@ -179,11 +251,11 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           <div className="relative h-full flex items-center group">
             <Link
               href="/cidades"
-              className="relative flex items-center gap-1 h-full px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors"
+              className="relative flex items-center gap-1 h-full px-2.5 xl:px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors"
             >
               <span>Cidades</span>
               <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
-              <span className="absolute bottom-0 left-3 right-3 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
+              <span className="absolute bottom-0 left-2.5 right-2.5 xl:left-3 xl:right-3 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
             </Link>
 
             <div className="absolute top-full left-0 hidden group-hover:block bg-white text-slate-900 min-w-[240px] rounded-b-xl shadow-2xl border border-slate-100 py-2.5 z-50">
@@ -210,22 +282,13 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
             </div>
           </div>
 
-          {/* Polícia */}
-          <Link
-            href="/categoria/policia"
-            className="relative flex items-center h-full px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors group"
-          >
-            <span>Polícia</span>
-            <span className="absolute bottom-0 left-3 right-3 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
-          </Link>
-
           {/* Esportes */}
           <Link
             href="/categoria/esportes"
-            className="relative flex items-center h-full px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors group"
+            className="relative flex items-center h-full px-2.5 xl:px-3 text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors group"
           >
             <span>Esportes</span>
-            <span className="absolute bottom-0 left-3 right-3 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
+            <span className="absolute bottom-0 left-2.5 right-2.5 xl:left-3 xl:right-3 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
           </Link>
 
           {/* + Mais Dropdown */}
@@ -290,6 +353,32 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           >
             {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
+        </div>
+      </div>
+
+      {/* 3.1 Barra de Temas e Editorias em Destaque no Cabeçalho */}
+      <div className="bg-[#0b0e17] border-t border-white/5 border-b border-black/40 py-2 px-4 overflow-x-auto scrollbar-none shadow-inner">
+        <div className="max-w-[1300px] mx-auto flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
+          <span className="text-[#c8102e] font-black uppercase text-[11px] tracking-wider shrink-0 flex items-center gap-1.5 pr-2.5 border-r border-white/10">
+            <span className="w-2 h-2 rounded-full bg-[#c8102e] animate-pulse" />
+            Temas em Alta:
+          </span>
+          {TEMAS_EDITORIAIS.map((tema) => {
+            const isActive = pathname === `/categoria/${tema.slug}`;
+            return (
+              <Link
+                key={tema.slug}
+                href={`/categoria/${tema.slug}`}
+                className={`px-2.5 py-1 rounded text-[12px] font-semibold tracking-wide transition-all ${
+                  isActive
+                    ? "bg-[#c8102e] text-white font-bold shadow-sm"
+                    : "text-slate-300 hover:text-white hover:bg-white/10"
+                }`}
+              >
+                {tema.nome}
+              </Link>
+            );
+          })}
         </div>
       </div>
 
@@ -398,6 +487,26 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
             >
               Esportes
             </Link>
+          </div>
+
+          {/* Temas e Editorias no Mobile */}
+          <div className="space-y-2 border-b border-white/10 pb-4">
+            <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 block px-3">
+              Temas & Editorias
+            </span>
+            <div className="grid grid-cols-2 gap-1 px-1">
+              {TEMAS_EDITORIAIS.map((tema) => (
+                <Link
+                  key={tema.slug}
+                  href={`/categoria/${tema.slug}`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="px-2.5 py-1.5 text-xs font-semibold text-slate-300 hover:text-white hover:bg-white/5 rounded flex items-center justify-between"
+                >
+                  <span>{tema.nome}</span>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#c8102e]" />
+                </Link>
+              ))}
+            </div>
           </div>
 
           {/* Cidades no Mobile */}

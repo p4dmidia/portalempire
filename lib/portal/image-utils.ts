@@ -38,6 +38,40 @@ export const IMAGENS_EDITORIAIS_POR_TEMA: Record<string, string[]> = {
     "https://images.unsplash.com/photo-1505751172876-fa1923c5c528?auto=format&fit=crop&q=80&w=1200", // Hospital e estetoscópio
     "https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?auto=format&fit=crop&q=80&w=1200", // Cuidados médicos e ciência
   ],
+  gastronomia: [
+    "https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200", // Restaurante e alta gastronomia
+    "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&q=80&w=1200", // Prato gourmet do chef
+    "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&q=80&w=1200", // Vinho e enologia
+  ],
+  turismo: [
+    "https://images.unsplash.com/photo-1488646953014-85cb44e25828?auto=format&fit=crop&q=80&w=1200", // Viagem, passaporte e turismo
+    "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=1200", // Destino turístico, praia e sol
+    "https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&q=80&w=1200", // Resort e hotelaria
+  ],
+  beleza: [
+    "https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&q=80&w=1200", // Maquiagem e cosméticos
+    "https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=80&w=1200", // Skincare e cuidados de beleza
+    "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&q=80&w=1200", // Produtos de beleza e batom
+  ],
+  estetica: [
+    "https://images.unsplash.com/photo-1570172619644-dfd03ed5d881?auto=format&fit=crop&q=80&w=1200", // Clínica estética e tratamento facial
+    "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&q=80&w=1200", // Spa, bem-estar e massoterapia
+    "https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&q=80&w=1200", // Dermatologia e procedimentos
+  ],
+  empreendedorismo: [
+    "https://images.unsplash.com/photo-1559136555-9303baea8ebd?auto=format&fit=crop&q=80&w=1200", // Startups, inovação e coworking
+    "https://images.unsplash.com/photo-1519389950473-47ba0277781c?auto=format&fit=crop&q=80&w=1200", // Equipe empreendedora
+    "https://images.unsplash.com/photo-1531482615713-2afd69097998?auto=format&fit=crop&q=80&w=1200", // Estratégia e negócios
+  ],
+  negocios: [
+    "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&q=80&w=1200", // Edifício corporativo e negócios
+    "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=1200", // Mesa de negócios e contratos
+    "https://images.unsplash.com/photo-1507679799987-c73779587ccf?auto=format&fit=crop&q=80&w=1200", // Liderança executiva
+  ],
+  educacao: [
+    "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&q=80&w=1200", // Educação, livros e estudo
+    "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?auto=format&fit=crop&q=80&w=1200", // Universidade e campus
+  ],
   tecnologia: [
     "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&q=80&w=1200", // Tecnologia e chips
     "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&q=80&w=1200", // Inteligência Artificial e dados
@@ -59,7 +93,21 @@ export function obterImagemEditorialContextual(textoOuTema?: string): string {
 
   let lista: string[] = IMAGENS_EDITORIAIS_POR_TEMA.geral;
 
-  if (t.includes("agro") || t.includes("soja") || t.includes("milho") || t.includes("safra") || t.includes("cafeicultura") || t.includes("pecuaria") || t.includes("campo")) {
+  if (t.includes("gastro") || t.includes("culin") || t.includes("restaurante") || t.includes("receita") || t.includes("chef") || t.includes("vinho") || t.includes("enolog") || t.includes("sabor") || t.includes("prato") || t.includes("gourmet")) {
+    lista = IMAGENS_EDITORIAIS_POR_TEMA.gastronomia;
+  } else if (t.includes("turis") || t.includes("viage") || t.includes("viagem") || t.includes("hotel") || t.includes("pousada") || t.includes("resort") || t.includes("voo") || t.includes("passagem aerea") || t.includes("aeroporto") || t.includes("destino")) {
+    lista = IMAGENS_EDITORIAIS_POR_TEMA.turismo;
+  } else if (t.includes("estet") || t.includes("estética") || t.includes("harmonizacao") || t.includes("botox") || t.includes("procedimento estetico") || t.includes("spa") || t.includes("massoterapia") || t.includes("peeling")) {
+    lista = IMAGENS_EDITORIAIS_POR_TEMA.estetica;
+  } else if (t.includes("belez") || t.includes("maquiagem") || t.includes("cosmetic") || t.includes("skincare") || t.includes("batom") || t.includes("unhas") || t.includes("perfume") || t.includes("cabelo")) {
+    lista = IMAGENS_EDITORIAIS_POR_TEMA.beleza;
+  } else if (t.includes("empreend") || t.includes("startup") || t.includes("pitch") || t.includes("franquia") || t.includes("incubadora") || t.includes("aceleradora") || t.includes("pme") || t.includes("mei") || t.includes("pequenas empresas")) {
+    lista = IMAGENS_EDITORIAIS_POR_TEMA.empreendedorismo;
+  } else if (t.includes("negoc") || t.includes("m&a") || t.includes("fusao") || t.includes("corporat") || t.includes("varejo") || t.includes("supply chain") || t.includes("ebitda") || t.includes("ceo") || t.includes("cfo")) {
+    lista = IMAGENS_EDITORIAIS_POR_TEMA.negocios;
+  } else if (t.includes("educa") || t.includes("escola") || t.includes("faculdade") || t.includes("universidade") || t.includes("enem") || t.includes("estudante") || t.includes("professor") || t.includes("aluno")) {
+    lista = IMAGENS_EDITORIAIS_POR_TEMA.educacao;
+  } else if (t.includes("agro") || t.includes("soja") || t.includes("milho") || t.includes("safra") || t.includes("cafeicultura") || t.includes("pecuaria") || t.includes("campo")) {
     lista = IMAGENS_EDITORIAIS_POR_TEMA.agro;
   } else if (t.includes("econ") || t.includes("financ") || t.includes("mercado") || t.includes("dolar") || t.includes("juros") || t.includes("acao") || t.includes("recuperacao judicial") || t.includes("b2b")) {
     lista = IMAGENS_EDITORIAIS_POR_TEMA.economia;
