@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import type { CategoriaData, CidadeData, PortalData } from "@/lib/portal/queries";
-import { Search, Menu, X, ChevronDown } from "lucide-react";
+import { Search, Menu, X, ChevronDown, Tag, ShoppingBag } from "lucide-react";
 
 const TEMAS_EDITORIAIS = [
   { nome: "Empreendedorismo", slug: "empreendedorismo" },
@@ -333,8 +333,22 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           </div>
         </nav>
 
-        {/* 3. Ações Direita (Botão de Busca Redondo + Menu Mobile) */}
-        <div className="flex items-center gap-3">
+        {/* 3. Ações Direita (Botão Classificados Destaque + Busca + Menu Mobile) */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Botão de Classificados em Destaque */}
+          <Link
+            href="/classificados"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 transition-all hover:scale-105 active:scale-95 border border-amber-300/60"
+            title="Classificados — Vendas, Imóveis, Autos e Oportunidades"
+          >
+            <Tag className="w-3.5 h-3.5 fill-current" />
+            <span>Classificados</span>
+            <span className="flex h-2 w-2 relative">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#c8102e]"></span>
+            </span>
+          </Link>
+
           {/* Botão de Busca Redondo */}
           <button
             onClick={() => setIsSearchOpen(true)}
@@ -359,6 +373,13 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
       {/* 3.1 Barra de Temas e Editorias em Destaque no Cabeçalho */}
       <div className="bg-[#0b0e17] border-t border-white/5 border-b border-black/40 py-2 px-4 overflow-x-auto scrollbar-none shadow-inner">
         <div className="max-w-[1300px] mx-auto flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
+          <Link
+            href="/classificados"
+            className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11.5px] font-black uppercase tracking-wide bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500 hover:text-slate-950 transition-all shrink-0 shadow-sm"
+          >
+            <Tag className="w-3 h-3 fill-current" />
+            <span>Classificados</span>
+          </Link>
           <span className="text-[#c8102e] font-black uppercase text-[11px] tracking-wider shrink-0 flex items-center gap-1.5 pr-2.5 border-r border-white/10">
             <span className="w-2 h-2 rounded-full bg-[#c8102e] animate-pulse" />
             Temas em Alta:
@@ -443,6 +464,26 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
             />
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           </form>
+
+          {/* Destaque Especial Classificados Mobile */}
+          <Link
+            href="/classificados"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-amber-500/25 via-amber-600/15 to-transparent border border-amber-500/40 text-amber-300 font-bold shadow-sm"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center font-black">
+                <Tag className="w-4 h-4 fill-current" />
+              </div>
+              <div>
+                <span className="block text-sm font-extrabold text-amber-200 uppercase tracking-wide">Classificados</span>
+                <span className="block text-[11px] text-amber-300/80 font-medium">Imóveis, Veículos, Negócios & Serviços</span>
+              </div>
+            </div>
+            <span className="text-[11px] font-black text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-400/30">
+              Ver →
+            </span>
+          </Link>
 
           <div className="space-y-1 border-b border-white/10 pb-4">
             <Link

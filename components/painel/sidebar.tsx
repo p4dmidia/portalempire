@@ -25,6 +25,7 @@ import {
   Share2,
   Banknote,
   CreditCard,
+  Tag,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -50,6 +51,7 @@ export function Sidebar({ profile }: SidebarProps) {
     { label: "Cidades", href: "/painel/admin/cidades", icon: MapPin },
     { label: "Captação RSS", href: "/painel/admin/captacao", icon: Rss },
     { label: "Publicidade & Formatos", href: "/painel/admin/anuncios", icon: Megaphone },
+    { label: "Classificados", href: "/painel/admin/classificados", icon: Tag },
     { label: "Financeiro Global", href: "/painel/admin/financeiro", icon: DollarSign },
     { label: "Saques PIX Afiliados", href: "/painel/admin/saques", icon: Banknote },
     { label: "Aparência do Portal", href: "/painel/admin/aparencia", icon: Palette },
@@ -70,6 +72,7 @@ export function Sidebar({ profile }: SidebarProps) {
     { label: "Minhas Colunas", href: "/painel/colunista/colunas", icon: Columns },
     { label: "Meus Artigos", href: "/painel/colunista/artigos", icon: FileText },
     { label: "Espaços de Anúncio", href: "/painel/colunista/espacos", icon: Megaphone },
+    { label: "Meus Classificados", href: "/painel/colunista/classificados", icon: Tag },
     { label: "Meus Anunciantes", href: "/painel/colunista/anunciantes", icon: Users },
     { label: "Anúncios Vendidos", href: "/painel/colunista/anuncios", icon: BarChart3 },
     { label: "Programa de Afiliados", href: "/painel/colunista/afiliados", icon: Share2 },

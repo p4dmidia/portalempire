@@ -9,10 +9,12 @@ import {
   getFontesRssAtivas,
   getShorts,
 } from "@/lib/portal/queries";
+import { getClassificadosDestaqueHome } from "@/lib/portal/classificados-queries";
 import { TopHeroMagazine } from "@/components/portal/TopHeroMagazine";
 import { FaixaUltimasNoticias } from "@/components/portal/FaixaUltimasNoticias";
 import { BlocoEditoria } from "@/components/portal/BlocoEditoria";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
+import { ClassificadosHomeSection } from "@/components/portal/ClassificadosHomeSection";
 import { AdSlot } from "@/components/portal/AdSlot";
 import { MapPin, Video, ChevronRight, MessageCircle } from "lucide-react";
 
@@ -45,6 +47,7 @@ export default async function PortalHomePage() {
     colunas,
     fontes,
     shorts,
+    classificadosDestaque,
   ] = await Promise.all([
     getPortalData(),
     getCategorias(),
@@ -55,6 +58,7 @@ export default async function PortalHomePage() {
     getColunasAtivas(),
     getFontesRssAtivas(),
     getShorts(),
+    getClassificadosDestaqueHome(4),
   ]);
 
   // Se houver poucas matérias em destaque, preenche com as mais recentes
@@ -110,6 +114,9 @@ export default async function PortalHomePage() {
       <div className="my-6">
         <AdSlot posicao="home_entre_blocos" />
       </div>
+
+      {/* 4.1 Vitrine de Classificados em Destaque na Home */}
+      <ClassificadosHomeSection classificados={classificadosDestaque} />
 
       {/* 5. Corpo Principal: Blocos de Editorias + Rail Lateral */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

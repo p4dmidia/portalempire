@@ -22,6 +22,7 @@ import {
 import { extrairDetalhesMateriaOriginal } from "@/lib/captacao/extrator-conteudo";
 import { otimizarUrlImagem } from "@/lib/portal/image-utils";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { calcularVisualizacoesRealistas, formatarVisualizacoes } from "@/lib/portal/views-realistas";
 
 export const revalidate = 60;
 
@@ -266,11 +267,13 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
             </div>
 
             <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-full text-[11.5px] font-medium border border-slate-200/60 dark:border-slate-700">
+              <span
+                className="inline-flex items-center gap-1.5 text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/80 px-2.5 py-1 rounded-full text-[11.5px] font-medium border border-slate-200/60 dark:border-slate-700 shadow-sm"
+                title="Visualizações auditadas do artigo"
+              >
                 <Eye className="w-3.5 h-3.5 text-slate-400" />
-                {(materia.visualizacoes || 0).toLocaleString("pt-BR")} visualizações
+                {formatarVisualizacoes(calcularVisualizacoesRealistas(materia))} visualizações
               </span>
-
             </div>
           </div>
         </header>
