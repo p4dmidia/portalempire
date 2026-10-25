@@ -1,4 +1,5 @@
 import { otimizarUrlImagem } from "@/lib/portal/image-utils";
+import { limparEPadronizarTextoJornalistico } from "@/lib/portal/limpador-jornalistico";
 
 /**
  * Módulo de Extração de Conteúdo e Imagem Original de Matérias
@@ -114,94 +115,22 @@ export async function extrairDetalhesMateriaOriginal(url: string): Promise<Detal
       .replace(/<form\b[^>]*>[\s\S]*?<\/form>/gi, "")
       .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, "");
 
-    // 2. Extrair todos os parágrafos <p>
-    const pMatches = [...corpoHtml.matchAll(/<p[^>]*>([\s\S]*?)<\/p>/gi)];
-    const paragrafosValidos: string[] = [];
+    // 2. Extrair título da página original caso disponível para auxiliar na deduplicação
+    const ogTitleMatch =
+      html.match(/<meta[^>]+property=["']og:title["'][^>]+content=["']([^"']+)["']/i) ||
+      html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    const tituloOriginal = ogTitleMatch ? ogTitleMatch[1].replace(/<[^>]+>/g, "").trim() : "";
 
-    // Termos de ruído para descartar
-    const termosDescarte = [
-      "todos os direitos reservados",
-      "clique aqui para se inscrever",
-      "leia também:",
-      "fazer login",
-      "termos de uso",
-      "política de privacidade",
-      "inscreva-se na nossa newsletter",
-      "assine a folha",
-      "assine o estadão",
-      "assine o globo",
-      "baixe o app",
-      "siga no instagram",
-      "siga no twitter",
-      "compartilhe no whatsapp",
-      "ouça o podcast",
-      "crédito,",
-      "foto:",
-      "reprodução/",
-      "publicidade",
-      "fonte: g1",
-      "fonte: uol",
-      "fonte: folha",
-      "fonte: cnn",
-      "fonte: r7",
-      "leia mais no g1",
-      "leia mais no uol",
-      "veja mais no g1",
-      "confira no g1",
-    ];
+    // 3. Aplica limpeza, descarte de links de matérias recomendadas, deduplicação e padronização jornalística
+    const htmlPadronizado = limparEPadronizarTextoJornalistico(corpoHtml, tituloOriginal);
 
-    for (const m of pMatches) {
-      const conteudoRaw = m[1];
-
-      // Ignora parágrafos com scripts ou formulários
-      if (conteudoRaw.includes("<script") || conteudoRaw.includes("<form") || conteudoRaw.includes("<input")) {
-        continue;
-      }
-
-      // Remove tags internas preservando o texto e formatações básicas (bold/italic)
-      const textoLimpo = conteudoRaw
-        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, "")
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, "")
-        .replace(/<a[^>]*>([\s\S]*?)<\/a>/gi, "$1") // remove links externos para não vazar navegação
-        .replace(/<[^>]+>/g, " ")
-        .replace(/&nbsp;/g, " ")
-        .replace(/&quot;/g, '"')
-        .replace(/&amp;/g, "&")
-        .replace(/&lt;/g, "<")
-        .replace(/&gt;/g, ">")
-        .replace(/\s+/g, " ")
-        .trim();
-
-      // Critérios de validação de parágrafo jornalístico real
-      if (textoLimpo.length >= 45) {
-        const textoMin = textoLimpo.toLowerCase();
-        const ehRuido = termosDescarte.some((termo) => textoMin.includes(termo));
-
-        if (!ehRuido) {
-          // Remove eventuais prefixos de carregamento como "Carregando Carregando"
-          const textoTratado = textoLimpo.replace(/^(?:Carregando\s*)+/i, "").trim();
-          if (textoTratado.length >= 45) {
-            paragrafosValidos.push(textoTratado);
-          }
-        }
-      }
-    }
-
-    if (paragrafosValidos.length < 3) {
+    // Valida se o conteúdo obtido possui robustez mínima
+    const totalParagrafos = (htmlPadronizado.match(/<p\b/gi) || []).length;
+    if (totalParagrafos < 3 || htmlPadronizado.length < 350) {
       return { conteudoHtml: null, imagemUrl };
     }
 
-    // 3. Montar o HTML completo com os parágrafos da matéria
-    const htmlCompleto = paragrafosValidos
-      .map((p, index) => {
-        if (index === 0) {
-          return `<p class="lead text-xl font-medium leading-relaxed text-slate-900 dark:text-slate-100 mb-6">${p}</p>`;
-        }
-        return `<p class="mb-5 leading-relaxed text-slate-800 dark:text-slate-200 text-base md:text-lg">${p}</p>`;
-      })
-      .join("\n");
-
-    return { conteudoHtml: htmlCompleto, imagemUrl };
+    return { conteudoHtml: htmlPadronizado, imagemUrl };
   } catch (error) {
     clearTimeout(timeoutId);
     console.warn(`[Extrator Conteúdo] Não foi possível extrair dados completos de ${url}:`, error);

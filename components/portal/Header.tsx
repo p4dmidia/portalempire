@@ -71,19 +71,21 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
   const cidadesDestaque = cidades.filter((c) => c.destaque_menu).slice(0, 8);
 
   return (
-    <header className="sticky top-0 z-50 bg-[#111622] text-white shadow-xl border-t-[3px] border-[#c8102e]">
-      <div className="max-w-[1300px] mx-auto px-4 flex items-center justify-between gap-4 h-[72px]">
-        {/* 1. Logo */}
-        <Link href="/" className="inline-flex items-center shrink-0 py-1">
-          <Image
-            src={portal?.logo_url || "/logo.png"}
-            alt={portal?.nome || "Empire Cidades — Portal de Notícias"}
-            width={240}
-            height={88}
-            className="h-11 sm:h-12 w-auto object-contain"
-            priority
-          />
-        </Link>
+    <header className="relative bg-[#111622] text-white">
+      {/* 1. Barra Principal de Navegação (Fixa no Topo, 58px) */}
+      <div className="sticky top-0 z-50 bg-[#111622] text-white shadow-md border-t-[3px] border-[#c8102e]">
+        <div className="max-w-[1300px] mx-auto px-4 flex items-center justify-between gap-3 h-[58px]">
+          {/* Logo */}
+          <Link href="/" className="inline-flex items-center shrink-0 py-1">
+            <Image
+              src={portal?.logo_url || "/logo.png"}
+              alt={portal?.nome || "Empire Cidades — Portal de Notícias"}
+              width={190}
+              height={60}
+              className="h-9 sm:h-10 w-auto object-contain"
+              priority
+            />
+          </Link>
 
         {/* 2. Navegação Desktop (Estilo Magazine Exato) */}
         <nav className="hidden lg:flex items-center gap-1 xl:gap-2 h-full">
@@ -334,11 +336,11 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
         </nav>
 
         {/* 3. Ações Direita (Botão Classificados Destaque + Busca + Menu Mobile) */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-2.5">
           {/* Botão de Classificados em Destaque */}
           <Link
             href="/classificados"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-full text-[11px] sm:text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 shadow-md shadow-amber-500/25 hover:shadow-amber-500/40 transition-all hover:scale-105 active:scale-95 border border-amber-300/60"
+            className="inline-flex items-center gap-1.5 px-3 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] sm:text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 shadow-sm shadow-amber-500/25 hover:shadow-amber-500/40 transition-all hover:scale-105 active:scale-95 border border-amber-300/60"
             title="Classificados — Vendas, Imóveis, Autos e Oportunidades"
           >
             <Tag className="w-3.5 h-3.5 fill-current" />
@@ -353,34 +355,28 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           <button
             onClick={() => setIsSearchOpen(true)}
             aria-label="Buscar"
-            className="w-10 h-10 rounded-full bg-white/10 hover:bg-[#c8102e] flex items-center justify-center text-white transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+            className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/10 hover:bg-[#c8102e] flex items-center justify-center text-white transition-all cursor-pointer shadow-sm hover:scale-105 active:scale-95"
             title="Buscar notícias"
           >
-            <Search className="w-4 h-4" />
+            <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
 
           {/* Botão Hambúrguer Mobile */}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 lg:hidden text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
+            className="p-1.5 lg:hidden text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
             aria-label="Abrir menu"
           >
-            {isMobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
         </div>
       </div>
+    </div>
 
-      {/* 3.1 Barra de Temas e Editorias em Destaque no Cabeçalho */}
-      <div className="bg-[#0b0e17] border-t border-white/5 border-b border-black/40 py-2 px-4 overflow-x-auto scrollbar-none shadow-inner">
+      {/* 2. Barra de Temas e Editorias em Destaque no Cabeçalho */}
+      <div className="bg-[#0b0e17] border-t border-white/5 border-b border-black/40 py-1 sm:py-1.5 px-4 overflow-x-auto scrollbar-none shadow-inner">
         <div className="max-w-[1300px] mx-auto flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
-          <Link
-            href="/classificados"
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-[11.5px] font-black uppercase tracking-wide bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500 hover:text-slate-950 transition-all shrink-0 shadow-sm"
-          >
-            <Tag className="w-3 h-3 fill-current" />
-            <span>Classificados</span>
-          </Link>
-          <span className="text-[#c8102e] font-black uppercase text-[11px] tracking-wider shrink-0 flex items-center gap-1.5 pr-2.5 border-r border-white/10">
+          <span className="text-[#c8102e] font-black uppercase text-[10.5px] sm:text-[11px] tracking-wider shrink-0 flex items-center gap-1.5 pr-2.5 border-r border-white/10">
             <span className="w-2 h-2 rounded-full bg-[#c8102e] animate-pulse" />
             Temas em Alta:
           </span>
@@ -390,7 +386,7 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
               <Link
                 key={tema.slug}
                 href={`/categoria/${tema.slug}`}
-                className={`px-2.5 py-1 rounded text-[12px] font-semibold tracking-wide transition-all ${
+                className={`px-2 py-0.5 rounded text-[11.5px] font-semibold tracking-wide transition-all ${
                   isActive
                     ? "bg-[#c8102e] text-white font-bold shadow-sm"
                     : "text-slate-300 hover:text-white hover:bg-white/10"

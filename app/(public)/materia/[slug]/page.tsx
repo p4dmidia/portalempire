@@ -23,6 +23,7 @@ import { extrairDetalhesMateriaOriginal } from "@/lib/captacao/extrator-conteudo
 import { otimizarUrlImagem } from "@/lib/portal/image-utils";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { calcularVisualizacoesRealistas, formatarVisualizacoes } from "@/lib/portal/views-realistas";
+import { limparEPadronizarTextoJornalistico } from "@/lib/portal/limpador-jornalistico";
 
 export const revalidate = 60;
 
@@ -84,7 +85,11 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
   // Se for matéria captada e o conteúdo estiver ausente/curto, OU a imagem estiver em baixa resolução (ex: miniatura w=200/fit=300),
   // busca os dados completos e a imagem editorial oficial na fonte original
   const precisaRecarregarConteudo =
-    !conteudoHtml || conteudoHtml.length < 600 || conteudoHtml.includes("lead-noticia");
+    !conteudoHtml ||
+    conteudoHtml.length < 500 ||
+    conteudoHtml.includes("lead-noticia") ||
+    conteudoHtml.toLowerCase().includes("whatsapp") ||
+    conteudoHtml.includes("Sem resultado");
   const precisaRecarregarImagem =
     !materia.imagem_url ||
     materia.imagem_url.includes("w=200") ||
@@ -148,13 +153,24 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
       ? "Redatores da Empire Cidades"
       : materia.autor?.nome || "Redatores da Empire Cidades";
 
-  // Limpeza profunda de quaisquer menções a veículos externos ou notas de redação legadas no corpo da matéria
-  if (materia.origem === "captacao" && conteudoHtml) {
-    conteudoHtml = conteudoHtml
-      .replace(/<p[^>]*class=["'][^"']*nota-redacao[^"']*["'][^>]*>[\s\S]*?<\/p>/gi, "")
-      .replace(/<p[^>]*><em>(?:Informações|Com informações|Fonte|Reportagem original|Segundo o|De acordo com)[\s\S]*?<\/em><\/p>/gi, "")
-      .replace(/Informações originalmente apuradas e reportadas por[^<.]*\.?/gi, "Reportagem e apuração realizada pelos redatores da Empire Cidades.")
-      .replace(/(?:Segundo|De acordo com|Conforme apurou|Conforme apurado pelo?)\s+(?:o\s+)?(?:G1|UOL|Folha|CNN|CNN Brasil|Estadão|O Globo|R7|Metrópoles|Terra|InfoMoney|Valor Econômico|Reuters)/gi, "Segundo apuração dos redatores da Empire Cidades");
+  // Limpeza profunda de quaisquer menções a veículos externos, ruídos e deduplicação editorial
+  const conteudoOriginal = conteudoHtml;
+  conteudoHtml = limparEPadronizarTextoJornalistico(
+    conteudoHtml,
+    materia.titulo,
+    materia.cidade?.nome
+  );
+
+  // Auto-cura: se o conteúdo foi limpo/otimizado em relação ao banco, atualiza permanentemente
+  if (conteudoHtml && conteudoHtml !== conteudoOriginal) {
+    try {
+      const admin = getSupabaseAdmin();
+      admin
+        .from("materias")
+        .update({ conteudo_html: conteudoHtml })
+        .eq("id", materia.id)
+        .then(() => {});
+    } catch {}
   }
 
   // JSON-LD NewsArticle para SEO avançado

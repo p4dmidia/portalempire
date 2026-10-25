@@ -63,6 +63,9 @@
 }
 
 @layer base {
+  html {
+    scroll-padding-top: 70px;
+  }
   * {
     @apply border-border;
   }

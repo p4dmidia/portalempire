@@ -6,6 +6,8 @@
  * veracidade dos fatos e a devida atribuição da fonte original.
  */
 
+import { limparEPadronizarTextoJornalistico } from "@/lib/portal/limpador-jornalistico";
+
 export interface DadosNoticiaParaReescrita {
   titulo: string;
   resumoBruto: string;
@@ -119,24 +121,16 @@ export function reescreverComAlgoritmo(dados: DadosNoticiaParaReescrita): Notici
     ? frases[1].slice(0, 160)
     : `Acompanhe os detalhes e principais informações apuradas sobre este caso.`;
 
-  // 3. CONTEÚDO HTML COM RESPALDO JURÍDICO E CRÉDITO DE FONTE
-  const corpoNoticia = frases.length > 2
-    ? frases.slice(1).join(" ")
-    : textoLimpo;
+  // 3. CONTEÚDO HTML COM REDAÇÃO JORNALÍSTICA PROFISSIONAL E COMPLETA
+  const textoParaProcessar = dados.conteudoBruto && dados.conteudoBruto.length > 200
+    ? dados.conteudoBruto
+    : (frases.length > 0 ? frases.join(" ") : textoLimpo);
 
-  const localizacaoTexto = cidadeNome ? ` no município de ${cidadeNome} e região` : "";
-
-  const conteudoHtml = `
-    <p class="lead-noticia">
-      <strong>${cidadeNome ? `${cidadeNome} — ` : ""}${resumoReescrito}</strong>
-    </p>
-    <p>
-      O caso chamou atenção recentemente${localizacaoTexto}. ${corpoNoticia}
-    </p>
-    <p class="nota-redacao text-sm text-slate-500 italic border-l-2 border-primary/40 pl-3 my-4">
-      <em>Reportagem e apuração realizada pelos redatores da Empire Cidades.</em>
-    </p>
-  `.trim();
+  const conteudoHtml = limparEPadronizarTextoJornalistico(
+    textoParaProcessar,
+    tituloFinal,
+    cidadeNome
+  );
 
   return {
     titulo: tituloFinal,
