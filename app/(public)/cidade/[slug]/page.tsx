@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCidades, getMaterias, getColunasAtivas, getPortalData } from "@/lib/portal/queries";
+import { getClimaPorSlug } from "@/lib/portal/clima";
 import { CardMateria } from "@/components/portal/CardMateria";
 import { ColunistasCarrossel } from "@/components/portal/ColunistasCarrossel";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { AdSlot } from "@/components/portal/AdSlot";
-import { MapPin } from "lucide-react";
+import { MapPin, Thermometer } from "lucide-react";
 
 export const revalidate = 60;
 
@@ -40,10 +41,11 @@ export default async function CidadeDetalhePage({ params }: CidadePageProps) {
     notFound();
   }
 
-  const [materias, colunas, maisLidas] = await Promise.all([
+  const [materias, colunas, maisLidas, clima] = await Promise.all([
     getMaterias({ cidadeSlug: slug, limit: 12 }),
     getColunasAtivas(slug),
     getMaterias({ cidadeSlug: slug, ordenarPor: "visualizacoes", limit: 5 }),
+    getClimaPorSlug(slug),
   ]);
 
   return (
@@ -60,9 +62,23 @@ export default async function CidadeDetalhePage({ params }: CidadePageProps) {
           </h1>
         </div>
 
-        <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full self-start sm:self-auto">
-          {materias.length} notícias registradas
-        </span>
+        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+          {clima && (
+            <div className="inline-flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-100 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 px-3.5 py-1.5 rounded-full shadow-sm">
+              <span className="text-amber-500 font-extrabold text-sm">{clima.temperatura}°C</span>
+              <span className="text-slate-400 dark:text-slate-500">•</span>
+              <span>{clima.descricao}</span>
+              <span className="text-slate-400 dark:text-slate-500">•</span>
+              <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                {clima.tempMin}° / {clima.tempMax}°
+              </span>
+            </div>
+          )}
+
+          <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full">
+            {materias.length} notícias registradas
+          </span>
+        </div>
       </div>
 
       <AdSlot posicao="topo" />

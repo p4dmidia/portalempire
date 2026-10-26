@@ -6,6 +6,7 @@ import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import type { CategoriaData, CidadeData, PortalData } from "@/lib/portal/queries";
 import { Search, Menu, X, ChevronDown, Tag, ShoppingBag } from "lucide-react";
+import { WidgetClimaHeader } from "@/components/portal/WidgetClimaHeader";
 
 const TEMAS_EDITORIAIS = [
   { nome: "Empreendedorismo", slug: "empreendedorismo" },
@@ -373,29 +374,35 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
       </div>
     </div>
 
-      {/* 2. Barra de Temas e Editorias em Destaque no Cabeçalho */}
-      <div className="bg-[#0b0e17] border-t border-white/5 border-b border-black/40 py-1 sm:py-1.5 px-4 overflow-x-auto scrollbar-none shadow-inner">
-        <div className="max-w-[1300px] mx-auto flex items-center gap-1.5 sm:gap-2 whitespace-nowrap">
-          <span className="text-[#c8102e] font-black uppercase text-[10.5px] sm:text-[11px] tracking-wider shrink-0 flex items-center gap-1.5 pr-2.5 border-r border-white/10">
-            <span className="w-2 h-2 rounded-full bg-[#c8102e] animate-pulse" />
-            Temas em Alta:
-          </span>
-          {TEMAS_EDITORIAIS.map((tema) => {
-            const isActive = pathname === `/categoria/${tema.slug}`;
-            return (
-              <Link
-                key={tema.slug}
-                href={`/categoria/${tema.slug}`}
-                className={`px-2 py-0.5 rounded text-[11.5px] font-semibold tracking-wide transition-all ${
-                  isActive
-                    ? "bg-[#c8102e] text-white font-bold shadow-sm"
-                    : "text-slate-300 hover:text-white hover:bg-white/10"
-                }`}
-              >
-                {tema.nome}
-              </Link>
-            );
-          })}
+      {/* 2. Barra de Temas e Editorias em Destaque no Cabeçalho + Clima das Cidades */}
+      <div className="bg-[#0b0e17] border-t border-white/5 border-b border-black/40 py-1 sm:py-1.5 px-4 shadow-inner">
+        <div className="max-w-[1300px] mx-auto flex items-center justify-between gap-3">
+          {/* Temas em Alta (com scroll horizontal) */}
+          <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none whitespace-nowrap min-w-0 flex-1">
+            <span className="text-[#c8102e] font-black uppercase text-[10.5px] sm:text-[11px] tracking-wider shrink-0 flex items-center gap-1.5 pr-2.5 border-r border-white/10">
+              <span className="w-2 h-2 rounded-full bg-[#c8102e] animate-pulse" />
+              Temas em Alta:
+            </span>
+            {TEMAS_EDITORIAIS.map((tema) => {
+              const isActive = pathname === `/categoria/${tema.slug}`;
+              return (
+                <Link
+                  key={tema.slug}
+                  href={`/categoria/${tema.slug}`}
+                  className={`px-2 py-0.5 rounded text-[11.5px] font-semibold tracking-wide transition-all ${
+                    isActive
+                      ? "bg-[#c8102e] text-white font-bold shadow-sm"
+                      : "text-slate-300 hover:text-white hover:bg-white/10"
+                  }`}
+                >
+                  {tema.nome}
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Widget de Clima e Tempo em Tempo Real (Cidades Aleatórias e Rotativas) */}
+          <WidgetClimaHeader />
         </div>
       </div>
 
