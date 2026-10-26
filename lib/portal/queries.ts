@@ -459,8 +459,7 @@ export async function getMaterias(options?: {
         autor:profiles(id, nome, slug, foto_url, bio)
       `
       )
-      .eq("status", "publicado")
-      .or(`publicado_em.is.null,publicado_em.lte.${new Date().toISOString()}`);
+      .eq("status", "publicado");
 
     if (options?.destaque !== undefined) {
       query = query.eq("destaque", options.destaque);

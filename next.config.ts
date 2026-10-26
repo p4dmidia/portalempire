@@ -9,8 +9,7 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   images: {
-    formats: ["image/avif", "image/webp"],
-    minimumCacheTTL: 86400, // 24h de cache para imagens otimizadas
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: "https",
