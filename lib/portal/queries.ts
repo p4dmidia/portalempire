@@ -1,5 +1,23 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { CIDADES_CATALOGO } from "@/lib/captacao/catalogo-portais";
+
+// Cache em memória com TTL de 60s para eliminar requisições repetidas ao Supabase
+const MEM_CACHE = new Map<string, { data: unknown; expiresAt: number }>();
+const CACHE_TTL_MS = 60 * 1000;
+
+function getCached<T>(key: string): T | null {
+  const item = MEM_CACHE.get(key);
+  if (item && Date.now() < item.expiresAt) {
+    return item.data as T;
+  }
+  return null;
+}
+
+function setCached<T>(key: string, data: T, ttlMs = CACHE_TTL_MS): T {
+  MEM_CACHE.set(key, { data, expiresAt: Date.now() + ttlMs });
+  return data;
+}
 
 export interface PortalData {
   id: string;
@@ -140,9 +158,12 @@ export interface FonteRssData {
 }
 
 /**
- * Busca os dados de configuração do portal principal.
+ * Busca os dados de configuração do portal principal (com cache).
  */
-export async function getPortalData(): Promise<PortalData | null> {
+export const getPortalData = cache(async (): Promise<PortalData | null> => {
+  const cached = getCached<PortalData | null>("portal_data");
+  if (cached !== null) return cached;
+
   try {
     const supabase = await createClient();
     const { data, error } = await supabase.from("portais").select("*").limit(1).maybeSingle();
@@ -150,13 +171,15 @@ export async function getPortalData(): Promise<PortalData | null> {
       console.error("[Portal Empire] Erro ao buscar portal:", error.message || error);
       return null;
     }
-    return data as PortalData | null;
+    const result = data as PortalData | null;
+    if (result) setCached("portal_data", result);
+    return result;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[Portal Empire] Falha de conexão ao buscar portal:", msg);
     return null;
   }
-}
+});
 
 export const CATEGORIAS_PADRAO_SISTEMA: CategoriaData[] = [
   {
@@ -240,9 +263,12 @@ export const CATEGORIAS_PADRAO_SISTEMA: CategoriaData[] = [
 ];
 
 /**
- * Busca todas as categorias organizadas com suas subcategorias.
+ * Busca todas as categorias organizadas com suas subcategorias (com cache).
  */
-export async function getCategorias(): Promise<CategoriaData[]> {
+export const getCategorias = cache(async (): Promise<CategoriaData[]> => {
+  const cached = getCached<CategoriaData[]>("categorias_data");
+  if (cached) return cached;
+
   try {
     const supabase = await createClient();
     const { data, error } = await supabase
@@ -267,16 +293,19 @@ export async function getCategorias(): Promise<CategoriaData[]> {
 
     const principais = categoriasCompletas.filter((c) => !c.pai_id);
 
-    return principais.map((pai) => ({
+    const resultado = principais.map((pai) => ({
       ...pai,
       subcategorias: categoriasCompletas.filter((sub) => sub.pai_id === pai.id),
     }));
+
+    setCached("categorias_data", resultado);
+    return resultado;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[Portal Empire] Falha de conexão ao buscar categorias:", msg);
     return CATEGORIAS_PADRAO_SISTEMA;
   }
-}
+});
 
 /**
  * Busca uma categoria ou subcategoria específica pelo slug.
@@ -322,9 +351,12 @@ import { SLUGS_CIDADES_PRIORITARIAS } from "@/lib/portal/cidades-constantes";
 export { SLUGS_CIDADES_PRIORITARIAS };
 
 /**
- * Busca cidades em destaque para o menu, blocos e listagem com garantia de presença das prioritárias.
+ * Busca cidades em destaque para o menu, blocos e listagem com garantia de presença das prioritárias (com cache).
  */
-export async function getCidades(): Promise<CidadeData[]> {
+export const getCidades = cache(async (): Promise<CidadeData[]> => {
+  const cached = getCached<CidadeData[]>("cidades_data");
+  if (cached) return cached;
+
   try {
     const supabase = await createClient();
     const { data } = await supabase
@@ -358,19 +390,22 @@ export async function getCidades(): Promise<CidadeData[]> {
     }));
 
     // Ordenação: prioritárias primeiro, depois alfabética
-    return todas.sort((a, b) => {
+    const resultado = todas.sort((a, b) => {
       const aPrio = SLUGS_CIDADES_PRIORITARIAS.has(a.slug);
       const bPrio = SLUGS_CIDADES_PRIORITARIAS.has(b.slug);
       if (aPrio && !bPrio) return -1;
       if (!aPrio && bPrio) return 1;
       return a.nome.localeCompare(b.nome);
     });
+
+    setCached("cidades_data", resultado);
+    return resultado;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[Portal Empire] Falha de conexão ao buscar cidades:", msg);
     return [];
   }
-}
+});
 
 /**
  * Busca matérias com paginação e filtros.
@@ -393,7 +428,31 @@ export async function getMaterias(options?: {
       .from("materias")
       .select(
         `
-        *,
+        id,
+        portal_id,
+        autor_id,
+        coluna_id,
+        categoria_id,
+        cidade_id,
+        titulo,
+        slug,
+        subtitulo,
+        resumo,
+        imagem_url,
+        imagem_credito,
+        origem,
+        fonte_id,
+        fonte_nome,
+        url_original,
+        status,
+        publicado_em,
+        urgente,
+        destaque,
+        tags,
+        visualizacoes,
+        seo_titulo,
+        seo_descricao,
+        created_at,
         categoria:categorias(id, nome, slug, cor),
         cidade:cidades(id, nome, slug, uf),
         coluna:colunas(id, nome, slug, capa_url),
@@ -514,6 +573,67 @@ export async function getMaterias(options?: {
 }
 
 /**
+ * Otimização de Alta Performance para a Home:
+ * Busca as matérias mais recentes do portal em uma ÚNICA requisição e as distribui
+ * entre as categorias ativas da Home, eliminando 10 a 15 consultas individuais ao Supabase.
+ */
+export async function getMateriasPorCategoriasHome(
+  categoriasHome: CategoriaData[],
+  limitPorCat = 4
+): Promise<Array<{ categoria: CategoriaData; materias: MateriaData[] }>> {
+  if (categoriasHome.length === 0) return [];
+
+  // Busca um lote otimizado de matérias recentes publicadas no portal (apenas 1 requisição)
+  const materiasPool = await getMaterias({ limit: 60 });
+
+  const mapaResultado = new Map<string, MateriaData[]>();
+  categoriasHome.forEach((c) => mapaResultado.set(c.id, []));
+
+  // 1ª Passagem: Distribuição por categoria_id
+  for (const m of materiasPool) {
+    if (m.categoria_id && mapaResultado.has(m.categoria_id)) {
+      const lista = mapaResultado.get(m.categoria_id)!;
+      if (lista.length < limitPorCat) {
+        lista.push(m);
+      }
+    }
+  }
+
+  // 2ª Passagem: Fallback por palavras-chave/slug da categoria para categorias com poucas matérias
+  for (const cat of categoriasHome) {
+    const lista = mapaResultado.get(cat.id)!;
+    if (lista.length < limitPorCat) {
+      const termos = [
+        cat.slug.toLowerCase(),
+        ...(cat.palavras_chave || []).map((p) => p.toLowerCase()),
+      ];
+
+      for (const m of materiasPool) {
+        if (lista.length >= limitPorCat) break;
+        if (lista.some((existente) => existente.id === m.id)) continue;
+
+        const match =
+          m.tags?.some((tag) => termos.some((t) => tag.toLowerCase().includes(t))) ||
+          termos.some(
+            (t) =>
+              m.titulo.toLowerCase().includes(t) ||
+              (m.resumo && m.resumo.toLowerCase().includes(t))
+          );
+
+        if (match) {
+          lista.push(m);
+        }
+      }
+    }
+  }
+
+  return categoriasHome.map((cat) => ({
+    categoria: cat,
+    materias: mapaResultado.get(cat.id) || [],
+  }));
+}
+
+/**
  * Busca uma matéria específica pelo slug.
  */
 export async function getMateriaBySlug(slug: string): Promise<MateriaData | null> {
@@ -547,9 +667,13 @@ export async function getMateriaBySlug(slug: string): Promise<MateriaData | null
 }
 
 /**
- * Busca todas as colunas ativas com autor e cidade.
+ * Busca todas as colunas ativas com autor e cidade (com cache).
  */
-export async function getColunasAtivas(cidadeSlug?: string): Promise<ColunaData[]> {
+export const getColunasAtivas = cache(async (cidadeSlug?: string): Promise<ColunaData[]> => {
+  const cacheKey = `colunas_${cidadeSlug || "todas"}`;
+  const cached = getCached<ColunaData[]>(cacheKey);
+  if (cached) return cached;
+
   try {
     const supabase = await createClient();
     let query = supabase
@@ -580,13 +704,15 @@ export async function getColunasAtivas(cidadeSlug?: string): Promise<ColunaData[
       return [];
     }
 
-    return (data || []) as unknown as ColunaData[];
+    const resultado = (data || []) as unknown as ColunaData[];
+    setCached(cacheKey, resultado);
+    return resultado;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[Portal Empire] Falha de conexão ao buscar colunas ativas:", msg);
     return [];
   }
-}
+});
 
 /**
  * Busca uma coluna pelo slug.

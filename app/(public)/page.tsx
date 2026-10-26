@@ -5,8 +5,8 @@ import {
   getCategorias,
   getCidades,
   getMaterias,
+  getMateriasPorCategoriasHome,
   getColunasAtivas,
-  getFontesRssAtivas,
   getShorts,
 } from "@/lib/portal/queries";
 import { getClassificadosDestaqueHome } from "@/lib/portal/classificados-queries";
@@ -46,7 +46,6 @@ export default async function PortalHomePage() {
     recentesRaw,
     maisLidas,
     colunas,
-    fontes,
     shorts,
     classificadosDestaque,
   ] = await Promise.all([
@@ -57,7 +56,6 @@ export default async function PortalHomePage() {
     getMaterias({ limit: 30 }),
     getMaterias({ ordenarPor: "visualizacoes", limit: 6 }),
     getColunasAtivas(),
-    getFontesRssAtivas(),
     getShorts(),
     getClassificadosDestaqueHome(4),
   ]);
@@ -85,13 +83,8 @@ export default async function PortalHomePage() {
     .filter((c) => c.exibir_home)
     .sort((a, b) => (a.ordem_home || 0) - (b.ordem_home || 0));
 
-  // Matérias para cada editoria (4 matérias por bloco)
-  const materiasPorCategoria = await Promise.all(
-    categoriasHome.map(async (cat) => ({
-      categoria: cat,
-      materias: await getMaterias({ categoriaSlug: cat.slug, limit: 4 }),
-    }))
-  );
+  // Matérias para cada editoria (em lote otimizado: 1 única consulta em vez de 15)
+  const materiasPorCategoria = await getMateriasPorCategoriasHome(categoriasHome, 4);
 
   return (
     <div className="space-y-10">
