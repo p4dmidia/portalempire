@@ -16,6 +16,7 @@ import { BlocoEditoria } from "@/components/portal/BlocoEditoria";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { ClassificadosHomeSection } from "@/components/portal/ClassificadosHomeSection";
 import { BlocoCidadesEstadosHome } from "@/components/portal/BlocoCidadesEstadosHome";
+import { BlocoTvAoVivoHome } from "@/components/portal/BlocoTvAoVivoHome";
 import { AdSlot } from "@/components/portal/AdSlot";
 import { MapPin, Video, ChevronRight, MessageCircle } from "lucide-react";
 
@@ -247,6 +248,9 @@ export default async function PortalHomePage() {
           </div>
         </section>
       )}
+
+      {/* 7. TV Ao Vivo — Transmissão da TV Empire */}
+      <BlocoTvAoVivoHome />
     </div>
   );
 }
