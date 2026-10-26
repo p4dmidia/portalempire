@@ -4,7 +4,17 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import type { CidadeData } from "@/lib/portal/queries";
 import { SLUGS_CIDADES_PRIORITARIAS } from "@/lib/portal/cidades-constantes";
-import { MapPin, Search, Sparkles, ChevronRight, X, Building2, Globe2 } from "lucide-react";
+import {
+  MapPin,
+  Search,
+  Sparkles,
+  ChevronRight,
+  ChevronDown,
+  ChevronUp,
+  X,
+  Building2,
+  Globe2,
+} from "lucide-react";
 
 interface BlocoCidadesEstadosHomeProps {
   cidades: CidadeData[];
@@ -85,11 +95,13 @@ const REGIOES_BRASIL = [
 export function BlocoCidadesEstadosHome({ cidades }: BlocoCidadesEstadosHomeProps) {
   const [selectedUf, setSelectedUf] = useState<string>("TODOS");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [mostrarTodas, setMostrarTodas] = useState<boolean>(false);
 
-  // Cidades em destaque prioritário para a barra de atalhos rápidos de 1 clique
-  const cidadesEmDestaque = useMemo(() => {
-    return cidades.filter((c) => SLUGS_CIDADES_PRIORITARIAS.has(c.slug));
-  }, [cidades]);
+  // Troca de UF reseta o expandir para manter a visualização limpa
+  const handleSelectUf = (uf: string) => {
+    setSelectedUf(uf);
+    setMostrarTodas(false);
+  };
 
   // Contagem de cidades cadastradas por UF
   const contagemPorUf = useMemo(() => {
@@ -118,6 +130,33 @@ export function BlocoCidadesEstadosHome({ cidades }: BlocoCidadesEstadosHomeProp
       return matchUf && matchSearch;
     });
   }, [cidades, selectedUf, searchQuery]);
+
+  // Separação entre cidades em destaque prioritário vs outras cidades
+  const { cidadesDestaque, outrasCidades } = useMemo(() => {
+    const destaque: CidadeData[] = [];
+    const outras: CidadeData[] = [];
+
+    cidadesFiltradas.forEach((cid) => {
+      if (SLUGS_CIDADES_PRIORITARIAS.has(cid.slug) || cid.destaque_menu) {
+        destaque.push(cid);
+      } else {
+        outras.push(cid);
+      }
+    });
+
+    return { cidadesDestaque: destaque, outrasCidades: outras };
+  }, [cidadesFiltradas]);
+
+  // Cidades a serem exibidas:
+  // - Se houver busca em andamento, exibe todos os resultados compatíveis
+  // - Se não houver busca, exibe APENAS as em destaque, a não ser que o usuário clique em 'Ver mais / Ver todas'
+  const isBuscando = searchQuery.trim().length > 0;
+  const cidadesParaExibir = useMemo(() => {
+    if (isBuscando || mostrarTodas) {
+      return [...cidadesDestaque, ...outrasCidades];
+    }
+    return cidadesDestaque;
+  }, [isBuscando, mostrarTodas, cidadesDestaque, outrasCidades]);
 
   return (
     <section className="bg-gradient-to-b from-white to-slate-50/70 dark:from-slate-900 dark:to-slate-950 p-5 sm:p-7 rounded-2xl border border-slate-200/90 dark:border-slate-800 shadow-sm space-y-6">
@@ -149,35 +188,7 @@ export function BlocoCidadesEstadosHome({ cidades }: BlocoCidadesEstadosHomeProp
         </div>
       </div>
 
-      {/* 2. Atalhos Rápidos de 1 Clique: Cidades em Alta / Prioritárias */}
-      <div className="bg-slate-900 text-white dark:bg-black/40 rounded-xl p-3 sm:p-3.5 border border-slate-800 shadow-sm space-y-2.5">
-        <div className="flex items-center justify-between text-xs">
-          <div className="flex items-center gap-1.5 font-black uppercase tracking-wider text-amber-400">
-            <Sparkles className="w-3.5 h-3.5 fill-current animate-pulse" />
-            <span>Cidades em Evidência (Acesso Rápido):</span>
-          </div>
-          <span className="text-[11px] text-slate-400 hidden sm:inline">
-            Clique para ler notícias locais instantâneas
-          </span>
-        </div>
-
-        <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none py-1 whitespace-nowrap">
-          {cidadesEmDestaque.map((cid) => (
-            <Link
-              key={cid.slug}
-              href={`/cidade/${cid.slug}`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-white/10 hover:bg-gradient-to-r hover:from-amber-500 hover:to-amber-600 hover:text-slate-950 text-slate-200 transition-all border border-white/10 hover:border-amber-400/60 shadow-sm shrink-0 active:scale-95 group"
-            >
-              <span className="text-[10px] uppercase font-black text-amber-300 group-hover:text-slate-950">
-                {cid.uf}
-              </span>
-              <span>{cid.nome}</span>
-            </Link>
-          ))}
-        </div>
-      </div>
-
-      {/* 3. Barra de Controles: Busca Instantânea + Seletor de Estados */}
+      {/* 2. Barra de Controles: Busca Instantânea + Seletor de Estados */}
       <div className="space-y-3.5">
         <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3">
           {/* Campo de Busca Rápida */}
@@ -209,7 +220,7 @@ export function BlocoCidadesEstadosHome({ cidades }: BlocoCidadesEstadosHomeProp
             </span>
             <select
               value={selectedUf}
-              onChange={(e) => setSelectedUf(e.target.value)}
+              onChange={(e) => handleSelectUf(e.target.value)}
               className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 text-xs font-bold rounded-xl px-3 py-2.5 shadow-sm focus:outline-none focus:border-[#c8102e]"
             >
               <option value="TODOS">🇧🇷 Todos os Estados ({cidades.length})</option>
@@ -234,7 +245,7 @@ export function BlocoCidadesEstadosHome({ cidades }: BlocoCidadesEstadosHomeProp
             return (
               <button
                 key={est.uf}
-                onClick={() => setSelectedUf(est.uf)}
+                onClick={() => handleSelectUf(est.uf)}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
                   isSelected
                     ? "bg-[#c8102e] text-white shadow-sm scale-105"
@@ -257,66 +268,114 @@ export function BlocoCidadesEstadosHome({ cidades }: BlocoCidadesEstadosHomeProp
         </div>
       </div>
 
-      {/* 4. Grade Responsiva de Cards de Municípios */}
-      {cidadesFiltradas.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2.5">
-          {cidadesFiltradas.map((cid) => {
-            const isPrio = SLUGS_CIDADES_PRIORITARIAS.has(cid.slug);
-            return (
-              <Link
-                key={cid.id}
-                href={`/cidade/${cid.slug}`}
-                className={`group p-3 rounded-xl border transition-all flex flex-col justify-between text-left hover:-translate-y-0.5 shadow-sm relative overflow-hidden ${
-                  isPrio
-                    ? "bg-white dark:bg-slate-900 border-amber-500/40 hover:border-[#c8102e] hover:shadow-md"
-                    : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-[#c8102e]"
-                }`}
-              >
-                {/* Faixa sutil no topo para cidades prioritárias */}
-                {isPrio && (
-                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-amber-500 to-[#c8102e]" />
-                )}
+      {/* 3. Grade Responsiva de Cards de Municípios */}
+      {cidadesParaExibir.length > 0 ? (
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2.5">
+            {cidadesParaExibir.map((cid) => {
+              const isPrio = SLUGS_CIDADES_PRIORITARIAS.has(cid.slug) || cid.destaque_menu;
+              return (
+                <Link
+                  key={cid.id}
+                  href={`/cidade/${cid.slug}`}
+                  className={`group p-3 rounded-xl border transition-all flex flex-col justify-between text-left hover:-translate-y-0.5 shadow-sm relative overflow-hidden ${
+                    isPrio
+                      ? "bg-white dark:bg-slate-900 border-amber-500/40 hover:border-[#c8102e] hover:shadow-md"
+                      : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-[#c8102e]"
+                  }`}
+                >
+                  {/* Faixa sutil no topo para cidades prioritárias */}
+                  {isPrio && (
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-400 via-amber-500 to-[#c8102e]" />
+                  )}
 
-                <div>
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
-                      {cid.uf}
-                    </span>
-                    {isPrio && (
-                      <span className="text-[9px] font-extrabold text-amber-500 dark:text-amber-400 flex items-center gap-0.5">
-                        <Sparkles className="w-2.5 h-2.5 fill-current" /> Destaque
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <span className="text-[10px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded">
+                        {cid.uf}
                       </span>
-                    )}
+                      {isPrio && (
+                        <span className="text-[9px] font-extrabold text-amber-500 dark:text-amber-400 flex items-center gap-0.5">
+                          <Sparkles className="w-2.5 h-2.5 fill-current" /> Destaque
+                        </span>
+                      )}
+                    </div>
+
+                    <h3 className="font-bold text-[13px] leading-tight text-slate-900 dark:text-white group-hover:text-[#c8102e] transition-colors truncate" title={cid.nome}>
+                      {cid.nome}
+                    </h3>
                   </div>
 
-                  <h3 className="font-bold text-[13px] leading-tight text-slate-900 dark:text-white group-hover:text-[#c8102e] transition-colors truncate" title={cid.nome}>
-                    {cid.nome}
-                  </h3>
-                </div>
+                  <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-bold text-[#c8102e] group-hover:translate-x-0.5 transition-transform">
+                    <span>Acessar</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
 
-                <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-bold text-[#c8102e] group-hover:translate-x-0.5 transition-transform">
-                  <span>Acessar</span>
-                  <ChevronRight className="w-3 h-3" />
-                </div>
-              </Link>
-            );
-          })}
+          {/* Botão de Ver Mais / Ver Todas as Cidades (apenas quando não estiver em modo de busca e houver cidades adicionais) */}
+          {!isBuscando && outrasCidades.length > 0 && (
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-slate-200/80 dark:border-slate-800">
+              <span className="text-xs text-slate-500 dark:text-slate-400">
+                {!mostrarTodas
+                  ? `Mostrando ${cidadesDestaque.length} cidades prioritárias em destaque. Há mais ${outrasCidades.length} município(s) cadastrados.`
+                  : `Mostrando todos os ${cidadesParaExibir.length} municípios (${cidadesDestaque.length} em destaque e ${outrasCidades.length} demais cidades).`}
+              </span>
+
+              {!mostrarTodas ? (
+                <button
+                  onClick={() => setMostrarTodas(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-white dark:bg-slate-800 hover:bg-[#c8102e] hover:text-white text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:border-[#c8102e] transition-all shadow-sm group cursor-pointer"
+                >
+                  <span>Ver mais municípios (+{outrasCidades.length})</span>
+                  <ChevronDown className="w-4 h-4 transition-transform group-hover:translate-y-0.5" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => setMostrarTodas(false)}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition-all shadow-sm cursor-pointer"
+                >
+                  <ChevronUp className="w-4 h-4" />
+                  <span>Ocultar e ver apenas cidades em destaque</span>
+                </button>
+              )}
+            </div>
+          )}
         </div>
       ) : (
-        <div className="text-center py-10 px-4 bg-slate-100/50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 space-y-3">
-          <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
-            Nenhum município encontrado com o filtro aplicado.
-          </p>
-          <button
-            onClick={() => {
-              setSelectedUf("TODOS");
-              setSearchQuery("");
-            }}
-            className="px-4 py-2 bg-[#c8102e] hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm"
-          >
-            Limpar Filtros e Mostrar Todas as Cidades
-          </button>
-        </div>
+        /* Caso não haja cidades em destaque para o estado selecionado, mas existam cidades cadastradas */
+        !isBuscando && outrasCidades.length > 0 ? (
+          <div className="text-center py-8 px-4 bg-slate-50 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+            <p className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300">
+              Este estado possui {outrasCidades.length} município(s) com cobertura jornalística no portal.
+            </p>
+            <button
+              onClick={() => setMostrarTodas(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#c8102e] hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+            >
+              <ChevronDown className="w-4 h-4" />
+              <span>Ver todos os {outrasCidades.length} municípios de {selectedUf}</span>
+            </button>
+          </div>
+        ) : (
+          <div className="text-center py-10 px-4 bg-slate-100/50 dark:bg-slate-900/50 rounded-xl border border-dashed border-slate-300 dark:border-slate-800 space-y-3">
+            <p className="text-sm font-semibold text-slate-600 dark:text-slate-400">
+              Nenhum município encontrado com o filtro aplicado.
+            </p>
+            <button
+              onClick={() => {
+                handleSelectUf("TODOS");
+                setSearchQuery("");
+                setMostrarTodas(false);
+              }}
+              className="px-4 py-2 bg-[#c8102e] hover:bg-red-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm cursor-pointer"
+            >
+              Limpar Filtros e Mostrar Cidades
+            </button>
+          </div>
+        )
       )}
     </section>
   );
