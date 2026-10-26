@@ -11,16 +11,9 @@ import { WidgetClimaHeader } from "@/components/portal/WidgetClimaHeader";
 const TEMAS_EDITORIAIS = [
   { nome: "Empreendedorismo", slug: "empreendedorismo" },
   { nome: "Negócios", slug: "negocios" },
-  { nome: "Esportes", slug: "esportes" },
-  { nome: "Turismo", slug: "turismo" },
-  { nome: "Gastronomia", slug: "gastronomia" },
+  { nome: "Agronegócio", slug: "agronegocio" },
   { nome: "Saúde", slug: "saude" },
   { nome: "Educação", slug: "educacao" },
-  { nome: "Agronegócio", slug: "agronegocio" },
-  { nome: "Economia", slug: "economia" },
-  { nome: "Política", slug: "politica" },
-  { nome: "Beleza", slug: "beleza" },
-  { nome: "Estética", slug: "estetica" },
 ];
 
 interface HeaderProps {
@@ -375,7 +368,7 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
     </div>
 
       {/* 2. Barra de Temas e Editorias em Destaque no Cabeçalho + Clima das Cidades */}
-      <div className="bg-[#0b0e17] border-t border-white/5 border-b border-black/40 py-1 sm:py-1.5 px-4 shadow-inner">
+      <div className="bg-[#0b0e17] border-t border-white/5 border-b border-black/40 py-1 sm:py-1.5 px-4 shadow-inner overflow-hidden">
         <div className="max-w-[1300px] mx-auto flex items-center justify-between gap-3">
           {/* Temas em Alta (com scroll horizontal) */}
           <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none whitespace-nowrap min-w-0 flex-1">

@@ -136,8 +136,8 @@ export function WidgetClimaHeader() {
           {atual.temperatura}°C
         </span>
 
-        {/* Descrição / Máx e Mín (visível em telas médias para cima) */}
-        <span className="hidden md:inline-flex items-center gap-1 text-[10.5px] text-slate-400 border-l border-white/15 pl-2">
+        {/* Descrição / Máx e Mín (visível em telas grandes para cima) */}
+        <span className="hidden lg:inline-flex items-center gap-1 text-[10.5px] text-slate-400 border-l border-white/15 pl-2">
           <span>{atual.descricao}</span>
           <span className="text-slate-400">
             ({atual.tempMin}° / {atual.tempMax}°)
