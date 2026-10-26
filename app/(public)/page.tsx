@@ -15,6 +15,7 @@ import { FaixaUltimasNoticias } from "@/components/portal/FaixaUltimasNoticias";
 import { BlocoEditoria } from "@/components/portal/BlocoEditoria";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { ClassificadosHomeSection } from "@/components/portal/ClassificadosHomeSection";
+import { BlocoCidadesEstadosHome } from "@/components/portal/BlocoCidadesEstadosHome";
 import { AdSlot } from "@/components/portal/AdSlot";
 import { MapPin, Video, ChevronRight, MessageCircle } from "lucide-react";
 
@@ -118,6 +119,9 @@ export default async function PortalHomePage() {
       {/* 4.1 Vitrine de Classificados em Destaque na Home */}
       <ClassificadosHomeSection classificados={classificadosDestaque} />
 
+      {/* 4.2 Cobertura Nacional de Notícias por Estado e Município (Foco e Destaques Prioritários) */}
+      <BlocoCidadesEstadosHome cidades={cidades} />
+
       {/* 5. Corpo Principal: Blocos de Editorias + Rail Lateral */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Coluna Principal (Editorias de Notícias) */}
@@ -131,47 +135,6 @@ export default async function PortalHomePage() {
                   materias={materias}
                 />
               )
-          )}
-
-          {/* Cidades em Evidência */}
-          {cidades.length > 0 && (
-            <section className="pt-6 my-10 border-t border-slate-200 dark:border-slate-800">
-              <div className="flex items-center justify-between border-b-2 border-slate-200 dark:border-slate-800 pb-2.5 mb-5">
-                <div className="flex items-center gap-3">
-                  <div className="w-1 h-6 bg-[#c8102e]" />
-                  <h2 className="text-lg sm:text-xl font-black uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
-                    <MapPin className="w-5 h-5 text-[#c8102e]" />
-                    Notícias por Município
-                  </h2>
-                </div>
-                <Link
-                  href="/cidades"
-                  className="text-xs font-bold text-[#c8102e] hover:underline uppercase tracking-wider"
-                >
-                  Ver Todas →
-                </Link>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {cidades.slice(0, 8).map((cid) => (
-                  <Link
-                    key={cid.id}
-                    href={`/cidade/${cid.slug}`}
-                    className="group p-4 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl hover:border-[#c8102e] hover:-translate-y-0.5 shadow-sm transition-all flex flex-col justify-between text-center"
-                  >
-                    <span className="text-[10px] uppercase font-extrabold text-slate-400">
-                      {cid.uf}
-                    </span>
-                    <h3 className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-[#c8102e] transition-colors mt-0.5">
-                      {cid.nome}
-                    </h3>
-                    <span className="text-[11px] text-[#c8102e] font-semibold mt-2.5 flex items-center justify-center gap-0.5">
-                      Acessar <ChevronRight className="w-3 h-3" />
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            </section>
           )}
         </div>
 

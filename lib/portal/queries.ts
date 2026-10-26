@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { CIDADES_CATALOGO } from "@/lib/captacao/catalogo-portais";
 
 export interface PortalData {
   id: string;
@@ -317,23 +318,53 @@ export async function getCategoriaBySlug(slug: string): Promise<CategoriaData | 
   }
 }
 
+import { SLUGS_CIDADES_PRIORITARIAS } from "@/lib/portal/cidades-constantes";
+export { SLUGS_CIDADES_PRIORITARIAS };
+
 /**
- * Busca cidades em destaque para o menu e listagem.
+ * Busca cidades em destaque para o menu, blocos e listagem com garantia de presença das prioritárias.
  */
 export async function getCidades(): Promise<CidadeData[]> {
   try {
     const supabase = await createClient();
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from("cidades")
       .select("*")
       .order("ordem", { ascending: true });
 
-    if (error) {
-      console.error("[Portal Empire] Erro ao buscar cidades:", error.message || error);
-      return [];
-    }
+    const cidadesDb = (data || []) as CidadeData[];
+    const slugsExistentes = new Set(cidadesDb.map((c) => c.slug));
 
-    return (data || []) as CidadeData[];
+    // Garante que todas as cidades do catálogo estejam presentes mesmo se o banco ainda não as tiver inserido
+    const cidadesExtras: CidadeData[] = [];
+    CIDADES_CATALOGO.forEach((item, idx) => {
+      if (!slugsExistentes.has(item.slug)) {
+        cidadesExtras.push({
+          id: `extra-${item.slug}`,
+          portal_id: "a0000000-0000-0000-0000-000000000001",
+          nome: item.nome,
+          slug: item.slug,
+          uf: item.uf,
+          destaque_menu: SLUGS_CIDADES_PRIORITARIAS.has(item.slug),
+          ordem: SLUGS_CIDADES_PRIORITARIAS.has(item.slug) ? idx + 1 : 100 + idx,
+          palavras_chave: item.palavras_chave,
+        });
+      }
+    });
+
+    const todas = [...cidadesDb, ...cidadesExtras].map((c) => ({
+      ...c,
+      destaque_menu: SLUGS_CIDADES_PRIORITARIAS.has(c.slug) || c.destaque_menu,
+    }));
+
+    // Ordenação: prioritárias primeiro, depois alfabética
+    return todas.sort((a, b) => {
+      const aPrio = SLUGS_CIDADES_PRIORITARIAS.has(a.slug);
+      const bPrio = SLUGS_CIDADES_PRIORITARIAS.has(b.slug);
+      if (aPrio && !bPrio) return -1;
+      if (!aPrio && bPrio) return 1;
+      return a.nome.localeCompare(b.nome);
+    });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[Portal Empire] Falha de conexão ao buscar cidades:", msg);
@@ -416,6 +447,15 @@ export async function getMaterias(options?: {
         .maybeSingle();
       if (cid) {
         query = query.eq("cidade_id", cid.id);
+      } else {
+        const cidFallback = CIDADES_CATALOGO.find((c) => c.slug === options.cidadeSlug);
+        if (cidFallback) {
+          const termos = cidFallback.palavras_chave.slice(0, 3);
+          const keywordConditions = termos
+            .map((t) => `titulo.ilike.%${t}%,resumo.ilike.%${t}%`)
+            .join(",");
+          query = query.or(keywordConditions);
+        }
       }
     }
 

@@ -62,21 +62,19 @@ export async function POST(request: Request) {
       console.warn("Aviso na sincronização de categorias:", catErr);
     }
 
-    // 3. Sincronizar Cidades do Catálogo
+    // 3. Sincronizar Cidades do Catálogo (com destaque especial nas 26 cidades prioritárias)
     const cidadesParaInserir = CIDADES_CATALOGO.map((cid, idx) => ({
       portal_id: portalId,
       nome: cid.nome,
       slug: cid.slug,
       uf: cid.uf,
-      destaque_menu: false,
-      ordem: 20 + idx,
+      destaque_menu: idx < 26,
+      ordem: idx < 26 ? idx + 1 : 40 + idx,
       palavras_chave: cid.palavras_chave,
     }));
 
-    // Inserção com ignoreDuplicates para não sobrescrever cidades existentes
     await supabase.from("cidades").upsert(cidadesParaInserir, {
       onConflict: "portal_id,slug",
-      ignoreDuplicates: true,
     });
 
     // 4. Buscar categorias e cidades atualizadas para vincular IDs
