@@ -26,6 +26,7 @@ import {
   Banknote,
   CreditCard,
   Tag,
+  BookOpen,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -52,6 +53,7 @@ export function Sidebar({ profile }: SidebarProps) {
     { label: "Captação RSS", href: "/painel/admin/captacao", icon: Rss },
     { label: "Publicidade & Formatos", href: "/painel/admin/anuncios", icon: Megaphone },
     { label: "Classificados", href: "/painel/admin/classificados", icon: Tag },
+    { label: "Revistas", href: "/painel/admin/revistas", icon: BookOpen },
     { label: "Financeiro Global", href: "/painel/admin/financeiro", icon: DollarSign },
     { label: "Saques PIX Afiliados", href: "/painel/admin/saques", icon: Banknote },
     { label: "Aparência do Portal", href: "/painel/admin/aparencia", icon: Palette },

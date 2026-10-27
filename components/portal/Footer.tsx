@@ -97,6 +97,11 @@ export function Footer({ portal, categorias }: FooterProps) {
             </h4>
             <ul className="space-y-2">
               <li>
+                <Link href="/revistas" className="hover:text-white transition-colors flex items-center gap-1.5 text-amber-400 font-semibold">
+                  <span>★ Revistas Empire Magazine</span>
+                </Link>
+              </li>
+              <li>
                 <Link href="/colunas" className="hover:text-white transition-colors">
                   Nossos Colunistas
                 </Link>

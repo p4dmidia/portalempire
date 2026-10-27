@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Tv, Radio, Sparkles, RefreshCw, Volume2, Info, ExternalLink } from "lucide-react";
+import { Tv, Sparkles, RefreshCw, Info } from "lucide-react";
 
 export function BlocoTvAoVivoHome() {
   const [reloadKey, setReloadKey] = useState(0);
@@ -28,17 +28,6 @@ export function BlocoTvAoVivoHome() {
               <span className="w-2 h-2 rounded-full bg-red-500 absolute" />
               <span className="ml-1.5">No Ar · Ao Vivo</span>
             </span>
-
-            <a
-              href="https://www.empireflixvip.com/radio"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 hover:text-[#c8102e] dark:text-slate-300 dark:hover:text-red-400 bg-slate-100 hover:bg-red-50 dark:bg-slate-800 dark:hover:bg-slate-700 px-3 py-1 rounded-full border border-slate-200 hover:border-red-200 dark:border-slate-700 transition-colors"
-              title="Ouvir a Rádio Empire Ao Vivo"
-            >
-              <Radio className="w-3.5 h-3.5 text-amber-500" />
-              <span>Ouvir Rádio Ao Vivo ↗</span>
-            </a>
           </div>
 
           <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
@@ -109,32 +98,6 @@ export function BlocoTvAoVivoHome() {
           <span className="text-[11px] text-slate-500 dark:text-slate-400">
             Dica: clique no botão de tela cheia no canto inferior direito do player para expandir
           </span>
-        </div>
-
-        {/* Link direto para a Rádio Ao Vivo */}
-        <div className="mt-4 pt-3.5 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-3 sm:p-4 border border-slate-200/80 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-red-50 text-[#c8102e] dark:bg-red-500/10 dark:text-red-400 flex items-center justify-center shrink-0 border border-red-200 dark:border-red-500/20">
-              <Radio className="w-4 h-4 animate-pulse" />
-            </div>
-            <div>
-              <span className="text-xs sm:text-sm font-bold text-slate-900 dark:text-white block">
-                Prefere ouvir? Sintonize a Rádio Empire Ao Vivo 24h
-              </span>
-              <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
-                Música, informação e transmissão contínua em áudio de alta qualidade
-              </span>
-            </div>
-          </div>
-          <a
-            href="https://www.empireflixvip.com/radio"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-[#c8102e] hover:bg-[#a00d24] text-white text-xs font-bold transition-all shrink-0 hover:scale-[1.02] active:scale-95 shadow-xs"
-          >
-            <span>Ouvir Rádio</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </a>
         </div>
       </div>
     </section>
