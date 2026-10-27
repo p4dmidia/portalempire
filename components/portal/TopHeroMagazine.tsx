@@ -72,7 +72,10 @@ export function TopHeroMagazine({
             <div className="relative rounded-xl overflow-hidden shadow-md group aspect-[16/10] bg-slate-900">
               <Link href={`/materia/${slideAtual.slug}`} className="block w-full h-full relative">
                 <Image
-                  src={otimizarUrlImagem(slideAtual.imagem_url)}
+                  src={otimizarUrlImagem(
+                    slideAtual.imagem_url,
+                    `${slideAtual.categoria?.nome || ""} ${slideAtual.titulo}`
+                  )}
                   alt={slideAtual.titulo}
                   fill
                   priority
@@ -132,7 +135,10 @@ export function TopHeroMagazine({
                 >
                   <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100">
                     <Image
-                      src={otimizarUrlImagem(mat.imagem_url)}
+                      src={otimizarUrlImagem(
+                        mat.imagem_url,
+                        `${mat.categoria?.nome || ""} ${mat.titulo}`
+                      )}
                       alt={mat.titulo}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -168,7 +174,10 @@ export function TopHeroMagazine({
               {/* Thumbnail 112px */}
               <div className="relative w-24 h-16 sm:w-28 sm:h-20 shrink-0 rounded-md overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-800">
                 <Image
-                  src={otimizarUrlImagem(mat.imagem_url)}
+                  src={otimizarUrlImagem(
+                    mat.imagem_url,
+                    `${mat.categoria?.nome || ""} ${mat.titulo}`
+                  )}
                   alt={mat.titulo}
                   fill
                   className="object-cover transition-transform duration-500 group-hover:scale-105"
@@ -218,7 +227,10 @@ export function TopHeroMagazine({
                   {/* Thumbnail 76px */}
                   <div className="relative w-20 h-14 shrink-0 rounded-md overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200/60 dark:border-slate-800">
                     <Image
-                      src={otimizarUrlImagem(mat.imagem_url)}
+                      src={otimizarUrlImagem(
+                        mat.imagem_url,
+                        `${mat.categoria?.nome || ""} ${mat.titulo}`
+                      )}
                       alt={mat.titulo}
                       fill
                       className="object-cover transition-transform duration-500 group-hover:scale-105"

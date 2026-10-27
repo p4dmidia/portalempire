@@ -120,7 +120,7 @@ export default async function PrivacidadePage() {
             6. Contato com o Encarregado de Dados (DPO)
           </h2>
           <p>
-            Para exercer seus direitos de privacidade ou esclarecer dúvidas sobre esta política, entre em contato diretamente com nossa equipe de governança através do e-mail oficial: <a href="mailto:privacidade@portalempire.com.br" className="text-primary font-bold hover:underline">privacidade@portalempire.com.br</a>.
+            Para exercer seus direitos de privacidade ou esclarecer dúvidas sobre esta política, entre em contato diretamente com nossa equipe de governança através do e-mail oficial: <a href="mailto:privacidade@empirecidades.com.br" className="text-primary font-bold hover:underline">privacidade@empirecidades.com.br</a>.
           </p>
         </section>
       </div>

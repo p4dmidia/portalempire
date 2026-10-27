@@ -28,7 +28,7 @@ export async function enviarEmailTransacional({
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        from: "Portal Empire <contato@portalempire.com.br>",
+        from: "Empire Cidades <contato@empirecidades.com.br>",
         to: [para],
         subject: assunto,
         html: conteudoHtml,

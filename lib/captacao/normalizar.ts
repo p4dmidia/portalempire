@@ -108,8 +108,19 @@ export function limparResumo(htmlOrText?: string, maxChars = 400): string {
 
 function isUrlImagemValida(url?: string | null): boolean {
   if (!url || typeof url !== "string") return false;
-  const u = url.toLowerCase();
+  let limpa = url.trim();
+  if (limpa.includes(",")) {
+    const partes = limpa.split(",").map((p) => p.trim().split(/\s+/)[0]).filter(Boolean);
+    const valida = partes.find((p) => p.startsWith("http://") || p.startsWith("https://"));
+    if (valida) limpa = valida;
+    else return false;
+  }
+  const u = limpa.toLowerCase();
   if (
+    u === "none" ||
+    u === "null" ||
+    u === "undefined" ||
+    (!u.startsWith("http://") && !u.startsWith("https://")) ||
     u.includes("googleusercontent.com") ||
     u.includes("gstatic.com") ||
     u.includes("google.com/images") ||

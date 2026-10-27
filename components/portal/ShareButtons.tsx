@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MessageCircle, Facebook, Twitter, Link2, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { decodificarEntidadesHtml, normalizarUrlCompartilhamento } from "@/lib/portal/texto-utils";
 
 interface ShareButtonsProps {
   url: string;
@@ -11,12 +12,25 @@ interface ShareButtonsProps {
 
 export function ShareButtons({ url, titulo }: ShareButtonsProps) {
   const [copied, setCopied] = useState(false);
+  const [shareUrl, setShareUrl] = useState(() => normalizarUrlCompartilhamento(url));
 
-  const encodedUrl = encodeURIComponent(url);
-  const encodedTitle = encodeURIComponent(titulo);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const loc = window.location;
+      if (loc.hostname && !loc.hostname.includes("localhost") && !loc.hostname.includes("127.0.0.1")) {
+        setShareUrl(loc.href);
+      } else {
+        setShareUrl(normalizarUrlCompartilhamento(url));
+      }
+    }
+  }, [url]);
+
+  const cleanTitle = decodificarEntidadesHtml(titulo);
+  const encodedUrl = encodeURIComponent(shareUrl);
+  const encodedTitle = encodeURIComponent(cleanTitle);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

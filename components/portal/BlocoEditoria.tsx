@@ -1,15 +1,42 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { CategoriaData, MateriaData } from "@/lib/portal/queries";
-import { otimizarUrlImagem } from "@/lib/portal/image-utils";
+import { otimizarUrlImagem, obterImagemEditorialContextual } from "@/lib/portal/image-utils";
 
 interface BlocoEditoriaProps {
   categoria: CategoriaData;
   materias: MateriaData[];
+}
+
+function ImagemCardEditoria({
+  src,
+  alt,
+  contexto,
+}: {
+  src?: string | null;
+  alt: string;
+  contexto: string;
+}) {
+  const [imgSrc, setImgSrc] = useState(() => otimizarUrlImagem(src, contexto));
+
+  return (
+    <Image
+      src={imgSrc}
+      alt={alt}
+      fill
+      className="object-cover transition-transform duration-500 group-hover:scale-105"
+      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+      onError={() => {
+        // Se a imagem remota quebrar ou falhar no navegador, recorre à foto editorial temática de alta qualidade
+        setImgSrc(obterImagemEditorialContextual(contexto));
+      }}
+    />
+  );
 }
 
 export function BlocoEditoria({ categoria, materias }: BlocoEditoriaProps) {
@@ -48,43 +75,44 @@ export function BlocoEditoria({ categoria, materias }: BlocoEditoriaProps) {
 
       {/* Grade Magazine de 4 Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {materias.slice(0, 4).map((mat) => (
-          <Link
-            key={mat.id}
-            href={`/materia/${mat.slug}`}
-            className="group block bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between"
-          >
-            {/* Imagem do Card */}
-            <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-              <Image
-                src={otimizarUrlImagem(mat.imagem_url)}
-                alt={mat.titulo}
-                fill
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-              />
-            </div>
-
-            {/* Conteúdo */}
-            <div className="p-3.5 flex flex-col flex-1 justify-between gap-2">
-              <div>
-                <span
-                  className="text-[10px] font-extrabold uppercase tracking-wider block mb-1"
-                  style={{ color: corAcento }}
-                >
-                  {categoria.nome}
-                </span>
-                <h3 className="font-bold text-[13.5px] leading-snug line-clamp-3 text-slate-900 dark:text-white group-hover:text-[#c8102e] transition-colors">
-                  {mat.titulo}
-                </h3>
+        {materias.slice(0, 4).map((mat) => {
+          const contextoCard = `${categoria.nome} ${mat.titulo}`;
+          return (
+            <Link
+              key={mat.id}
+              href={`/materia/${mat.slug}`}
+              className="group block bg-white dark:bg-slate-900 rounded-xl overflow-hidden border border-slate-200/80 dark:border-slate-800 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-200 flex flex-col justify-between"
+            >
+              {/* Imagem do Card com Fallback Automático */}
+              <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+                <ImagemCardEditoria
+                  src={mat.imagem_url}
+                  alt={mat.titulo}
+                  contexto={contextoCard}
+                />
               </div>
 
-              <span className="text-[11px] text-slate-400 mt-auto pt-2 border-t border-slate-100 dark:border-slate-800">
-                {formatarData(mat.publicado_em)}
-              </span>
-            </div>
-          </Link>
-        ))}
+              {/* Conteúdo */}
+              <div className="p-3.5 flex flex-col flex-1 justify-between gap-2">
+                <div>
+                  <span
+                    className="text-[10px] font-extrabold uppercase tracking-wider block mb-1"
+                    style={{ color: corAcento }}
+                  >
+                    {categoria.nome}
+                  </span>
+                  <h3 className="font-bold text-[13.5px] leading-snug line-clamp-3 text-slate-900 dark:text-white group-hover:text-[#c8102e] transition-colors">
+                    {mat.titulo}
+                  </h3>
+                </div>
+
+                <span className="text-[11px] text-slate-400 mt-auto pt-2 border-t border-slate-100 dark:border-slate-800">
+                  {formatarData(mat.publicado_em)}
+                </span>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );

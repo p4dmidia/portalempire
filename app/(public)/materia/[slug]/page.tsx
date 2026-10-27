@@ -24,6 +24,7 @@ import { otimizarUrlImagem } from "@/lib/portal/image-utils";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { calcularVisualizacoesRealistas, formatarVisualizacoes } from "@/lib/portal/views-realistas";
 import { limparEPadronizarTextoJornalistico } from "@/lib/portal/limpador-jornalistico";
+import { decodificarEntidadesHtml, obterSiteUrl } from "@/lib/portal/texto-utils";
 
 export const revalidate = 60;
 
@@ -42,11 +43,15 @@ export async function generateMetadata({
 
   if (!materia) return { title: "Matéria Não Encontrada" };
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://portalempire.com.br";
+  const tituloLimpo = decodificarEntidadesHtml(materia.titulo);
+  const siteUrl = obterSiteUrl(portal?.dominio);
   const canonicalUrl = `${siteUrl}/materia/${materia.slug}`;
-  const title = materia.seo_titulo || `${materia.titulo} — ${portal?.nome || "Portal Empire"}`;
-  const description =
-    materia.seo_descricao || materia.subtitulo || materia.resumo || materia.titulo;
+  const title = materia.seo_titulo
+    ? decodificarEntidadesHtml(materia.seo_titulo)
+    : `${tituloLimpo} — ${portal?.nome || "Empire Cidades"}`;
+  const description = decodificarEntidadesHtml(
+    materia.seo_descricao || materia.subtitulo || materia.resumo || tituloLimpo
+  );
 
   return {
     title,
@@ -92,6 +97,9 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
     conteudoHtml.includes("Sem resultado");
   const precisaRecarregarImagem =
     !materia.imagem_url ||
+    materia.imagem_url.includes(",") ||
+    materia.imagem_url.includes("googleusercontent.com") ||
+    materia.imagem_url.includes("photo-1504711434969") ||
     materia.imagem_url.includes("w=200") ||
     materia.imagem_url.includes("w=193") ||
     materia.imagem_url.includes("fit=300") ||
@@ -139,8 +147,22 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
 
   const materiasRelacionadas = relacionadas.filter((m) => m.id !== materia.id).slice(0, 3);
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://portalempire.com.br";
+  const tituloLimpo = decodificarEntidadesHtml(materia.titulo);
+  const subtituloLimpo = decodificarEntidadesHtml(materia.subtitulo);
+  const siteUrl = obterSiteUrl(portal?.dominio);
   const pageUrl = `${siteUrl}/materia/${materia.slug}`;
+
+  // Auto-cura do título caso estivesse gravado com entidades HTML no banco
+  if (tituloLimpo && tituloLimpo !== materia.titulo) {
+    try {
+      const admin = getSupabaseAdmin();
+      admin
+        .from("materias")
+        .update({ titulo: tituloLimpo })
+        .eq("id", materia.id)
+        .then(() => {});
+    } catch {}
+  }
 
   const dataFormatada = materia.publicado_em
     ? format(new Date(materia.publicado_em), "d 'de' MMMM 'de' yyyy 'às' HH:mm", {
@@ -157,7 +179,7 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
   const conteudoOriginal = conteudoHtml;
   conteudoHtml = limparEPadronizarTextoJornalistico(
     conteudoHtml,
-    materia.titulo,
+    tituloLimpo,
     materia.cidade?.nome
   );
 
@@ -177,8 +199,8 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
-    headline: materia.titulo,
-    description: materia.subtitulo || materia.resumo || "",
+    headline: tituloLimpo,
+    description: subtituloLimpo || decodificarEntidadesHtml(materia.resumo) || "",
     image: materia.imagem_url ? [materia.imagem_url] : [],
     datePublished: materia.publicado_em || materia.created_at,
     dateModified: materia.created_at,
@@ -190,7 +212,7 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
     ],
     publisher: {
       "@type": "Organization",
-      name: portal?.nome || "Portal Empire",
+      name: portal?.nome || "Empire Cidades",
       logo: {
         "@type": "ImageObject",
         url: portal?.logo_url || `${siteUrl}/logo.png`,
@@ -247,12 +269,12 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight">
-            {materia.titulo}
+            {tituloLimpo}
           </h1>
 
-          {materia.subtitulo && (
+          {subtituloLimpo && (
             <p className="text-lg md:text-xl text-slate-600 dark:text-slate-300 font-normal leading-relaxed">
-              {materia.subtitulo}
+              {subtituloLimpo}
             </p>
           )}
 
@@ -301,11 +323,19 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
               {/* Fundo sutilmente desfocado que preenche as laterais de imagens verticais ou fora do padrão 16:9, evitando distorções */}
               <div
                 className="absolute inset-0 bg-cover bg-center blur-2xl opacity-35 scale-110 pointer-events-none"
-                style={{ backgroundImage: `url(${otimizarUrlImagem(materia.imagem_url)})` }}
+                style={{
+                  backgroundImage: `url(${otimizarUrlImagem(
+                    materia.imagem_url,
+                    `${materia.categoria?.nome || ""} ${tituloLimpo}`
+                  )})`,
+                }}
               />
               <Image
-                src={otimizarUrlImagem(materia.imagem_url)}
-                alt={materia.titulo}
+                src={otimizarUrlImagem(
+                  materia.imagem_url,
+                  `${materia.categoria?.nome || ""} ${tituloLimpo}`
+                )}
+                alt={tituloLimpo}
                 fill
                 priority
                 className="object-cover relative z-10"
@@ -321,7 +351,7 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
         )}
 
         {/* Botões de Compartilhamento */}
-        <ShareButtons url={pageUrl} titulo={materia.titulo} />
+        <ShareButtons url={pageUrl} titulo={tituloLimpo} />
 
         {/* AD SLOT 1: Topo do Texto */}
         <AdSlot posicao="topo" />

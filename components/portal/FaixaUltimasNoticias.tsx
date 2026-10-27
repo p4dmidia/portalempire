@@ -81,7 +81,10 @@ export function FaixaUltimasNoticias({
             {/* Imagem Superior */}
             <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
               <Image
-                src={otimizarUrlImagem(mat.imagem_url)}
+                src={otimizarUrlImagem(
+                  mat.imagem_url,
+                  `${mat.categoria?.nome || ""} ${mat.titulo}`
+                )}
                 alt={mat.titulo}
                 fill
                 className="object-cover transition-transform duration-500 group-hover:scale-105"

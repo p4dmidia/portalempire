@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { getMaterias, getPortalData } from "@/lib/portal/queries";
+import { obterSiteUrl, decodificarEntidadesHtml } from "@/lib/portal/texto-utils";
 
 export async function GET() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://portalempire.com.br";
   const [portal, materias] = await Promise.all([
     getPortalData(),
     getMaterias({ limit: 50 }),
   ]);
+  const siteUrl = obterSiteUrl(portal?.dominio);
 
-  const tituloPortal = portal?.nome || "Portal Empire";
+  const tituloPortal = portal?.nome || "Empire Cidades";
   const descricaoPortal = portal?.descricao_seo || "Notícias em tempo real da região e cidades.";
 
   const itemsXml = materias
@@ -24,10 +25,10 @@ export async function GET() {
 
       return `
     <item>
-      <title><![CDATA[${mat.titulo}]]></title>
+      <title><![CDATA[${decodificarEntidadesHtml(mat.titulo)}]]></title>
       <link>${link}</link>
       <guid isPermaLink="true">${link}</guid>
-      <description><![CDATA[${mat.subtitulo || mat.resumo || ""}]]></description>
+      <description><![CDATA[${decodificarEntidadesHtml(mat.subtitulo || mat.resumo || "")}]]></description>
       <pubDate>${pubDate}</pubDate>
       ${mat.categoria ? `<category><![CDATA[${mat.categoria.nome}]]></category>` : ""}
       ${imagemXml}

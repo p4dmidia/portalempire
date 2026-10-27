@@ -17,6 +17,8 @@ import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { ClassificadosHomeSection } from "@/components/portal/ClassificadosHomeSection";
 import { BlocoCidadesEstadosHome } from "@/components/portal/BlocoCidadesEstadosHome";
 import { BlocoTvAoVivoHome } from "@/components/portal/BlocoTvAoVivoHome";
+import { CardRadioAoVivo } from "@/components/portal/CardRadioAoVivo";
+import { CarrosselEmpireFlix } from "@/components/portal/CarrosselEmpireFlix";
 import { AdSlot } from "@/components/portal/AdSlot";
 import { MapPin, Video, ChevronRight, MessageCircle } from "lucide-react";
 
@@ -251,6 +253,12 @@ export default async function PortalHomePage() {
 
       {/* 7. TV Ao Vivo — Transmissão da TV Empire */}
       <BlocoTvAoVivoHome />
+
+      {/* 7.1 Rádio Ao Vivo — Transmissão Oficial */}
+      <CardRadioAoVivo />
+
+      {/* 8. Carrossel Apresentadores EmpireFlix (Estilo Netflix) */}
+      <CarrosselEmpireFlix />
     </div>
   );
 }

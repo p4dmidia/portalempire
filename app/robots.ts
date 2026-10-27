@@ -1,7 +1,8 @@
 import { MetadataRoute } from "next";
+import { obterSiteUrl } from "@/lib/portal/texto-utils";
 
 export default function robots(): MetadataRoute.Robots {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://portalempire.com.br";
+  const siteUrl = obterSiteUrl();
 
   return {
     rules: [

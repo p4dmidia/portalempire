@@ -5,8 +5,53 @@ import { limparEPadronizarTextoJornalistico } from "@/lib/portal/limpador-jornal
  * Módulo de Extração de Conteúdo e Imagem Original de Matérias
  * Faz o download da página original da notícia e extrai:
  * 1. O texto integral dos parágrafos, eliminando ruídos, anúncios e chamadas externas.
- * 2. A imagem editorial principal em alta resolução (og:image / twitter:image).
+ * 2. A imagem editorial principal em alta resolução (og:image / twitter:image / corpo do artigo).
  */
+
+function validarUrlImagemReal(raw?: string | null): string | null {
+  if (!raw || typeof raw !== "string") return null;
+  let limpa = raw.replace(/&amp;/g, "&").trim();
+
+  // Trata múltiplas URLs separadas por vírgula (ex: srcset ou url1.webp,url2.jpg)
+  if (limpa.includes(",")) {
+    const partes = limpa
+      .split(",")
+      .map((p) => p.trim().split(/\s+/)[0])
+      .filter(Boolean);
+    const valida = partes.find((p) => p.startsWith("http://") || p.startsWith("https://"));
+    if (valida) limpa = valida;
+    else return null;
+  }
+
+  // Descarta se não tiver protocolo válido ou se for valor nulo em texto
+  if (
+    limpa === "None" ||
+    limpa === "null" ||
+    limpa === "undefined" ||
+    limpa === "none" ||
+    (!limpa.startsWith("http://") && !limpa.startsWith("https://"))
+  ) {
+    return null;
+  }
+
+  const u = limpa.toLowerCase();
+  if (
+    u.includes("googleusercontent.com") ||
+    u.includes("gstatic.com") ||
+    u.includes("logo") ||
+    u.includes("favicon") ||
+    u.includes("fallbackimage") ||
+    u.includes("placeholder") ||
+    u.includes("1x1") ||
+    u.includes("pixel") ||
+    u.includes("tracking") ||
+    u.includes("avatar")
+  ) {
+    return null;
+  }
+
+  return otimizarUrlImagem(limpa);
+}
 
 export function extrairImagemMeta(html: string): string | null {
   if (!html) return null;
@@ -17,10 +62,8 @@ export function extrairImagemMeta(html: string): string | null {
     html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image(?::url)?["']/i);
 
   if (ogMatch && ogMatch[1]) {
-    const raw = ogMatch[1].trim();
-    if (!raw.includes("logo") && !raw.includes("favicon") && !raw.includes("fallbackImage")) {
-      return otimizarUrlImagem(raw);
-    }
+    const validada = validarUrlImagemReal(ogMatch[1]);
+    if (validada) return validada;
   }
 
   // 2. twitter:image ou twitter:image:src
@@ -29,16 +72,90 @@ export function extrairImagemMeta(html: string): string | null {
     html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image(?::src)?["']/i);
 
   if (twitterMatch && twitterMatch[1]) {
-    const raw = twitterMatch[1].trim();
-    if (!raw.includes("logo") && !raw.includes("favicon") && !raw.includes("fallbackImage")) {
-      return otimizarUrlImagem(raw);
-    }
+    const validada = validarUrlImagemReal(twitterMatch[1]);
+    if (validada) return validada;
   }
 
   // 3. link rel="image_src"
   const linkMatch = html.match(/<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["']/i);
   if (linkMatch && linkMatch[1]) {
-    return otimizarUrlImagem(linkMatch[1].trim());
+    const validada = validarUrlImagemReal(linkMatch[1]);
+    if (validada) return validada;
+  }
+
+  return null;
+}
+
+/**
+ * Busca imagem de destaque diretamente no corpo do HTML (essencial para G1, Globo, WordPress e portais regionais
+ * que omitiram og:image ou definiram como 'None').
+ */
+export function extrairImagemDoCorpo(html: string): string | null {
+  if (!html) return null;
+
+  // 1. G1 / Globo: fotos editoriais armazenadas no cluster internal_photos
+  const glbMatches = [
+    ...html.matchAll(
+      /https:\/\/[^"'<>\s]+glbimg\.com\/[^"'<>\s]*internal_photos\/bs\/[^"'<>\s]+/gi
+    ),
+  ].map((m) => m[0]);
+
+  for (const raw of glbMatches) {
+    const limpa = raw.replace(/&amp;/g, "&");
+    const u = limpa.toLowerCase();
+    if (
+      !u.includes("favicon") &&
+      !u.includes("bola-branca") &&
+      !u.includes("avatar") &&
+      !u.includes("logo") &&
+      !u.includes("pixel")
+    ) {
+      return otimizarUrlImagem(limpa);
+    }
+  }
+
+  // 2. Miniaturas de vídeo de matérias com reportagem em vídeo (Globo / G1)
+  const videoMatches = [
+    ...html.matchAll(/https:\/\/s\d+\.video\.glbimg\.com\/[^"'<>\s]+\.(?:jpe?g|png|webp)/gi),
+  ].map((m) => m[0]);
+  if (videoMatches.length > 0) {
+    return otimizarUrlImagem(videoMatches[0]);
+  }
+
+  // 3. Container do artigo principal (<article> ou <main>)
+  const articleMatch =
+    html.match(/<article[^>]*>([\s\S]*?)<\/article>/i) ||
+    html.match(/<main[^>]*>([\s\S]*?)<\/main>/i);
+  const searchArea = articleMatch ? articleMatch[1] : html;
+
+  // Procura tags <img> com src, data-src ou data-original
+  const imgMatches = [
+    ...searchArea.matchAll(/<img[^>]+(?:src|data-src|data-original)=["']([^"']+)["'][^>]*>/gi),
+  ].map((m) => m[1]);
+
+  for (const src of imgMatches) {
+    const validada = validarUrlImagemReal(src);
+    if (validada) return validada;
+  }
+
+  // 4. WordPress featured image (wp-content/uploads)
+  const wpMatches = [
+    ...html.matchAll(
+      /https:\/\/[^"'<>\s]+wp-content\/uploads\/[^"'<>\s]+\.(?:jpe?g|png|webp|avif)/gi
+    ),
+  ].map((m) => m[0]);
+
+  for (const raw of wpMatches) {
+    const s = raw.toLowerCase();
+    if (
+      !s.includes("logo") &&
+      !s.includes("favicon") &&
+      !s.includes("avatar") &&
+      !s.includes("cropped-") &&
+      !s.includes("150x150")
+    ) {
+      return otimizarUrlImagem(raw);
+    }
   }
 
   return null;
@@ -81,8 +198,11 @@ export async function extrairDetalhesMateriaOriginal(url: string): Promise<Detal
       return { conteudoHtml: null, imagemUrl: null };
     }
 
-    // Extrai imagem editorial principal de alta resolução
-    const imagemUrl = extrairImagemMeta(html);
+    // Extrai imagem editorial principal de alta resolução (meta tags ou corpo do artigo)
+    let imagemUrl = extrairImagemMeta(html);
+    if (!imagemUrl) {
+      imagemUrl = extrairImagemDoCorpo(html);
+    }
 
     // 1. Localizar o bloco principal do artigo
     let corpoHtml = html;

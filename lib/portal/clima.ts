@@ -103,7 +103,7 @@ export async function buscarClimaCidade(cidadeInfo: CidadeCoordenadas): Promise<
     const res = await fetch(url, {
       next: { revalidate: 1800 }, // 30 minutos de cache no Next.js
       headers: {
-        "User-Agent": "PortalEmpire/1.0 (Noticias Regionais e Nacionais)",
+        "User-Agent": "EmpireCidades/1.0 (Noticias Regionais e Nacionais)",
       },
     });
 

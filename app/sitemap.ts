@@ -1,8 +1,9 @@
 import { MetadataRoute } from "next";
 import { getCategorias, getCidades, getColunasAtivas, getMaterias } from "@/lib/portal/queries";
+import { obterSiteUrl } from "@/lib/portal/texto-utils";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://portalempire.com.br";
+  const siteUrl = obterSiteUrl();
 
   const [categorias, cidades, colunas, materias] = await Promise.all([
     getCategorias(),

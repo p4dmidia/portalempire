@@ -8,6 +8,8 @@ import { reescreverNoticiaCaptada } from "./reescritor";
 import { extrairDetalhesMateriaOriginal } from "./extrator-conteudo";
 
 import { CATEGORIAS_PADRAO_SISTEMA } from "@/lib/portal/queries";
+import { otimizarUrlImagem, obterImagemEditorialContextual } from "@/lib/portal/image-utils";
+import { decodificarEntidadesHtml } from "@/lib/portal/texto-utils";
 
 export interface ExecutarCaptacaoOptions {
   fonteId?: string;
@@ -40,7 +42,8 @@ export interface ResultadoExecucaoCaptacao {
 }
 
 function gerarSlug(texto: string): string {
-  const base = texto
+  const limpo = decodificarEntidadesHtml(texto);
+  const base = limpo
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
@@ -266,8 +269,8 @@ export async function executarCaptacao(
             continue;
           }
 
-          const rawTitulo = item.title?.trim() || "Sem título";
-          const rawResumo = item.contentSnippet || item.summary || item.description || "";
+          const rawTitulo = decodificarEntidadesHtml(item.title?.trim() || "Sem título");
+          const rawResumo = decodificarEntidadesHtml(item.contentSnippet || item.summary || item.description || "");
           const imagemUrl = extrairImagem(item);
 
           // Classificar cidade e categoria
@@ -355,6 +358,13 @@ export async function executarCaptacao(
           const tagsFinais = [...classificacao.tags_sugeridas];
           if (catClassificada && !tagsFinais.includes(catClassificada.nome)) {
             tagsFinais.unshift(catClassificada.nome);
+          }
+
+          const contextoMateria = `${catClassificada?.nome || ""} ${tituloFinal}`;
+          if (imagemFinal) {
+            imagemFinal = otimizarUrlImagem(imagemFinal, contextoMateria);
+          } else {
+            imagemFinal = obterImagemEditorialContextual(contextoMateria);
           }
 
           // Inserir na tabela materias com dados reescritos e respaldo jurídico

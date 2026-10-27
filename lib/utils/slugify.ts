@@ -1,5 +1,8 @@
+import { decodificarEntidadesHtml } from "@/lib/portal/texto-utils";
+
 export function slugify(text: string): string {
-  return text
+  const decodificado = decodificarEntidadesHtml(text);
+  return decodificado
     .toString()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Remove acentos
