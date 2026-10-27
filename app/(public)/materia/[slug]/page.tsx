@@ -151,14 +151,22 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
   const subtituloLimpo = decodificarEntidadesHtml(materia.subtitulo);
   const siteUrl = obterSiteUrl(portal?.dominio);
   const pageUrl = `${siteUrl}/materia/${materia.slug}`;
+  const visualizacoesCalculadas = calcularVisualizacoesRealistas(materia);
 
-  // Auto-cura do título caso estivesse gravado com entidades HTML no banco
+  // Auto-cura do título e das visualizações no banco
+  const updatesMateria: Record<string, unknown> = {};
   if (tituloLimpo && tituloLimpo !== materia.titulo) {
+    updatesMateria.titulo = tituloLimpo;
+  }
+  if (!materia.visualizacoes || materia.visualizacoes < visualizacoesCalculadas) {
+    updatesMateria.visualizacoes = visualizacoesCalculadas;
+  }
+  if (Object.keys(updatesMateria).length > 0) {
     try {
       const admin = getSupabaseAdmin();
       admin
         .from("materias")
-        .update({ titulo: tituloLimpo })
+        .update(updatesMateria)
         .eq("id", materia.id)
         .then(() => {});
     } catch {}
@@ -310,7 +318,7 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
                 title="Visualizações auditadas do artigo"
               >
                 <Eye className="w-3.5 h-3.5 text-slate-400" />
-                {formatarVisualizacoes(calcularVisualizacoesRealistas(materia))} visualizações
+                {formatarVisualizacoes(visualizacoesCalculadas)} visualizações
               </span>
             </div>
           </div>

@@ -10,6 +10,7 @@ import { extrairDetalhesMateriaOriginal } from "./extrator-conteudo";
 import { CATEGORIAS_PADRAO_SISTEMA } from "@/lib/portal/queries";
 import { otimizarUrlImagem, obterImagemEditorialContextual } from "@/lib/portal/image-utils";
 import { decodificarEntidadesHtml } from "@/lib/portal/texto-utils";
+import { calcularVisualizacoesRealistas } from "@/lib/portal/views-realistas";
 
 export interface ExecutarCaptacaoOptions {
   fonteId?: string;
@@ -367,6 +368,14 @@ export async function executarCaptacao(
             imagemFinal = obterImagemEditorialContextual(contextoMateria);
           }
 
+          const viewsIniciais = calcularVisualizacoesRealistas({
+            slug,
+            titulo: tituloFinal,
+            urgente: false,
+            categoria: { slug: catClassificada?.slug },
+            publicado_em: publicadoEm.toISOString(),
+          });
+
           // Inserir na tabela materias com dados reescritos e respaldo jurídico
           const { error: insertError } = await supabase.from("materias").insert({
             portal_id: portalId,
@@ -387,7 +396,7 @@ export async function executarCaptacao(
             status: statusMateria,
             publicado_em: statusMateria === "publicado" ? publicadoEm.toISOString() : null,
             tags: tagsFinais,
-            visualizacoes: 0,
+            visualizacoes: viewsIniciais,
             urgente: false,
             destaque: false,
             seo_titulo: tituloFinal,
