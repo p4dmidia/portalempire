@@ -31,14 +31,49 @@ import {
 
 interface ClassificadosViewProps {
   initialClassificados: ClassificadoData[];
+  cidades?: { id: string; nome: string; uf: string; slug: string }[];
 }
 
-export function ClassificadosView({ initialClassificados }: ClassificadosViewProps) {
+export function ClassificadosView({ initialClassificados, cidades }: ClassificadosViewProps) {
   const [busca, setBusca] = useState("");
   const [categoriaAtiva, setCategoriaAtiva] = useState("todos");
   const [tipoAtivo, setTipoAtivo] = useState("todos");
+  const [cidadeAtiva, setCidadeAtiva] = useState("todas");
+  const [precoMin, setPrecoMin] = useState<string>("");
+  const [precoMax, setPrecoMax] = useState<string>("");
   const [modalItem, setModalItem] = useState<ClassificadoData | null>(null);
   const [fotoModalAtiva, setFotoModalAtiva] = useState<string>("");
+
+  // Lista unificada e ordenada de cidades disponíveis
+  const listaCidades = useMemo(() => {
+    const setCidades = new Set<string>();
+    if (cidades && cidades.length > 0) {
+      cidades.forEach((c) => {
+        if (c.nome) setCidades.add(c.nome.trim());
+      });
+    }
+    initialClassificados.forEach((c) => {
+      if (c.cidade_nome) setCidades.add(c.cidade_nome.trim());
+    });
+    return Array.from(setCidades).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [cidades, initialClassificados]);
+
+  const temFiltrosAtivos =
+    busca.trim() !== "" ||
+    categoriaAtiva !== "todos" ||
+    tipoAtivo !== "todos" ||
+    cidadeAtiva !== "todas" ||
+    precoMin.trim() !== "" ||
+    precoMax.trim() !== "";
+
+  const limparTodosFiltros = () => {
+    setBusca("");
+    setCategoriaAtiva("todos");
+    setTipoAtivo("todos");
+    setCidadeAtiva("todas");
+    setPrecoMin("");
+    setPrecoMax("");
+  };
 
   // Filtros em tempo real
   const classificadosFiltrados = useMemo(() => {
@@ -50,6 +85,28 @@ export function ClassificadosView({ initialClassificados }: ClassificadosViewPro
       // Filtro Tipo
       if (tipoAtivo !== "todos" && item.tipo !== tipoAtivo) {
         return false;
+      }
+      // Filtro Cidade
+      if (cidadeAtiva !== "todas") {
+        const cNome = (item.cidade_nome || "").toLowerCase().trim();
+        const cFiltro = cidadeAtiva.toLowerCase().trim();
+        if (cNome !== cFiltro && !cNome.includes(cFiltro)) {
+          return false;
+        }
+      }
+      // Filtro Faixa de Preço Mínimo
+      const minVal = parseFloat(precoMin);
+      if (!isNaN(minVal) && minVal > 0) {
+        if (item.preco_sob_consulta || (item.preco || 0) < minVal) {
+          return false;
+        }
+      }
+      // Filtro Faixa de Preço Máximo
+      const maxVal = parseFloat(precoMax);
+      if (!isNaN(maxVal) && maxVal > 0) {
+        if (!item.preco_sob_consulta && (item.preco || 0) > maxVal) {
+          return false;
+        }
       }
       // Filtro Busca por texto
       if (busca.trim()) {
@@ -63,7 +120,7 @@ export function ClassificadosView({ initialClassificados }: ClassificadosViewPro
       }
       return true;
     });
-  }, [initialClassificados, categoriaAtiva, tipoAtivo, busca]);
+  }, [initialClassificados, categoriaAtiva, tipoAtivo, cidadeAtiva, precoMin, precoMax, busca]);
 
   // Itens em Destaque no topo
   const destaques = useMemo(() => {
@@ -162,6 +219,7 @@ export function ClassificadosView({ initialClassificados }: ClassificadosViewPro
 
       {/* 2. Barra de Busca e Filtros */}
       <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-md space-y-4">
+        {/* Linha 1: Input de Busca e Tipo de Negociação */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
           {/* Input de Busca */}
           <div className="md:col-span-8 relative">
@@ -189,7 +247,7 @@ export function ClassificadosView({ initialClassificados }: ClassificadosViewPro
             <select
               value={tipoAtivo}
               onChange={(e) => setTipoAtivo(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-8 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500"
+              className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-8 py-3 text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
             >
               {TIPOS_NEGOCIACAO.map((t) => (
                 <option key={t.valor} value={t.valor}>
@@ -197,6 +255,78 @@ export function ClassificadosView({ initialClassificados }: ClassificadosViewPro
                 </option>
               ))}
             </select>
+          </div>
+        </div>
+
+        {/* Linha 2: Filtro de Cidades e Faixa de Preço (Min e Max) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+          {/* Filtro de Cidades */}
+          <div className="lg:col-span-5 relative">
+            <MapPin className="w-4 h-4 text-[#c8102e] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <select
+              value={cidadeAtiva}
+              onChange={(e) => setCidadeAtiva(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl pl-10 pr-8 py-2.5 text-xs sm:text-sm font-semibold text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500 cursor-pointer"
+            >
+              <option value="todas">Todas as Cidades ({listaCidades.length})</option>
+              {listaCidades.map((cid) => (
+                <option key={cid} value={cid}>
+                  {cid}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Faixa de Preço: Mínimo e Máximo */}
+          <div className="lg:col-span-7 flex flex-wrap sm:flex-nowrap items-center gap-2">
+            {/* Preço Mínimo */}
+            <div className="relative flex-1 min-w-[130px]">
+              <span className="text-[11px] font-bold text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 select-none">
+                R$ Mín:
+              </span>
+              <input
+                type="number"
+                min="0"
+                step="500"
+                placeholder="0"
+                value={precoMin}
+                onChange={(e) => setPrecoMin(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl pl-16 pr-3 py-2.5 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            <span className="text-xs font-bold text-slate-400 shrink-0 px-1 select-none">
+              até
+            </span>
+
+            {/* Preço Máximo */}
+            <div className="relative flex-1 min-w-[130px]">
+              <span className="text-[11px] font-bold text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 select-none">
+                R$ Máx:
+              </span>
+              <input
+                type="number"
+                min="0"
+                step="500"
+                placeholder="Sem limite"
+                value={precoMax}
+                onChange={(e) => setPrecoMax(e.target.value)}
+                className="w-full bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl pl-16 pr-3 py-2.5 text-xs sm:text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:border-amber-500"
+              />
+            </div>
+
+            {/* Botão Limpar Filtros se houver algum filtro ativo */}
+            {temFiltrosAtivos && (
+              <button
+                type="button"
+                onClick={limparTodosFiltros}
+                className="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-bold text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/40 border border-rose-200 dark:border-rose-900/50 transition-all shrink-0 cursor-pointer"
+                title="Limpar todos os filtros"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Limpar</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -248,6 +378,7 @@ export function ClassificadosView({ initialClassificados }: ClassificadosViewPro
                     src={item.imagem_principal}
                     alt={item.titulo}
                     fill
+                    unoptimized
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                     sizes="(max-width: 768px) 100vw, 33vw"
                   />
@@ -338,14 +469,10 @@ export function ClassificadosView({ initialClassificados }: ClassificadosViewPro
               Tente buscar por termos mais genéricos ou selecionar outra categoria acima.
             </p>
             <button
-              onClick={() => {
-                setBusca("");
-                setCategoriaAtiva("todos");
-                setTipoAtivo("todos");
-              }}
-              className="px-4 py-2 bg-amber-500 text-slate-950 font-bold text-xs rounded-xl hover:bg-amber-400"
+              onClick={limparTodosFiltros}
+              className="px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all shadow-md shadow-amber-500/20 cursor-pointer"
             >
-              Limpar Filtros
+              Limpar Todos os Filtros
             </button>
           </div>
         ) : (
@@ -446,6 +573,7 @@ export function ClassificadosView({ initialClassificados }: ClassificadosViewPro
                 src={fotoModalAtiva || modalItem.imagem_principal}
                 alt={modalItem.titulo}
                 fill
+                unoptimized
                 className="object-cover"
               />
               <div className="absolute top-4 left-4 flex gap-2">
@@ -469,7 +597,7 @@ export function ClassificadosView({ initialClassificados }: ClassificadosViewPro
                       : "border-transparent opacity-70 hover:opacity-100"
                   }`}
                 >
-                  <Image src={modalItem.imagem_principal} alt="Foto 1" fill className="object-cover" />
+                  <Image src={modalItem.imagem_principal} alt="Foto 1" fill unoptimized className="object-cover" />
                 </button>
                 {modalItem.galeria_fotos.map((foto, idx) => (
                   <button

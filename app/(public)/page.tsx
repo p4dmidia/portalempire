@@ -60,7 +60,7 @@ export default async function PortalHomePage() {
     getMaterias({ ordenarPor: "visualizacoes", limit: 6 }),
     getColunasAtivas(),
     getShorts(),
-    getClassificadosDestaqueHome(4),
+    getClassificadosDestaqueHome(8),
   ]);
 
   // Se houver poucas matérias em destaque, preenche com as mais recentes

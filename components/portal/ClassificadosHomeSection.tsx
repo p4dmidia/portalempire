@@ -40,9 +40,9 @@ export function ClassificadosHomeSection({ classificados }: ClassificadosHomeSec
         </Link>
       </div>
 
-      {/* Grid de Classificados */}
+      {/* Grid de Classificados (Até 8 em ordem de postagem recente) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {classificados.slice(0, 4).map((item) => {
+        {classificados.slice(0, 8).map((item) => {
           const foneLimpo = item.contato_whatsapp.replace(/\D/g, "");
           const foneFinal = foneLimpo.startsWith("55") ? foneLimpo : `55${foneLimpo}`;
           const texto = encodeURIComponent(
@@ -69,6 +69,7 @@ export function ClassificadosHomeSection({ classificados }: ClassificadosHomeSec
                     src={item.imagem_principal}
                     alt={item.titulo}
                     fill
+                    unoptimized
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
                     sizes="(max-width: 768px) 100vw, 25vw"
                   />

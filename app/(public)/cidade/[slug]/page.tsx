@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCidades, getMaterias, getColunasAtivas, getPortalData } from "@/lib/portal/queries";
+import { getClassificadosPorPagina } from "@/lib/portal/classificados-queries";
 import { getClimaPorSlug } from "@/lib/portal/clima";
 import { CardMateria } from "@/components/portal/CardMateria";
 import { ColunistasCarrossel } from "@/components/portal/ColunistasCarrossel";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { AdSlot } from "@/components/portal/AdSlot";
+import { ClassificadosFaixaSection } from "@/components/portal/ClassificadosFaixaSection";
 import { MapPin, Thermometer } from "lucide-react";
 
 export const revalidate = 60;
@@ -41,11 +43,12 @@ export default async function CidadeDetalhePage({ params }: CidadePageProps) {
     notFound();
   }
 
-  const [materias, colunas, maisLidas, clima] = await Promise.all([
+  const [materias, colunas, maisLidas, clima, classificados] = await Promise.all([
     getMaterias({ cidadeSlug: slug, limit: 12 }),
     getColunasAtivas(slug),
     getMaterias({ cidadeSlug: slug, ordenarPor: "visualizacoes", limit: 5 }),
     getClimaPorSlug(slug),
+    getClassificadosPorPagina("cidades", 4),
   ]);
 
   return (
@@ -82,6 +85,12 @@ export default async function CidadeDetalhePage({ params }: CidadePageProps) {
       </div>
 
       <AdSlot posicao="topo" />
+
+      {/* Classificados vinculados a cidades / regional */}
+      <ClassificadosFaixaSection
+        classificados={classificados}
+        titulo={`Classificados & Oportunidades em ${cidade.nome} e Região`}
+      />
 
       {/* Colunas da Cidade se houver */}
       {colunas.length > 0 && <ColunistasCarrossel colunas={colunas} />}

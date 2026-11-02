@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getProfile } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import {
+  adicionarOuAtualizarRevistaLocal,
+  excluirRevistaLocal,
+} from "@/lib/portal/revistas-storage";
 
 // PUT: Atualiza uma revista existente (Apenas Admin)
 export async function PUT(
@@ -19,7 +24,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const supabase = await createClient();
+    const admin = getSupabaseAdmin();
 
     const dadosAtualizar: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
@@ -39,19 +44,35 @@ export async function PUT(
     if (body.ativo !== undefined) dadosAtualizar.ativo = Boolean(body.ativo);
     if (body.ordem !== undefined) dadosAtualizar.ordem = Number(body.ordem) || 0;
 
-    const { data, error } = await supabase
-      .from("revistas")
-      .update(dadosAtualizar)
-      .eq("id", id)
-      .select("*")
-      .single();
+    let itemAtualizado: any = { id, ...dadosAtualizar };
 
-    if (error) {
-      console.warn("Aviso ao atualizar revista no Supabase:", error.message);
-      return NextResponse.json({ success: true, data: { id, ...dadosAtualizar } });
+    try {
+      const { data, error } = await admin
+        .from("revistas")
+        .update(dadosAtualizar)
+        .eq("id", id)
+        .select("*")
+        .single();
+
+      if (!error && data) {
+        itemAtualizado = data;
+      }
+    } catch {
+      // Ignora erro se tabela não existir
     }
 
-    return NextResponse.json({ success: true, data });
+    // Atualiza no storage local resiliente
+    adicionarOuAtualizarRevistaLocal(itemAtualizado);
+
+    try {
+      revalidatePath("/revistas");
+      revalidatePath("/", "layout");
+      revalidatePath("/(public)", "layout");
+    } catch {
+      // Ignora em dev
+    }
+
+    return NextResponse.json({ success: true, data: itemAtualizado });
   } catch (error: unknown) {
     const mensagem = error instanceof Error ? error.message : "Erro ao atualizar revista.";
     return NextResponse.json({ error: mensagem }, { status: 500 });
@@ -74,11 +95,22 @@ export async function DELETE(
       return NextResponse.json({ error: "ID obrigatório." }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    const { error } = await supabase.from("revistas").delete().eq("id", id);
+    const admin = getSupabaseAdmin();
+    try {
+      await admin.from("revistas").delete().eq("id", id);
+    } catch {
+      // Ignora erro se tabela não existir
+    }
 
-    if (error) {
-      console.warn("Aviso ao excluir revista no Supabase:", error.message);
+    // Exclui do storage local resiliente
+    excluirRevistaLocal(id);
+
+    try {
+      revalidatePath("/revistas");
+      revalidatePath("/", "layout");
+      revalidatePath("/(public)", "layout");
+    } catch {
+      // Ignora em dev
     }
 
     return NextResponse.json({ success: true, message: "Revista excluída com sucesso." });

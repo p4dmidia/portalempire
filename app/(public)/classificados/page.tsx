@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getClassificados } from "@/lib/portal/classificados-queries";
-import { getMaterias } from "@/lib/portal/queries";
+import { getMaterias, getCidades } from "@/lib/portal/queries";
 import { ClassificadosView } from "@/components/portal/ClassificadosView";
 import { CardMateria } from "@/components/portal/CardMateria";
 import { Newspaper, ChevronRight } from "lucide-react";
@@ -26,16 +26,17 @@ export const metadata: Metadata = {
 };
 
 export default async function ClassificadosPage() {
-  const [classificados, ultimasNoticias] = await Promise.all([
+  const [classificados, ultimasNoticias, cidades] = await Promise.all([
     getClassificados(),
     getMaterias({ limit: 4 }),
+    getCidades(),
   ]);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
       <div className="max-w-[1300px] mx-auto px-4 py-8 space-y-16">
         {/* Conteúdo Principal de Anúncios e Filtros */}
-        <ClassificadosView initialClassificados={classificados} />
+        <ClassificadosView initialClassificados={classificados} cidades={cidades} />
 
         {/* Rodapé: Notícias da Região conforme solicitado */}
         <section className="pt-12 border-t border-slate-200 dark:border-slate-800 space-y-6">

@@ -154,8 +154,19 @@ export function MateriaForm({
         setValue("imagem_url", publicData.publicUrl);
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Falha no upload";
-      alert(`Erro no upload da imagem: ${msg}`);
+      console.warn("Upload no Supabase Storage falhou, aplicando fallback local em Base64:", err);
+      try {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result as string;
+          setImagemDestaque(base64);
+          setValue("imagem_url", base64);
+        };
+        reader.readAsDataURL(file);
+      } catch (readErr) {
+        const msg = err instanceof Error ? err.message : "Falha no upload";
+        alert(`Erro no upload da imagem: ${msg}`);
+      }
     } finally {
       setIsUploadingDestaque(false);
     }

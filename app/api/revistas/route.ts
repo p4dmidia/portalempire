@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getProfile } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { getRevistas, getRevistasAdmin } from "@/lib/portal/revistas-queries";
+import { adicionarOuAtualizarRevistaLocal } from "@/lib/portal/revistas-storage";
 
 function gerarSlug(texto: string): string {
   const base = texto
@@ -69,15 +71,21 @@ export async function POST(request: Request) {
       );
     }
 
-    const supabase = await createClient();
+    const admin = getSupabaseAdmin();
 
-    // Buscar portal_id
-    const { data: portal } = await supabase.from("portais").select("id").limit(1).maybeSingle();
-    const portalId = portal?.id || null;
+    // Buscar portal_id válido
+    let portalId: string | null = null;
+    try {
+      const { data: portal } = await admin.from("portais").select("id").limit(1).maybeSingle();
+      portalId = portal?.id || null;
+    } catch {
+      portalId = null;
+    }
 
     const slug = body.slug ? body.slug.trim() : gerarSlug(body.titulo);
 
-    const novaRevista = {
+    const novaRevista: any = {
+      id: `rev-${Date.now()}`,
       portal_id: portalId,
       titulo: body.titulo.trim(),
       subtitulo: body.subtitulo ? body.subtitulo.trim() : null,
@@ -95,25 +103,39 @@ export async function POST(request: Request) {
       ordem: Number(body.ordem) || 0,
       visualizacoes: 0,
       created_by: user.id,
+      created_at: new Date().toISOString(),
     };
 
-    const { data, error } = await supabase
-      .from("revistas")
-      .insert(novaRevista)
-      .select("*")
-      .single();
+    let revistaSalva = novaRevista;
 
-    if (error) {
-      console.warn("Aviso ao salvar revista no Supabase:", error.message);
-      // Retorna sucesso para atualização na UI local
-      return NextResponse.json({
-        success: true,
-        data: { id: `rev-${Date.now()}`, ...novaRevista, created_at: new Date().toISOString() },
-        notice: "Salvo localmente (execute a migration no banco se a tabela não existir).",
-      });
+    // 1. Tenta persistir no Postgres se a tabela existir
+    try {
+      const { data, error } = await admin
+        .from("revistas")
+        .insert(novaRevista)
+        .select("*")
+        .single();
+
+      if (!error && data) {
+        revistaSalva = data;
+      }
+    } catch (e) {
+      console.warn("[Portal Empire] Erro ao gravar revista no Supabase (usando storage local):", e);
     }
 
-    return NextResponse.json({ success: true, data }, { status: 201 });
+    // 2. Persiste no storage local resiliente (garante exibição imediata em /revistas)
+    adicionarOuAtualizarRevistaLocal(revistaSalva);
+
+    // 3. Limpa o cache estático do Next.js
+    try {
+      revalidatePath("/revistas");
+      revalidatePath("/", "layout");
+      revalidatePath("/(public)", "layout");
+    } catch {
+      // Ignora erro em dev
+    }
+
+    return NextResponse.json({ success: true, data: revistaSalva }, { status: 201 });
   } catch (error: unknown) {
     const mensagem = error instanceof Error ? error.message : "Erro ao cadastrar revista.";
     return NextResponse.json({ error: mensagem }, { status: 500 });

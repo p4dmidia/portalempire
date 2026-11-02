@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getCategoriaBySlug, getMaterias, getPortalData } from "@/lib/portal/queries";
+import { getClassificadosPorPagina } from "@/lib/portal/classificados-queries";
 import { CardMateria } from "@/components/portal/CardMateria";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { AdSlot } from "@/components/portal/AdSlot";
+import { ClassificadosFaixaSection } from "@/components/portal/ClassificadosFaixaSection";
 
 export const revalidate = 60;
 
@@ -37,9 +39,10 @@ export default async function CategoriaPage({ params }: CategoriaPageProps) {
     notFound();
   }
 
-  const [materias, maisLidas] = await Promise.all([
+  const [materias, maisLidas, classificados] = await Promise.all([
     getMaterias({ categoriaSlug: slug, limit: 12 }),
     getMaterias({ categoriaSlug: slug, ordenarPor: "visualizacoes", limit: 5 }),
+    getClassificadosPorPagina(slug, 4),
   ]);
 
   const corBorda = categoria.cor || "#2563eb";
@@ -78,6 +81,12 @@ export default async function CategoriaPage({ params }: CategoriaPageProps) {
       </div>
 
       <AdSlot posicao="topo" />
+
+      {/* Classificados vinculados a esta editoria / portal */}
+      <ClassificadosFaixaSection
+        classificados={classificados}
+        titulo={`Classificados & Oportunidades — ${categoria.nome}`}
+      />
 
       {/* Grid Principal + Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

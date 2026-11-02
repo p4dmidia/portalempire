@@ -39,6 +39,7 @@ export interface ClassificadoData {
   status: "ativo" | "pausado" | "vendido" | "expirado";
   visualizacoes: number;
   created_at: string;
+  updated_at?: string;
   autor?: {
     nome: string;
     foto_url?: string | null;

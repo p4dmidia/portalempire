@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { getColunasAtivas, getCidades, getPortalData } from "@/lib/portal/queries";
+import { getClassificadosPorPagina } from "@/lib/portal/classificados-queries";
+import { ClassificadosFaixaSection } from "@/components/portal/ClassificadosFaixaSection";
 import {
   User,
   MapPin,
@@ -29,9 +31,10 @@ export default async function ColunasIndexPage({
   searchParams: Promise<{ cidade?: string }>;
 }) {
   const { cidade } = await searchParams;
-  const [colunas, cidades] = await Promise.all([
+  const [colunas, cidades, classificados] = await Promise.all([
     getColunasAtivas(cidade),
     getCidades(),
+    getClassificadosPorPagina("colunas", 4),
   ]);
 
   return (
@@ -172,6 +175,12 @@ export default async function ColunasIndexPage({
           })}
         </div>
       )}
+
+      {/* Classificados vinculados à página de Colunas / Colunistas */}
+      <ClassificadosFaixaSection
+        classificados={classificados}
+        titulo="Classificados & Negócios dos Colunistas"
+      />
 
       {/* Banner de Conversão — Seja um Colunista Licenciado */}
       <section className="rounded-3xl bg-white text-slate-900 p-7 sm:p-10 border-2 border-amber-400 shadow-lg">

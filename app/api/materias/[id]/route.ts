@@ -4,6 +4,7 @@ import { getProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { sanitizeContentHtml } from "@/lib/utils/sanitize";
 import { slugify } from "@/lib/utils/slugify";
+import { CATEGORIAS_PADRAO_SISTEMA } from "@/lib/portal/queries";
 import * as z from "zod";
 
 const updateSchema = z.object({
@@ -43,7 +44,7 @@ export async function PUT(
     // Verificar se a matéria existe e se o usuário é o autor ou admin
     const { data: materia, error: fetchError } = await supabase
       .from("materias")
-      .select("id, autor_id, slug, status, publicado_em")
+      .select("id, portal_id, autor_id, slug, status, publicado_em")
       .eq("id", id)
       .single();
 
@@ -77,7 +78,63 @@ export async function PUT(
     if (data.slug !== undefined) updateData.slug = slugify(data.slug);
     if (data.subtitulo !== undefined) updateData.subtitulo = data.subtitulo;
     if (data.resumo !== undefined) updateData.resumo = data.resumo;
-    if (data.categoria_id !== undefined) updateData.categoria_id = data.categoria_id;
+    if (data.categoria_id !== undefined) {
+      let catIdValida = data.categoria_id;
+      const { data: catExiste } = await supabase
+        .from("categorias")
+        .select("id")
+        .eq("id", catIdValida)
+        .maybeSingle();
+
+      if (!catExiste) {
+        const catPadrao = CATEGORIAS_PADRAO_SISTEMA.find(
+          (c) => c.id === catIdValida || c.slug === catIdValida
+        );
+
+        let criada = false;
+        if (catPadrao) {
+          const { error: catErr } = await supabase.from("categorias").insert({
+            id: catPadrao.id,
+            portal_id: materia.portal_id || "a0000000-0000-0000-0000-000000000001",
+            nome: catPadrao.nome,
+            slug: catPadrao.slug,
+            pai_id: null,
+            exibir_menu: catPadrao.exibir_menu,
+            exibir_home: catPadrao.exibir_home,
+            ordem_menu: catPadrao.ordem_menu,
+            ordem_home: catPadrao.ordem_home,
+            cor: catPadrao.cor,
+            palavras_chave: catPadrao.palavras_chave,
+          });
+          if (!catErr) criada = true;
+        }
+
+        if (!criada) {
+          const { data: catsReais } = await supabase
+            .from("categorias")
+            .select("id, slug")
+            .limit(20);
+
+          if (catsReais && catsReais.length > 0) {
+            const slugBuscado = catPadrao?.slug || "";
+            const afinidade = catsReais.find((c) => {
+              if (slugBuscado.includes("negocio") || slugBuscado.includes("empreendedor")) {
+                return c.slug === "economia";
+              }
+              if (slugBuscado.includes("turismo") || slugBuscado.includes("gastronomia")) {
+                return c.slug === "cultura" || c.slug === "geral";
+              }
+              if (slugBuscado.includes("beleza") || slugBuscado.includes("estetica")) {
+                return c.slug === "saude" || c.slug === "geral";
+              }
+              return false;
+            });
+            catIdValida = afinidade?.id || catsReais[0].id;
+          }
+        }
+      }
+      updateData.categoria_id = catIdValida;
+    }
     if (data.cidade_id !== undefined) updateData.cidade_id = data.cidade_id;
     if (data.coluna_id !== undefined) updateData.coluna_id = data.coluna_id;
     if (data.imagem_url !== undefined) updateData.imagem_url = data.imagem_url;

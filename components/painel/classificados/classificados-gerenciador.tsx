@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/client";
 import {
   Tag,
   PlusCircle,
@@ -26,6 +27,8 @@ import {
   Tractor,
   AlertCircle,
   Loader2,
+  Upload,
+  Image as ImageIcon,
   X,
 } from "lucide-react";
 import {
@@ -54,6 +57,10 @@ export function ClassificadosGerenciador({
   const [modalAberto, setModalAberto] = useState(false);
   const [itemEmEdicao, setItemEmEdicao] = useState<ClassificadoData | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [fazendoUpload, setFazendoUpload] = useState(false);
+  const [arrastandoImagem, setArrastandoImagem] = useState(false);
+  const [erroUpload, setErroUpload] = useState<string | null>(null);
+  const inputArquivoRef = useRef<HTMLInputElement | null>(null);
   const [mensagemSucesso, setMensagemSucesso] = useState<string | null>(null);
   const [mensagemErro, setMensagemErro] = useState<string | null>(null);
 
@@ -76,6 +83,120 @@ export function ClassificadosGerenciador({
   const [formDestaqueClassificados, setFormDestaqueClassificados] = useState(false);
   const [formPaginasExibicao, setFormPaginasExibicao] = useState<string[]>(["classificados"]);
 
+  // Converte e comprime imagem localmente em Data URL caso o bucket não esteja acessível
+  const comprimirImagemParaDataUrl = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const img = new window.Image();
+        img.onload = () => {
+          const maxDim = 1200;
+          let { width, height } = img;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            resolve(reader.result as string);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.82));
+        };
+        img.onerror = () => resolve(reader.result as string);
+        img.src = reader.result as string;
+      };
+      reader.onerror = () => reject(new Error("Falha ao ler o arquivo de imagem."));
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const processarArquivoImagem = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setErroUpload("Selecione um arquivo de imagem válido (JPG, PNG ou WebP).");
+      return;
+    }
+
+    if (file.size > 10 * 1024 * 1024) {
+      setErroUpload("A imagem deve ter no máximo 10MB.");
+      return;
+    }
+
+    setFazendoUpload(true);
+    setErroUpload(null);
+
+    try {
+      const supabase = createClient();
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const fileName = `classificados/${usuarioId || "geral"}-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 7)}.${ext}`;
+
+      const buckets = ["materias", "anuncios", "revistas"];
+      let publicUrlObtida: string | null = null;
+
+      for (const bucket of buckets) {
+        const { error: upErr } = await supabase.storage
+          .from(bucket)
+          .upload(fileName, file, { upsert: true });
+
+        if (!upErr) {
+          const { data: pubData } = supabase.storage
+            .from(bucket)
+            .getPublicUrl(fileName);
+          if (pubData?.publicUrl) {
+            publicUrlObtida = pubData.publicUrl;
+            break;
+          }
+        }
+      }
+
+      if (publicUrlObtida) {
+        setFormImagemPrincipal(publicUrlObtida);
+      } else {
+        // Fallback automático comprimido se nenhum bucket público aceitar o upload
+        const dataUrl = await comprimirImagemParaDataUrl(file);
+        setFormImagemPrincipal(dataUrl);
+      }
+    } catch {
+      try {
+        const dataUrl = await comprimirImagemParaDataUrl(file);
+        setFormImagemPrincipal(dataUrl);
+      } catch {
+        setErroUpload("Não foi possível carregar a imagem selecionada.");
+      }
+    } finally {
+      setFazendoUpload(false);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processarArquivoImagem(file);
+    }
+    e.target.value = "";
+  };
+
+  const handleDropImagem = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setArrastandoImagem(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processarArquivoImagem(file);
+    }
+  };
+
   const abrirNovo = () => {
     setItemEmEdicao(null);
     setFormTitulo("");
@@ -84,9 +205,8 @@ export function ClassificadosGerenciador({
     setFormCategoria("imoveis");
     setFormPreco("");
     setFormPrecoSobConsulta(false);
-    setFormImagemPrincipal(
-      "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&q=80&w=1200"
-    );
+    setFormImagemPrincipal("");
+    setErroUpload(null);
     setFormCidadeNome("Barueri");
     setFormBairro("Alphaville");
     setFormUf("SP");
@@ -144,6 +264,10 @@ export function ClassificadosGerenciador({
 
   const salvarClassificado = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formImagemPrincipal.trim()) {
+      setErroUpload("Envie ou arraste a imagem principal do anúncio antes de publicar.");
+      return;
+    }
     setSalvando(true);
     setMensagemErro(null);
     setMensagemSucesso(null);
@@ -389,7 +513,13 @@ export function ClassificadosGerenciador({
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
                         <div className="relative w-12 h-10 rounded-lg overflow-hidden bg-slate-950 shrink-0">
-                          <Image src={item.imagem_principal} alt={item.titulo} fill className="object-cover" />
+                          <Image
+                            src={item.imagem_principal}
+                            alt={item.titulo}
+                            fill
+                            unoptimized
+                            className="object-cover"
+                          />
                         </div>
                         <div className="max-w-xs">
                           <span className="font-bold text-slate-900 dark:text-white line-clamp-1">
@@ -579,19 +709,117 @@ export function ClassificadosGerenciador({
                 </div>
               </div>
 
-              {/* Imagem Principal */}
+              {/* Imagem Principal (Upload / Drag & Drop) */}
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-400 mb-1">
-                  URL da Imagem Principal *
+                <label className="block text-xs font-bold uppercase text-slate-400 mb-1.5">
+                  Imagem Principal *
                 </label>
+
                 <input
-                  type="url"
-                  required
-                  placeholder="https://..."
-                  value={formImagemPrincipal}
-                  onChange={(e) => setFormImagemPrincipal(e.target.value)}
-                  className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white"
+                  ref={inputArquivoRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="hidden"
                 />
+
+                {formImagemPrincipal ? (
+                  <div
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setArrastandoImagem(true);
+                    }}
+                    onDragLeave={() => setArrastandoImagem(false)}
+                    onDrop={handleDropImagem}
+                    className={`relative rounded-2xl border-2 overflow-hidden bg-slate-100 dark:bg-slate-800 transition-all ${
+                      arrastandoImagem
+                        ? "border-amber-500 ring-2 ring-amber-500/30"
+                        : "border-slate-200 dark:border-slate-700"
+                    }`}
+                  >
+                    <div className="relative h-48 w-full bg-slate-950/10 flex items-center justify-center">
+                      <img
+                        src={formImagemPrincipal}
+                        alt="Pré-visualização do anúncio"
+                        className="h-full w-full object-cover"
+                      />
+                      {fazendoUpload && (
+                        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center gap-2 text-white text-xs font-bold">
+                          <Loader2 className="w-6 h-6 animate-spin text-amber-400" />
+                          <span>Processando imagem...</span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 px-4 py-2.5 bg-white dark:bg-slate-900 border-t border-slate-200 dark:border-slate-800">
+                      <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-4 h-4 shrink-0" />
+                        Imagem carregada (arraste outra para substituir)
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => inputArquivoRef.current?.click()}
+                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+                        >
+                          Trocar Imagem
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormImagemPrincipal("")}
+                          className="px-2.5 py-1.5 rounded-lg bg-red-50 hover:bg-red-100 dark:bg-red-950/40 text-xs font-bold text-red-600 dark:text-red-400 transition-colors cursor-pointer"
+                        >
+                          Remover
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => !fazendoUpload && inputArquivoRef.current?.click()}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setArrastandoImagem(true);
+                    }}
+                    onDragLeave={() => setArrastandoImagem(false)}
+                    onDrop={handleDropImagem}
+                    className={`rounded-2xl border-2 border-dashed p-6 text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-2 ${
+                      arrastandoImagem
+                        ? "border-amber-500 bg-amber-500/10"
+                        : "border-slate-300 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-800/50 hover:border-amber-500 hover:bg-amber-500/5"
+                    }`}
+                  >
+                    {fazendoUpload ? (
+                      <>
+                        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
+                        <span className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                          Enviando imagem...
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <div className="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                          <Upload className="w-6 h-6" />
+                        </div>
+                        <div className="space-y-0.5">
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-100">
+                            Clique para fazer upload ou arraste uma imagem para cá
+                          </p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Formatos suportados: JPG, PNG ou WebP (até 10MB)
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {erroUpload && (
+                  <p className="text-xs font-semibold text-red-500 mt-1.5 flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                    <span>{erroUpload}</span>
+                  </p>
+                )}
               </div>
 
               {/* Descrição */}

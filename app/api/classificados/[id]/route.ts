@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getProfile } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import {
+  adicionarOuAtualizarClassificadoLocal,
+  excluirClassificadoLocal,
+} from "@/lib/portal/classificados-storage";
 
 // PUT: Atualiza um anúncio de classificado
 export async function PUT(
@@ -19,7 +24,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const supabase = await createClient();
+    const admin = getSupabaseAdmin();
 
     // Monta dados para atualização
     const dadosAtualizar: any = {
@@ -47,19 +52,34 @@ export async function PUT(
     if (body.paginas_exibicao !== undefined) dadosAtualizar.paginas_exibicao = body.paginas_exibicao;
     if (body.status !== undefined) dadosAtualizar.status = body.status;
 
-    let query = supabase.from("classificados").update(dadosAtualizar).eq("id", id);
+    let query = admin.from("classificados").update(dadosAtualizar).eq("id", id);
     if (user.role !== "admin") {
       query = query.eq("autor_id", user.id);
     }
 
-    const { data, error } = await query.select("*").single();
+    let itemAtualizado = { id, ...dadosAtualizar };
 
-    if (error) {
-      console.warn("Aviso ao atualizar classificado no banco:", error.message);
-      return NextResponse.json({ success: true, data: { id, ...dadosAtualizar } });
+    try {
+      const { data, error } = await query.select("*").single();
+      if (!error && data) {
+        itemAtualizado = data;
+      }
+    } catch {
+      // Postgres pode não ter tabela
     }
 
-    return NextResponse.json({ success: true, data });
+    // Atualiza no storage resiliente
+    adicionarOuAtualizarClassificadoLocal(itemAtualizado);
+
+    try {
+      revalidatePath("/", "layout");
+      revalidatePath("/classificados");
+      revalidatePath("/(public)", "layout");
+    } catch {
+      // Ignora erro de revalidação em dev
+    }
+
+    return NextResponse.json({ success: true, data: itemAtualizado });
   } catch (error: unknown) {
     const mensagem = error instanceof Error ? error.message : "Erro ao atualizar classificado.";
     return NextResponse.json({ success: false, error: mensagem }, { status: 500 });
@@ -82,16 +102,28 @@ export async function DELETE(
       return NextResponse.json({ error: "ID obrigatório." }, { status: 400 });
     }
 
-    const supabase = await createClient();
-    let query = supabase.from("classificados").delete().eq("id", id);
+    const admin = getSupabaseAdmin();
+    let query = admin.from("classificados").delete().eq("id", id);
 
     if (user.role !== "admin") {
       query = query.eq("autor_id", user.id);
     }
 
-    const { error } = await query;
-    if (error) {
-      console.warn("Aviso ao deletar classificado no banco:", error.message);
+    try {
+      await query;
+    } catch (e) {
+      console.warn("Aviso ao deletar classificado no banco:", e);
+    }
+
+    // Exclui do storage local resiliente
+    excluirClassificadoLocal(id);
+
+    try {
+      revalidatePath("/", "layout");
+      revalidatePath("/classificados");
+      revalidatePath("/(public)", "layout");
+    } catch {
+      // Ignora erro de revalidação em dev
     }
 
     return NextResponse.json({ success: true, message: "Anúncio excluído com sucesso." });
