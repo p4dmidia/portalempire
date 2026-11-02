@@ -10,12 +10,16 @@ import { limparEPadronizarTextoJornalistico } from "@/lib/portal/limpador-jornal
 
 function validarUrlImagemReal(raw?: string | null): string | null {
   if (!raw || typeof raw !== "string") return null;
-  let limpa = raw.replace(/&amp;/g, "&").trim();
+  let limpa = raw
+    .replace(/&amp;/g, "&")
+    .replace(/&#43;/g, "+")
+    .trim();
 
-  // Trata múltiplas URLs separadas por vírgula (ex: srcset ou url1.webp,url2.jpg)
-  if (limpa.includes(",")) {
+  // Trata múltiplas URLs separadas por vírgula apenas quando houver múltiplas URLs reais (ex: srcset)
+  // Não divide URLs únicas que usam vírgula na rota (ex: Cloudflare /cdn-cgi/image/width=1200,height=630/...)
+  if (limpa.includes(",") && /,\s*https?:\/\//i.test(limpa)) {
     const partes = limpa
-      .split(",")
+      .split(/,\s*(?=https?:\/\/)/i)
       .map((p) => p.trim().split(/\s+/)[0])
       .filter(Boolean);
     const valida = partes.find((p) => p.startsWith("http://") || p.startsWith("https://"));
@@ -23,12 +27,13 @@ function validarUrlImagemReal(raw?: string | null): string | null {
     else return null;
   }
 
-  // Descarta se não tiver protocolo válido ou se for valor nulo em texto
+  // Descarta se não tiver protocolo válido, se for valor nulo em texto ou Cloudflare truncado
   if (
     limpa === "None" ||
     limpa === "null" ||
     limpa === "undefined" ||
     limpa === "none" ||
+    /\/cdn-cgi\/image\/[^/]+$/i.test(limpa) ||
     (!limpa.startsWith("http://") && !limpa.startsWith("https://"))
   ) {
     return null;
@@ -45,7 +50,8 @@ function validarUrlImagemReal(raw?: string | null): string | null {
     u.includes("1x1") ||
     u.includes("pixel") ||
     u.includes("tracking") ||
-    u.includes("avatar")
+    u.includes("avatar") ||
+    u.endsWith(".svg")
   ) {
     return null;
   }

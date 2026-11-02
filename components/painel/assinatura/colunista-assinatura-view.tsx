@@ -208,7 +208,7 @@ export function ColunistaAssinaturaView({
               </li>
               <li className="flex items-start gap-2">
                 <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0 mt-0.5" />
-                <span><strong>Programa de Afiliados:</strong> Ganhe 20% recorrente todo mês ao indicar outros colunistas</span>
+                <span><strong>Programa de Afiliados:</strong> Ganhe R$ 50,00 recorrente todo mês (20%) por cada colunista indicado ativo</span>
               </li>
             </ul>
           </div>

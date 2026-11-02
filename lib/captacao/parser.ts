@@ -195,12 +195,12 @@ function scrapeNewsFromHtml(html: string, pageUrl: string): ParsedFeedItem[] {
         titulo = hMatch[1].replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
       }
 
-      // b) Alt da imagem do card de notícia
+      // b) Alt e src da imagem do card de notícia (priorizando atributos lazy-load reais sobre placeholders data:image)
       const imgMatch =
-        innerHtml.match(/<img[^>]+src=["']([^"']+)["']/i) ||
         innerHtml.match(/<img[^>]+data-src=["']([^"']+)["']/i) ||
+        innerHtml.match(/<img[^>]+data-lazy-src=["']([^"']+)["']/i) ||
         innerHtml.match(/<img[^>]+data-default-src=["']([^"']+)["']/i) ||
-        innerHtml.match(/<img[^>]+data-lazy-src=["']([^"']+)["']/i);
+        innerHtml.match(/<img[^>]+src=["'](?!data:)([^"']+)["']/i);
 
       if (!titulo && imgMatch) {
         const altMatch = innerHtml.match(/<img[^>]+alt=["']([^"']+)["']/i);

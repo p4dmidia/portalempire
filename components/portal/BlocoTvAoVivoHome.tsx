@@ -14,7 +14,10 @@ export function BlocoTvAoVivoHome() {
   };
 
   return (
-    <section className="my-10 bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-3xl p-5 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden">
+    <section
+      id="tv-ao-vivo"
+      className="my-10 scroll-mt-24 bg-white dark:bg-slate-900 text-slate-900 dark:text-white rounded-3xl p-5 sm:p-8 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden"
+    >
       {/* Detalhes suaves de iluminação */}
       <div className="absolute top-0 right-1/4 w-96 h-96 bg-[#c8102e]/5 rounded-full blur-3xl pointer-events-none" />
       <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-blue-600/5 rounded-full blur-3xl pointer-events-none" />

@@ -37,7 +37,7 @@ export async function GET() {
       aprovar_colunas_manual: true,
       captacao_ativa_global: true,
       captacao_arquivar_dias: 30,
-      colunista_mensalidade_valor: 97,
+      colunista_mensalidade_valor: 250,
       afiliados_comissao_percentual: 20,
       afiliados_saque_minimo: 50,
       captacao_reescrita_automatica: true,
@@ -45,7 +45,11 @@ export async function GET() {
     };
 
     (configs || []).forEach((c) => {
-      configMap[c.chave] = c.valor;
+      if (c.chave === "colunista_mensalidade_valor" && Number(c.valor) === 97) {
+        configMap[c.chave] = 250;
+      } else {
+        configMap[c.chave] = c.valor;
+      }
     });
 
     return NextResponse.json({ configs: configMap });
@@ -115,7 +119,7 @@ export async function PUT(request: NextRequest) {
       {
         portal_id: portal.id,
         chave: "colunista_mensalidade_valor",
-        valor: parsed.data.colunista_mensalidade_valor ?? 97,
+        valor: parsed.data.colunista_mensalidade_valor ?? 250,
         descricao: "Valor padrão em reais da mensalidade cobrada dos colunistas",
       },
       {

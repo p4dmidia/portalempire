@@ -556,6 +556,33 @@ export async function executarCaptacao(
     console.warn("[Limpeza Automática] Falha ao excluir dados antigos:", errLimpeza);
   }
 
+  // 6.2 Auto-cura de matérias antigas que ficaram com URLs Cloudflare truncadas no banco
+  try {
+    const { data: materiasTruncadas } = await supabase
+      .from("materias")
+      .select("id, titulo, url_original")
+      .eq("imagem_url", "https://lncimg.lance.com.br/cdn-cgi/image/width=1200")
+      .limit(30);
+
+    if (materiasTruncadas && materiasTruncadas.length > 0) {
+      for (const mat of materiasTruncadas) {
+        let novaImg: string | null = null;
+        if (mat.url_original) {
+          try {
+            const det = await extrairDetalhesMateriaOriginal(mat.url_original);
+            if (det.imagemUrl) novaImg = det.imagemUrl;
+          } catch {}
+        }
+        if (!novaImg) {
+          novaImg = obterImagemEditorialContextual(mat.titulo);
+        }
+        await supabase.from("materias").update({ imagem_url: novaImg }).eq("id", mat.id);
+      }
+    }
+  } catch (errCura) {
+    console.warn("[Auto-cura Imagens] Aviso:", errCura);
+  }
+
   // 7. Revalidação de Cache das páginas afetadas
   try {
     revalidatePath("/");

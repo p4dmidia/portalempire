@@ -187,16 +187,16 @@ export async function POST(request: Request) {
       console.warn("Aviso na limpeza de status de fontes:", cleanErr);
     }
 
-    // 6. Curar automaticamente matérias antigas que tenham ícone do Google News
+    // 6. Curar automaticamente matérias antigas que tenham ícone do Google News ou URLs Cloudflare truncadas
     let imagensCuradas = 0;
     try {
-      const { data: materiasComGoogle } = await supabase
+      const { data: materiasComImagemQuebrada } = await supabase
         .from("materias")
         .select("id, titulo, imagem_url")
-        .ilike("imagem_url", "%googleusercontent.com%");
+        .or("imagem_url.ilike.%googleusercontent.com%,imagem_url.eq.https://lncimg.lance.com.br/cdn-cgi/image/width=1200");
 
-      if (materiasComGoogle && materiasComGoogle.length > 0) {
-        for (const mat of materiasComGoogle) {
+      if (materiasComImagemQuebrada && materiasComImagemQuebrada.length > 0) {
+        for (const mat of materiasComImagemQuebrada) {
           const fotoContextual = obterImagemEditorialContextual(mat.titulo);
           await supabase
             .from("materias")

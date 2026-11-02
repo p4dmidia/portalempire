@@ -1,11 +1,10 @@
 import Link from "next/link";
-import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { LabelEditoria } from "./LabelEditoria";
 import type { MateriaData } from "@/lib/portal/queries";
 import { Clock, Sparkles, MapPin } from "lucide-react";
-import { otimizarUrlImagem } from "@/lib/portal/image-utils";
+import { ImageWithFallback } from "./ImageWithFallback";
 
 interface CardMateriaProps {
   materia: MateriaData;
@@ -30,18 +29,16 @@ export function CardMateria({
       ? "Redatores da Empire Cidades"
       : materia.autor?.nome || "Redatores da Empire Cidades";
 
-  const imagemPadrao = otimizarUrlImagem(
-    materia.imagem_url,
-    `${materia.categoria?.nome || ""} ${materia.titulo || ""}`
-  );
+  const contextoImagem = `${materia.categoria?.nome || ""} ${materia.titulo || ""}`;
 
   // VARIAÇÃO 1: GRANDE (Destaque Principal)
   if (variacao === "grande") {
     return (
       <article className="group relative overflow-hidden rounded-2xl bg-slate-900 text-white shadow-xl h-full flex flex-col justify-end min-h-[420px] md:min-h-[480px]">
         <div className="absolute inset-0 z-0">
-          <Image
-            src={imagemPadrao}
+          <ImageWithFallback
+            src={materia.imagem_url}
+            contexto={contextoImagem}
             alt={materia.titulo}
             fill
             priority={prioridadeImagem}
@@ -104,8 +101,9 @@ export function CardMateria({
     return (
       <article className="group flex gap-4 items-start py-4 border-b border-slate-100 dark:border-slate-800 last:border-b-0">
         <div className="relative w-28 sm:w-36 h-20 sm:h-24 rounded-xl overflow-hidden shrink-0 bg-slate-100 dark:bg-slate-800">
-          <Image
-            src={imagemPadrao}
+          <ImageWithFallback
+            src={materia.imagem_url}
+            contexto={contextoImagem}
             alt={materia.titulo}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -148,8 +146,9 @@ export function CardMateria({
     return (
       <article className="group flex flex-col space-y-2">
         <div className="relative aspect-[16/10] w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800">
-          <Image
-            src={imagemPadrao}
+          <ImageWithFallback
+            src={materia.imagem_url}
+            contexto={contextoImagem}
             alt={materia.titulo}
             fill
             className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -199,8 +198,9 @@ export function CardMateria({
   return (
     <article className="group flex flex-col rounded-2xl overflow-hidden bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-all h-full">
       <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-        <Image
-          src={imagemPadrao}
+        <ImageWithFallback
+          src={materia.imagem_url}
+          contexto={contextoImagem}
           alt={materia.titulo}
           fill
           priority={prioridadeImagem}

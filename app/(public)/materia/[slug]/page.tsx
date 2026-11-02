@@ -9,6 +9,7 @@ import { LabelEditoria } from "@/components/portal/LabelEditoria";
 import { ShareButtons } from "@/components/portal/ShareButtons";
 import { ViewCounter } from "@/components/portal/ViewCounter";
 import { CardMateria } from "@/components/portal/CardMateria";
+import { ImageWithFallback } from "@/components/portal/ImageWithFallback";
 import { AdSlot } from "@/components/portal/AdSlot";
 import {
   Clock,
@@ -97,7 +98,8 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
     conteudoHtml.includes("Sem resultado");
   const precisaRecarregarImagem =
     !materia.imagem_url ||
-    materia.imagem_url.includes(",") ||
+    /,\s*https?:\/\//i.test(materia.imagem_url) ||
+    /\/cdn-cgi\/image\/[^/]+$/i.test(materia.imagem_url) ||
     materia.imagem_url.includes("googleusercontent.com") ||
     materia.imagem_url.includes("photo-1504711434969") ||
     materia.imagem_url.includes("w=200") ||
@@ -338,11 +340,9 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
                   )})`,
                 }}
               />
-              <Image
-                src={otimizarUrlImagem(
-                  materia.imagem_url,
-                  `${materia.categoria?.nome || ""} ${tituloLimpo}`
-                )}
+              <ImageWithFallback
+                src={materia.imagem_url}
+                contexto={`${materia.categoria?.nome || ""} ${tituloLimpo}`}
                 alt={tituloLimpo}
                 fill
                 priority

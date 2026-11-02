@@ -29,7 +29,7 @@ export function ConfiguracoesView() {
   const [aprovarColunasManual, setAprovarColunasManual] = useState(true);
   const [captacaoAtivaGlobal, setCaptacaoAtivaGlobal] = useState(true);
   const [captacaoArquivarDias, setCaptacaoArquivarDias] = useState(30);
-  const [colunistaMensalidadeValor, setColunistaMensalidadeValor] = useState(97);
+  const [colunistaMensalidadeValor, setColunistaMensalidadeValor] = useState(250);
   const [afiliadosComissaoPercentual, setAfiliadosComissaoPercentual] = useState(20);
   const [afiliadosSaqueMinimo, setAfiliadosSaqueMinimo] = useState(50);
   const [captacaoReescritaAutomatica, setCaptacaoReescritaAutomatica] = useState(true);
@@ -46,7 +46,7 @@ export function ConfiguracoesView() {
         setAprovarColunasManual(Boolean(c.aprovar_colunas_manual ?? true));
         setCaptacaoAtivaGlobal(Boolean(c.captacao_ativa_global ?? true));
         setCaptacaoArquivarDias(Number(c.captacao_arquivar_dias ?? 30));
-        setColunistaMensalidadeValor(Number(c.colunista_mensalidade_valor ?? 97));
+        setColunistaMensalidadeValor(Number(c.colunista_mensalidade_valor ?? 250));
         setAfiliadosComissaoPercentual(Number(c.afiliados_comissao_percentual ?? 20));
         setAfiliadosSaqueMinimo(Number(c.afiliados_saque_minimo ?? 50));
         setCaptacaoReescritaAutomatica(Boolean(c.captacao_reescrita_automatica ?? true));

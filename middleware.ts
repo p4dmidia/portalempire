@@ -65,7 +65,11 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
 
-    if (profile.status === "pendente") {
+    const isPagoViaMetadata =
+      user.user_metadata?.pagamento_aprovado === true ||
+      user.user_metadata?.assinatura_ativa === true;
+
+    if (profile.status === "pendente" && !isPagoViaMetadata) {
       return NextResponse.redirect(new URL("/aguardando-aprovacao", request.url));
     }
 
@@ -111,8 +115,12 @@ export async function middleware(request: NextRequest) {
       .eq("id", user.id)
       .single();
 
-    if (profile?.status === "ativo") {
-      if (profile.role === "admin") {
+    const isPagoViaMetadata =
+      user.user_metadata?.pagamento_aprovado === true ||
+      user.user_metadata?.assinatura_ativa === true;
+
+    if (profile?.status === "ativo" || isPagoViaMetadata) {
+      if (profile?.role === "admin") {
         return NextResponse.redirect(new URL("/painel/admin/dashboard", request.url));
       }
       return NextResponse.redirect(new URL("/painel", request.url));

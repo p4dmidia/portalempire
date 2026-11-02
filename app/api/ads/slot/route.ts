@@ -32,12 +32,12 @@ export async function GET(request: Request) {
 
     const { data: espacos } = await queryEspaco;
     if (!espacos || espacos.length === 0) {
-      return NextResponse.json({ success: true, anuncio: null });
+      return NextResponse.json({ success: true, anuncio: null, anuncios: [] });
     }
 
     const espacoIds = espacos.map((e) => e.id);
 
-    // 2. Buscar anúncio ativo no período para esses espaços
+    // 2. Buscar anúncios ativos no período para esses espaços (ordenados por criação recente)
     const { data: anuncios } = await supabase
       .from("anuncios")
       .select(`
@@ -52,13 +52,15 @@ export async function GET(request: Request) {
       .eq("status", "ativo")
       .lte("inicio_em", hoje)
       .gte("fim_em", hoje)
-      .limit(1);
+      .order("created_at", { ascending: false });
 
-    const anuncioAtivo = anuncios?.[0] || null;
+    const anunciosAtivos = anuncios || [];
+    const primeiroAnuncio = anunciosAtivos[0] || null;
 
     return NextResponse.json({
       success: true,
-      anuncio: anuncioAtivo,
+      anuncio: primeiroAnuncio,
+      anuncios: anunciosAtivos,
     });
   } catch (error: unknown) {
     const mensagem = error instanceof Error ? error.message : "Erro ao carregar anúncio do slot.";

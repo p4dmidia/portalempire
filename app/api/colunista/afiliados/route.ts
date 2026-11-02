@@ -22,7 +22,7 @@ export async function GET() {
         .eq("id", profile.id);
     }
 
-    const linkAfiliado = `${siteUrl}/cadastro?ref=${codigoAfiliado}`;
+    const linkAfiliado = `${siteUrl}/seja-colunista?ref=${codigoAfiliado}`;
 
     // 2. Buscar configurações (saque mínimo e comissão padrão)
     const { data: configs } = await supabase
@@ -37,7 +37,8 @@ export async function GET() {
 
     const saqueMinimo = Number(configMap["afiliados_saque_minimo"] || "50.00");
     const comissaoPercentual = Number(configMap["afiliados_comissao_percentual"] || "20.00");
-    const mensalidadePadrao = Number(configMap["colunista_mensalidade_valor"] || "97.00");
+    const valorBruto = Number(configMap["colunista_mensalidade_valor"] || "250.00");
+    const mensalidadePadrao = !valorBruto || valorBruto === 97 ? 250 : valorBruto;
 
     // 3. Buscar indicados diretos deste colunista
     const { data: indicadosRaw } = await supabase

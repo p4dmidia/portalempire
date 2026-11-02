@@ -32,7 +32,7 @@ import { FonteFormDialog, type FonteRSS } from "./fonte-form-dialog";
 import { TestarFeedDialog } from "./testar-feed-dialog";
 import { EditarMateriaCaptadaDialog, type MateriaCaptada } from "./editar-materia-captada-dialog";
 import type { Categoria, Cidade } from "@/lib/portal/queries";
-import Image from "next/image";
+import { ImageWithFallback } from "@/components/portal/ImageWithFallback";
 
 interface LogCaptacao {
   id: string;
@@ -749,8 +749,9 @@ export function CaptacaoDashboard({
                           <div className="flex gap-3 items-center">
                             {mat.imagem_url ? (
                               <div className="relative w-14 h-10 shrink-0 rounded-md overflow-hidden bg-slate-100">
-                                <Image
+                                <ImageWithFallback
                                   src={mat.imagem_url}
+                                  contexto={mat.titulo}
                                   alt={mat.titulo}
                                   fill
                                   className="object-cover"

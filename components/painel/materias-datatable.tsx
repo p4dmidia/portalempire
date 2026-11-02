@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 import type { CategoriaData, CidadeData, MateriaData } from "@/lib/portal/queries";
+import { ImageWithFallback } from "@/components/portal/ImageWithFallback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -261,8 +261,9 @@ export function MateriasDataTable({
                         <div className="flex items-start gap-3">
                           <div className="relative w-14 h-10 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-800 shrink-0 border border-slate-200 dark:border-slate-700">
                             {mat.imagem_url ? (
-                              <Image
+                              <ImageWithFallback
                                 src={mat.imagem_url}
+                                contexto={mat.titulo}
                                 alt={mat.titulo}
                                 fill
                                 className="object-cover"

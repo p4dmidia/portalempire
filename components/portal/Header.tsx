@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import type { CategoriaData, CidadeData, PortalData } from "@/lib/portal/queries";
-import { Search, Menu, X, ChevronDown, Tag, ShoppingBag, BookOpen } from "lucide-react";
+import { Search, Menu, X, ChevronDown, Tag, ShoppingBag, BookOpen, Tv, Radio } from "lucide-react";
 import { WidgetClimaHeader } from "@/components/portal/WidgetClimaHeader";
 
 const TEMAS_EDITORIAIS = [
@@ -318,9 +318,15 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
             <div className="absolute top-full right-0 hidden group-hover:block bg-white text-slate-900 min-w-[240px] rounded-b-xl shadow-2xl border border-slate-100 py-2.5 z-50">
               <Link
                 href="/colunas"
-                className="block px-4 py-2 text-[13px] font-bold text-amber-600 hover:text-amber-700 hover:bg-amber-50/50 transition-colors border-b border-slate-100 mb-1"
+                className="block px-4 py-2 text-[13px] font-bold text-amber-600 hover:text-amber-700 hover:bg-amber-50/50 transition-colors"
               >
                 ★ Colunistas da Região
+              </Link>
+              <Link
+                href="/seja-colunista"
+                className="block px-4 py-2 text-[13px] font-extrabold text-[#c8102e] hover:bg-red-50/60 transition-colors border-b border-slate-100 mb-1"
+              >
+                ✦ Seja um Colunista
               </Link>
               {/* Categorias Gastronomia e Turismo integradas para telas < 2xl */}
               <div className="2xl:hidden border-b border-slate-100 pb-1 mb-1">
@@ -572,6 +578,54 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
                 NOVO
               </span>
             </Link>
+            <Link
+              href="/#tv-ao-vivo"
+              onClick={(e) => {
+                setIsMobileMenuOpen(false);
+                if (pathname === "/") {
+                  e.preventDefault();
+                  setTimeout(() => {
+                    document
+                      .getElementById("tv-ao-vivo")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 100);
+                }
+              }}
+              className="flex items-center justify-between px-3 py-2 text-sm font-bold uppercase rounded-lg hover:bg-white/5 text-white"
+            >
+              <span className="flex items-center gap-2">
+                <Tv className="w-4 h-4 text-[#c8102e]" />
+                <span>TV Ao Vivo</span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-black px-1.5 py-0.5 rounded bg-red-600/20 text-red-400 border border-red-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                AO VIVO
+              </span>
+            </Link>
+            <Link
+              href="/#radio-ao-vivo"
+              onClick={(e) => {
+                setIsMobileMenuOpen(false);
+                if (pathname === "/") {
+                  e.preventDefault();
+                  setTimeout(() => {
+                    document
+                      .getElementById("radio-ao-vivo")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 100);
+                }
+              }}
+              className="flex items-center justify-between px-3 py-2 text-sm font-bold uppercase rounded-lg hover:bg-white/5 text-white"
+            >
+              <span className="flex items-center gap-2">
+                <Radio className="w-4 h-4 text-[#c8102e]" />
+                <span>Rádio Ao Vivo</span>
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-black px-1.5 py-0.5 rounded bg-red-600/20 text-red-400 border border-red-500/30">
+                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                NO AR
+              </span>
+            </Link>
           </div>
 
           {/* Temas e Editorias no Mobile */}
@@ -628,6 +682,16 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
               className="block px-3 py-2 text-sm font-bold text-amber-400 hover:bg-white/5 rounded-lg"
             >
               ★ Colunistas da Região
+            </Link>
+            <Link
+              href="/seja-colunista"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="flex items-center justify-between px-3 py-2 text-sm font-bold text-amber-300 bg-amber-500/10 border border-amber-500/25 hover:bg-amber-500/20 rounded-lg"
+            >
+              <span>✦ Seja um Colunista</span>
+              <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-amber-400 text-slate-950">
+                VAGAS
+              </span>
             </Link>
             <Link
               href="/anuncie"

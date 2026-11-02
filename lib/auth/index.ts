@@ -57,7 +57,11 @@ export async function requireRole(allowedRoles: UserRole[]): Promise<Profile> {
     redirect("/login");
   }
 
-  if (profile.status === "pendente") {
+  const isPagoViaMetadata =
+    user.user_metadata?.pagamento_aprovado === true ||
+    user.user_metadata?.assinatura_ativa === true;
+
+  if (profile.status === "pendente" && !isPagoViaMetadata) {
     redirect("/aguardando-aprovacao");
   }
 

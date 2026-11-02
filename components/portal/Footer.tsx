@@ -117,8 +117,8 @@ export function Footer({ portal, categorias }: FooterProps) {
                 </Link>
               </li>
               <li>
-                <Link href="/cadastro" className="hover:text-white transition-colors">
-                  Seja um Colunista
+                <Link href="/seja-colunista" className="hover:text-amber-300 transition-colors text-amber-400 font-semibold">
+                  ✦ Seja um Colunista Licenciado
                 </Link>
               </li>
               <li>

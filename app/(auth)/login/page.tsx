@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Eye, EyeOff, Home, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Home, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const loginSchema = z.object({
@@ -24,6 +24,9 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectPath = searchParams.get("redirect") || "/painel";
+  const pagamentoAprovado = searchParams.get("pagamento") === "aprovado";
+  const emailInicial = searchParams.get("email") || "";
+
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -31,10 +34,20 @@ function LoginForm() {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: emailInicial,
+    },
   });
+
+  useEffect(() => {
+    if (emailInicial) {
+      setValue("email", emailInicial);
+    }
+  }, [emailInicial, setValue]);
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
@@ -64,12 +77,30 @@ function LoginForm() {
     <div>
       <div className="mb-6">
         <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">
-          Entrar na sua conta
+          {pagamentoAprovado
+            ? "Acessar Escritório do Colunista"
+            : "Entrar na sua conta"}
         </h2>
         <p className="text-sm text-slate-500 dark:text-slate-400">
-          Informe suas credenciais para gerenciar seu conteúdo
+          {pagamentoAprovado
+            ? "Sua assinatura está ativa! Entre com sua senha para começar."
+            : "Informe suas credenciais para gerenciar seu conteúdo"}
         </p>
       </div>
+
+      {pagamentoAprovado && (
+        <div className="mb-5 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 text-xs flex items-start gap-2.5">
+          <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+          <div>
+            <strong className="block font-bold text-sm mb-0.5">
+              Pagamento Confirmado! Conta de Colunista Ativada
+            </strong>
+            <span>
+              Digite a senha criada no checkout para entrar no seu Escritório do Colunista.
+            </span>
+          </div>
+        </div>
+      )}
 
       {errorMessage && (
         <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm flex items-center gap-2">
@@ -138,19 +169,19 @@ function LoginForm() {
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Entrando...
+              Entrando no Escritório...
             </>
           ) : (
-            "Acessar Painel"
+            "Acessar Escritório do Colunista"
           )}
         </Button>
       </form>
 
       <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800 flex flex-col gap-3">
         <div className="text-center text-xs text-slate-500">
-          Não possui uma conta?{" "}
-          <Link href="/cadastro" className="text-primary font-medium hover:underline">
-            Cadastre-se como colunista
+          Ainda não é um colunista licenciado?{" "}
+          <Link href="/checkout/colunista" className="text-primary font-semibold hover:underline">
+            Assinar e Criar Conta
           </Link>
         </div>
 

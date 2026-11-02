@@ -22,7 +22,8 @@ export default async function ColunistaAssinaturaPage() {
       .maybeSingle()
   ]);
 
-  const valorMensalidade = Number(configValor?.valor ?? 97);
+  const valorBruto = Number(configValor?.valor ?? 250);
+  const valorMensalidade = !valorBruto || valorBruto === 97 ? 250 : valorBruto;
 
   return (
     <ColunistaAssinaturaView

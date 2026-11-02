@@ -1,42 +1,14 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import type { CategoriaData, MateriaData } from "@/lib/portal/queries";
-import { otimizarUrlImagem, obterImagemEditorialContextual } from "@/lib/portal/image-utils";
+import { ImageWithFallback } from "./ImageWithFallback";
 
 interface BlocoEditoriaProps {
   categoria: CategoriaData;
   materias: MateriaData[];
-}
-
-function ImagemCardEditoria({
-  src,
-  alt,
-  contexto,
-}: {
-  src?: string | null;
-  alt: string;
-  contexto: string;
-}) {
-  const [imgSrc, setImgSrc] = useState(() => otimizarUrlImagem(src, contexto));
-
-  return (
-    <Image
-      src={imgSrc}
-      alt={alt}
-      fill
-      className="object-cover transition-transform duration-500 group-hover:scale-105"
-      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-      onError={() => {
-        // Se a imagem remota quebrar ou falhar no navegador, recorre à foto editorial temática de alta qualidade
-        setImgSrc(obterImagemEditorialContextual(contexto));
-      }}
-    />
-  );
 }
 
 export function BlocoEditoria({ categoria, materias }: BlocoEditoriaProps) {
@@ -85,10 +57,13 @@ export function BlocoEditoria({ categoria, materias }: BlocoEditoriaProps) {
             >
               {/* Imagem do Card com Fallback Automático */}
               <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-                <ImagemCardEditoria
+                <ImageWithFallback
                   src={mat.imagem_url}
                   alt={mat.titulo}
                   contexto={contextoCard}
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                 />
               </div>
 

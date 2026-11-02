@@ -46,11 +46,18 @@ export default async function ColunistaDashboardPage() {
         .maybeSingle(),
     ]);
 
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     colunas = (colunasRes.data as typeof colunas) || [];
     totalColunas = colunasRes.count || colunas.length;
     artigos = (artigosRes.data as typeof artigos) || [];
     totalArtigos = artigosRes.count || artigos.length;
-    isAssinaturaAtiva = assinaturaRes?.data?.status === "ativa";
+    isAssinaturaAtiva =
+      assinaturaRes?.data?.status === "ativa" ||
+      user?.user_metadata?.assinatura_ativa === true ||
+      user?.user_metadata?.pagamento_aprovado === true;
   } catch (err) {
     console.error("[ColunistaDashboard] Erro ao carregar métricas:", err);
   }

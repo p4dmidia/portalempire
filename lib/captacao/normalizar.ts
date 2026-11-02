@@ -109,11 +109,17 @@ export function limparResumo(htmlOrText?: string, maxChars = 400): string {
 function isUrlImagemValida(url?: string | null): boolean {
   if (!url || typeof url !== "string") return false;
   let limpa = url.trim();
-  if (limpa.includes(",")) {
-    const partes = limpa.split(",").map((p) => p.trim().split(/\s+/)[0]).filter(Boolean);
+  if (limpa.includes(",") && /,\s*https?:\/\//i.test(limpa)) {
+    const partes = limpa
+      .split(/,\s*(?=https?:\/\/)/i)
+      .map((p) => p.trim().split(/\s+/)[0])
+      .filter(Boolean);
     const valida = partes.find((p) => p.startsWith("http://") || p.startsWith("https://"));
     if (valida) limpa = valida;
     else return false;
+  }
+  if (/\/cdn-cgi\/image\/[^/]+$/i.test(limpa)) {
+    return false;
   }
   const u = limpa.toLowerCase();
   if (
@@ -132,7 +138,8 @@ function isUrlImagemValida(url?: string | null): boolean {
     u.includes("avatar") ||
     u.includes("gravatar") ||
     u.includes("placeholder") ||
-    u.includes("fallbackimage")
+    u.includes("fallbackimage") ||
+    u.endsWith(".svg")
   ) {
     return false;
   }

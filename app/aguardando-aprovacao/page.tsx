@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Clock, LogOut, RefreshCw } from "lucide-react";
+import { Clock, CreditCard, LogOut, RefreshCw } from "lucide-react";
 
 export default function AguardandoAprovacaoPage() {
   const router = useRouter();
@@ -28,18 +29,29 @@ export default function AguardandoAprovacaoPage() {
         </div>
 
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-          Aguardando Aprovação
+          Ative sua Licença de Colunista
         </h1>
 
         <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-          Seu cadastro foi realizado e está aguardando a aprovação de um administrador do Portal Empire.
-          Assim que sua conta for ativada, você terá acesso completo ao painel de colunista.
+          Seu cadastro foi localizado! Para liberar imediatamente seu acesso ao{" "}
+          <strong>Escritório do Colunista</strong>, conclua a ativação da sua assinatura mensal (R$ 250,00/mês) via PIX ou Cartão no Mercado Pago.
         </p>
 
         <div className="flex flex-col gap-3">
-          <Button onClick={handleRefresh} className="w-full flex items-center justify-center gap-2">
+          <Link href="/checkout/colunista" className="w-full">
+            <Button className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold">
+              <CreditCard className="w-4 h-4" />
+              Concluir Pagamento e Ativar Agora (R$ 250,00)
+            </Button>
+          </Link>
+
+          <Button
+            onClick={handleRefresh}
+            variant="secondary"
+            className="w-full flex items-center justify-center gap-2"
+          >
             <RefreshCw className="w-4 h-4" />
-            Verificar Novamente
+            Já paguei! Verificar Liberação
           </Button>
 
           <Button

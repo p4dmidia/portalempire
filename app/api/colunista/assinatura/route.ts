@@ -19,7 +19,8 @@ export async function GET() {
       .eq("chave", "colunista_mensalidade_valor")
       .maybeSingle();
 
-    const valorMensalidade = Number(configValor?.valor ?? 97);
+    const valorBruto = Number(configValor?.valor ?? 250);
+    const valorMensalidade = !valorBruto || valorBruto === 97 ? 250 : valorBruto;
 
     // 2. Buscar assinatura do colunista
     const { data: assinatura, error: assErr } = await supabase
@@ -58,7 +59,8 @@ export async function POST() {
       .eq("chave", "colunista_mensalidade_valor")
       .maybeSingle();
 
-    const valorMensalidade = Number(configValor?.valor ?? 97);
+    const valorBrutoPost = Number(configValor?.valor ?? 250);
+    const valorMensalidade = !valorBrutoPost || valorBrutoPost === 97 ? 250 : valorBrutoPost;
 
     // 2. Criar preferência no Mercado Pago
     const preferencia = await criarPreferenciaMensalidadeMP({

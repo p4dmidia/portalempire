@@ -414,15 +414,16 @@ export function otimizarUrlImagem(url?: string | null, contexto?: string): strin
     return obterImagemEditorialContextual(contexto);
   }
 
-  let limpa = url.replace(/&amp;/g, "&").trim();
+  let limpa = url
+    .replace(/&amp;/g, "&")
+    .replace(/&#43;/g, "+")
+    .trim();
 
-  // Corrige URLs compostas por vírgula (ex: "url.webp,url.jpg" ou "url1.webp, https://url2.jpg")
-  if (
-    limpa.includes(",") &&
-    (limpa.includes(",http") || limpa.includes(", http") || (limpa.match(/https?:\/\//g) || []).length > 1)
-  ) {
+  // Corrige URLs compostas por vírgula em listas/srcset (ex: "https://url1.webp 400w, https://url2.jpg 800w")
+  // IMPORTANTE: não dividir URLs únicas que usam vírgula como parâmetro de rota (ex: Cloudflare /cdn-cgi/image/width=1200,height=630/...)
+  if (limpa.includes(",") && /,\s*https?:\/\//i.test(limpa)) {
     const partes = limpa
-      .split(",")
+      .split(/,\s*(?=https?:\/\/)/i)
       .map((p) => p.trim().split(/\s+/)[0])
       .filter(Boolean);
     const valida = partes.find(
@@ -438,15 +439,26 @@ export function otimizarUrlImagem(url?: string | null, contexto?: string): strin
     }
   }
 
-  // Rejeita valores nulos em formato texto ou strings vazias
+  // Rejeita valores nulos em formato texto, strings vazias ou URLs relativas quebradas
   if (
     limpa === "None" ||
     limpa === "null" ||
     limpa === "undefined" ||
     limpa === "none" ||
+    limpa.startsWith("data:") ||
     (!limpa.startsWith("http://") && !limpa.startsWith("https://") && !limpa.startsWith("/"))
   ) {
     return obterImagemEditorialContextual(contexto);
+  }
+
+  // Rejeita URLs do Cloudflare Image Resizing truncadas (sem o caminho final do arquivo após as opções)
+  if (/\/cdn-cgi\/image\/[^/]+$/i.test(limpa)) {
+    return obterImagemEditorialContextual(contexto);
+  }
+
+  // Upgrade automático de HTTP para HTTPS em domínios externos para evitar bloqueio de Mixed Content nos navegadores
+  if (limpa.startsWith("http://") && !limpa.startsWith("http://localhost") && !limpa.startsWith("http://127.0.0.1")) {
+    limpa = limpa.replace(/^http:\/\//i, "https://");
   }
 
   // Rejeita placeholders genéricos, ícones do Google News, avatares e imagem genérica legada de jornal
@@ -460,13 +472,17 @@ export function otimizarUrlImagem(url?: string | null, contexto?: string): strin
     u.includes("placeholder") ||
     u.includes("fallbackimage") ||
     u.includes("logo-original") ||
+    u.includes("logo_lance") ||
+    u.includes("spacer.gif") ||
+    u.includes("blank.gif") ||
     u.includes("avatar") ||
     u.includes("1x1") ||
     u.includes("pixel") ||
     u.includes("tracking") ||
     u.includes("beacon") ||
     u.includes("gravatar") ||
-    u.includes("photo-1504711434969")
+    u.includes("photo-1504711434969") ||
+    u.endsWith(".svg")
   ) {
     return obterImagemEditorialContextual(contexto);
   }
