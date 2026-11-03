@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatarDataCurta } from "@/lib/utils/date-format";
 import type { MateriaData } from "@/lib/portal/queries";
 import { ImageWithFallback } from "./ImageWithFallback";
 
@@ -47,11 +46,8 @@ export function TopHeroMagazine({
 
   const formatarData = (dataStr?: string | null) => {
     if (!dataStr) return "Hoje";
-    try {
-      return format(new Date(dataStr), "dd/MM/yyyy", { locale: ptBR });
-    } catch {
-      return "Hoje";
-    }
+    const res = formatarDataCurta(dataStr, false);
+    return res || "Hoje";
   };
 
   const extrairAutor = (mat: MateriaData) => {

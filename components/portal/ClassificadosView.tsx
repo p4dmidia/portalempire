@@ -32,13 +32,18 @@ import {
 interface ClassificadosViewProps {
   initialClassificados: ClassificadoData[];
   cidades?: { id: string; nome: string; uf: string; slug: string }[];
+  cidadeInicial?: string;
 }
 
-export function ClassificadosView({ initialClassificados, cidades }: ClassificadosViewProps) {
+export function ClassificadosView({
+  initialClassificados,
+  cidades,
+  cidadeInicial,
+}: ClassificadosViewProps) {
   const [busca, setBusca] = useState("");
   const [categoriaAtiva, setCategoriaAtiva] = useState("todos");
   const [tipoAtivo, setTipoAtivo] = useState("todos");
-  const [cidadeAtiva, setCidadeAtiva] = useState("todas");
+  const [cidadeAtiva, setCidadeAtiva] = useState(cidadeInicial || "todas");
   const [precoMin, setPrecoMin] = useState<string>("");
   const [precoMax, setPrecoMax] = useState<string>("");
   const [modalItem, setModalItem] = useState<ClassificadoData | null>(null);
@@ -86,12 +91,22 @@ export function ClassificadosView({ initialClassificados, cidades }: Classificad
       if (tipoAtivo !== "todos" && item.tipo !== tipoAtivo) {
         return false;
       }
-      // Filtro Cidade
+      // Filtro Cidade (estrito: apenas anúncios correspondentes à localidade)
       if (cidadeAtiva !== "todas") {
         const cNome = (item.cidade_nome || "").toLowerCase().trim();
+        const cBairro = (item.bairro || "").toLowerCase().trim();
         const cFiltro = cidadeAtiva.toLowerCase().trim();
-        if (cNome !== cFiltro && !cNome.includes(cFiltro)) {
-          return false;
+
+        if (cFiltro.includes("alphaville")) {
+          const matchAlphaville =
+            cNome.includes("alphaville") ||
+            cBairro.includes("alphaville") ||
+            item.titulo.toLowerCase().includes("alphaville");
+          if (!matchAlphaville) return false;
+        } else {
+          const matchCidade =
+            cNome === cFiltro || cNome.includes(cFiltro) || cBairro.includes(cFiltro);
+          if (!matchCidade) return false;
         }
       }
       // Filtro Faixa de Preço Mínimo

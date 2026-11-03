@@ -16,9 +16,6 @@ import { BlocoEditoria } from "@/components/portal/BlocoEditoria";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { ClassificadosHomeSection } from "@/components/portal/ClassificadosHomeSection";
 import { BlocoCidadesEstadosHome } from "@/components/portal/BlocoCidadesEstadosHome";
-import { BlocoTvAoVivoHome } from "@/components/portal/BlocoTvAoVivoHome";
-import { CardRadioAoVivo } from "@/components/portal/CardRadioAoVivo";
-import { CarrosselEmpireFlix } from "@/components/portal/CarrosselEmpireFlix";
 import { AdSlot } from "@/components/portal/AdSlot";
 import { MapPin, Video, ChevronRight, MessageCircle } from "lucide-react";
 
@@ -63,20 +60,22 @@ export default async function PortalHomePage() {
     getClassificadosDestaqueHome(8),
   ]);
 
-  // Se houver poucas matérias em destaque, preenche com as mais recentes
+  // Se houver poucas matérias em destaque (ou nenhuma), preenche com as mais recentes da pilha sem duplicidade
+  const idsDestaques = new Set(destaquesRaw.map((d) => d.id));
+  const recentesSemDestaque = recentesRaw.filter((r) => !idsDestaques.has(r.id));
+
   const destaques =
     destaquesRaw.length >= 6
       ? destaquesRaw
-      : [...destaquesRaw, ...recentesRaw.slice(0, Math.max(0, 6 - destaquesRaw.length))];
+      : [...destaquesRaw, ...recentesSemDestaque.slice(0, Math.max(0, 6 - destaquesRaw.length))];
 
-  // Matérias para a coluna do meio do hero
-  const manchetes = recentesRaw.slice(2, 10);
+  // Matérias para a coluna do meio do hero (exclui matérias já exibidas no hero principal)
+  const poolMeio = recentesSemDestaque.length >= 8 ? recentesSemDestaque : recentesRaw;
+  const manchetes = poolMeio.slice(0, 8);
 
   // Matérias para o bloco "As Mais Recentes" no canto direito do hero
   const maisRecentesHero =
-    recentesRaw.slice(10, 16).length >= 4
-      ? recentesRaw.slice(10, 16)
-      : recentesRaw.slice(0, 5);
+    poolMeio.slice(8, 14).length >= 4 ? poolMeio.slice(8, 14) : poolMeio.slice(0, 5);
 
   // Faixa de carrossel horizontal "Últimas de Empire Cidades"
   const ultimasCarrossel = recentesRaw.slice(0, 10);
@@ -250,15 +249,6 @@ export default async function PortalHomePage() {
           </div>
         </section>
       )}
-
-      {/* 7. TV Ao Vivo — Transmissão da TV Empire */}
-      <BlocoTvAoVivoHome />
-
-      {/* 7.1 Rádio Ao Vivo — Transmissão Oficial */}
-      <CardRadioAoVivo />
-
-      {/* 8. Carrossel Apresentadores EmpireFlix (Estilo Netflix) */}
-      <CarrosselEmpireFlix />
     </div>
   );
 }

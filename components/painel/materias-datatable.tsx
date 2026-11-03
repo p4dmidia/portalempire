@@ -20,9 +20,9 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
+  Star,
 } from "lucide-react";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatarDataCurta } from "@/lib/utils/date-format";
 
 interface MateriasDataTableProps {
   initialMaterias: MateriaData[];
@@ -86,6 +86,45 @@ export function MateriasDataTable({
       router.refresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro na exclusão";
+      setFeedback({ type: "error", message: msg });
+    } finally {
+      setLoadingActionId(null);
+    }
+  };
+
+  const handleToggleDestaque = async (materia: MateriaData) => {
+    const novoDestaque = !materia.destaque;
+    setLoadingActionId(materia.id);
+    setFeedback(null);
+
+    try {
+      const res = await fetch(`/api/materias/${materia.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          destaque: novoDestaque,
+          tempo_destaque: novoDestaque ? "24h" : "sem_limite",
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Erro ao alterar destaque.");
+      }
+
+      setFeedback({
+        type: "success",
+        message: `Destaque da matéria "${materia.titulo.slice(0, 35)}..." ${
+          novoDestaque ? "ativado (24h)" : "desativado"
+        } com sucesso.`,
+      });
+
+      setMaterias((prev) =>
+        prev.map((m) => (m.id === materia.id ? { ...m, destaque: novoDestaque } : m))
+      );
+      router.refresh();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Erro ao alterar destaque";
       setFeedback({ type: "error", message: msg });
     } finally {
       setLoadingActionId(null);
@@ -276,8 +315,8 @@ export function MateriasDataTable({
                             <div className="font-bold text-slate-900 dark:text-white line-clamp-1 flex items-center gap-1.5">
                               {mat.titulo}
                               {mat.destaque && (
-                                <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold px-1.5 py-0.2 rounded">
-                                  Destaque
+                                <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0">
+                                  <Star className="w-2.5 h-2.5 fill-current" /> Destaque
                                 </span>
                               )}
                               {mat.urgente && (
@@ -315,9 +354,7 @@ export function MateriasDataTable({
 
                       <td className="px-4 py-4 text-xs text-slate-500 whitespace-nowrap">
                         {mat.publicado_em
-                          ? format(new Date(mat.publicado_em), "dd/MM/yyyy HH:mm", {
-                              locale: ptBR,
-                            })
+                          ? formatarDataCurta(mat.publicado_em, true)
                           : "-"}
                       </td>
 
@@ -341,6 +378,23 @@ export function MateriasDataTable({
                                 <Globe className="w-4 h-4" />
                               </a>
                             )}
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleDestaque(mat)}
+                              className={`p-1.5 rounded-lg transition-colors ${
+                                mat.destaque
+                                  ? "text-amber-500 hover:text-amber-600 bg-amber-50 dark:bg-amber-950/40"
+                                  : "text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              }`}
+                              title={
+                                mat.destaque
+                                  ? "Remover do Destaque da Capa"
+                                  : "Colocar em Destaque no Topo da Capa (24h)"
+                              }
+                            >
+                              <Star className={`w-4 h-4 ${mat.destaque ? "fill-amber-400 text-amber-500" : ""}`} />
+                            </button>
 
                             <Link
                               href={`/painel/editor/materias/${mat.id}`}

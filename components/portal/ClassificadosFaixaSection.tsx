@@ -14,8 +14,6 @@ export function ClassificadosFaixaSection({
   titulo = "Classificados & Oportunidades Comerciais",
   subtitulo = "Anúncios verificados e oportunidades diretas de negócios na região",
 }: ClassificadosFaixaSectionProps) {
-  if (!classificados || classificados.length === 0) return null;
-
   return (
     <section className="my-8 bg-gradient-to-r from-amber-500/10 via-slate-900/5 dark:via-slate-900/40 to-amber-500/10 border border-amber-500/30 rounded-3xl p-6 sm:p-7 shadow-lg space-y-6">
       {/* Cabeçalho */}
@@ -27,7 +25,7 @@ export function ClassificadosFaixaSection({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-amber-500 font-extrabold uppercase text-[10px] tracking-wider">
-                Vitrine de Anúncios
+                Vitrine de Anúncios Locais
               </span>
               <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
             </div>
@@ -46,8 +44,31 @@ export function ClassificadosFaixaSection({
         </Link>
       </div>
 
-      {/* Grid de Cards de Anúncios */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Se não houver anúncios específicos para esta cidade */}
+      {!classificados || classificados.length === 0 ? (
+        <div className="bg-white/80 dark:bg-slate-900/80 rounded-2xl p-6 sm:p-8 border border-dashed border-amber-500/40 text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 mx-auto flex items-center justify-center font-bold">
+            <Tag className="w-6 h-6" />
+          </div>
+          <h4 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white">
+            Nenhum classificado ativo para esta localidade no momento
+          </h4>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 max-w-md mx-auto">
+            Seja o primeiro a divulgar veículos, imóveis, serviços ou oportunidades comerciais exclusivas para o público desta região!
+          </p>
+          <div className="pt-2">
+            <Link
+              href="/anuncie"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-500 hover:bg-amber-400 text-slate-950 transition-all shadow-md shadow-amber-500/20"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Anunciar na Minha Cidade</span>
+            </Link>
+          </div>
+        </div>
+      ) : (
+        /* Grid de Cards de Anúncios */
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {classificados.slice(0, 4).map((item) => {
           const foneLimpo = item.contato_whatsapp.replace(/\D/g, "");
           const foneFinal = foneLimpo.startsWith("55") ? foneLimpo : `55${foneLimpo}`;
@@ -129,6 +150,7 @@ export function ClassificadosFaixaSection({
           );
         })}
       </div>
+      )}
     </section>
   );
 }

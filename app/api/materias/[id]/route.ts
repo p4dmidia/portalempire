@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sanitizeContentHtml } from "@/lib/utils/sanitize";
 import { slugify } from "@/lib/utils/slugify";
 import { CATEGORIAS_PADRAO_SISTEMA } from "@/lib/portal/queries";
+import { definirExpiracaoDestaque, removerExpiracaoDestaque } from "@/lib/portal/destaques-storage";
 import * as z from "zod";
 
 const updateSchema = z.object({
@@ -23,6 +24,7 @@ const updateSchema = z.object({
   publicado_em: z.string().optional().nullable(),
   urgente: z.boolean().optional(),
   destaque: z.boolean().optional(),
+  tempo_destaque: z.enum(["sem_limite", "6h", "12h", "24h", "48h", "7d"]).optional(),
   tags: z.array(z.string()).optional(),
   seo_titulo: z.string().optional().nullable(),
   seo_descricao: z.string().optional().nullable(),
@@ -159,6 +161,14 @@ export async function PUT(
       updateData.publicado_em = null;
     }
 
+    // Se o status for publicado, impede terminantemente que a data fique no futuro
+    if (targetStatus === "publicado" && updateData.publicado_em) {
+      const pubMs = new Date(updateData.publicado_em as string).getTime();
+      if (!isNaN(pubMs) && pubMs > Date.now()) {
+        updateData.publicado_em = new Date().toISOString();
+      }
+    }
+
     if (data.urgente !== undefined) updateData.urgente = data.urgente;
     if (data.destaque !== undefined) updateData.destaque = data.destaque;
     if (data.tags !== undefined) updateData.tags = data.tags;
@@ -174,6 +184,15 @@ export async function PUT(
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 400 });
+    }
+
+    // Atualizar prazo do destaque se fornecido ou remover se desativado
+    if (data.destaque === true) {
+      definirExpiracaoDestaque(id, data.tempo_destaque || "sem_limite");
+    } else if (data.destaque === false) {
+      removerExpiracaoDestaque(id);
+    } else if (data.tempo_destaque) {
+      definirExpiracaoDestaque(id, data.tempo_destaque);
     }
 
     // Revalidação de cache

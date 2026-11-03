@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { formatDistanceToNow } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatarTempoRelativo } from "@/lib/utils/date-format";
 import { LabelEditoria } from "./LabelEditoria";
 import type { MateriaData } from "@/lib/portal/queries";
 import { Clock, Sparkles, MapPin } from "lucide-react";
@@ -17,12 +16,7 @@ export function CardMateria({
   variacao = "medio",
   prioridadeImagem = false,
 }: CardMateriaProps) {
-  const dataFormatada = materia.publicado_em
-    ? formatDistanceToNow(new Date(materia.publicado_em), {
-        addSuffix: true,
-        locale: ptBR,
-      })
-    : "";
+  const dataFormatada = formatarTempoRelativo(materia.publicado_em);
 
   const autorNome =
     materia.origem === "captacao"

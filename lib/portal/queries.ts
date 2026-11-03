@@ -1,6 +1,7 @@
 import { cache } from "react";
-import { createClient } from "@/lib/supabase/server";
+import { getPublicSupabase } from "@/lib/supabase/public";
 import { CIDADES_CATALOGO } from "@/lib/captacao/catalogo-portais";
+import { verificarDestaqueAtivo } from "@/lib/portal/destaques-storage";
 
 // Cache em memória com TTL de 60s para eliminar requisições repetidas ao Supabase
 const MEM_CACHE = new Map<string, { data: unknown; expiresAt: number }>();
@@ -165,7 +166,7 @@ export const getPortalData = cache(async (): Promise<PortalData | null> => {
   if (cached !== null) return cached;
 
   try {
-    const supabase = await createClient();
+    const supabase = getPublicSupabase();
     const { data, error } = await supabase.from("portais").select("*").limit(1).maybeSingle();
     if (error) {
       console.error("[Portal Empire] Erro ao buscar portal:", error.message || error);
@@ -270,7 +271,7 @@ export const getCategorias = cache(async (): Promise<CategoriaData[]> => {
   if (cached) return cached;
 
   try {
-    const supabase = await createClient();
+    const supabase = getPublicSupabase();
     const { data, error } = await supabase
       .from("categorias")
       .select("*")
@@ -312,7 +313,7 @@ export const getCategorias = cache(async (): Promise<CategoriaData[]> => {
  */
 export async function getCategoriaBySlug(slug: string): Promise<CategoriaData | null> {
   try {
-    const supabase = await createClient();
+    const supabase = getPublicSupabase();
     const { data: categoria, error: catError } = await supabase
       .from("categorias")
       .select("*")
@@ -358,7 +359,7 @@ export const getCidades = cache(async (): Promise<CidadeData[]> => {
   if (cached) return cached;
 
   try {
-    const supabase = await createClient();
+    const supabase = getPublicSupabase();
     const { data } = await supabase
       .from("cidades")
       .select("*")
@@ -423,7 +424,7 @@ export async function getMaterias(options?: {
   ordenarPor?: "publicado_em" | "visualizacoes";
 }): Promise<MateriaData[]> {
   try {
-    const supabase = await createClient();
+    const supabase = getPublicSupabase();
     let query = supabase
       .from("materias")
       .select(
@@ -500,20 +501,28 @@ export async function getMaterias(options?: {
     if (options?.cidadeSlug) {
       const { data: cid } = await supabase
         .from("cidades")
-        .select("id")
+        .select("id, nome, slug, uf")
         .eq("slug", options.cidadeSlug)
         .maybeSingle();
+
+      const cidCatalogo = CIDADES_CATALOGO.find((c) => c.slug === options.cidadeSlug);
+      const termosCidade = [
+        options.cidadeSlug.replace(/-/g, " "),
+        ...(cidCatalogo?.palavras_chave || []),
+      ].filter(Boolean);
+
       if (cid) {
-        query = query.eq("cidade_id", cid.id);
-      } else {
-        const cidFallback = CIDADES_CATALOGO.find((c) => c.slug === options.cidadeSlug);
-        if (cidFallback) {
-          const termos = cidFallback.palavras_chave.slice(0, 3);
-          const keywordConditions = termos
-            .map((t) => `titulo.ilike.%${t}%,resumo.ilike.%${t}%`)
-            .join(",");
-          query = query.or(keywordConditions);
+        if (options.cidadeSlug === "alphaville") {
+          query = query.or(`cidade_id.eq.${cid.id},titulo.ilike.%alphaville%,resumo.ilike.%alphaville%`);
+        } else {
+          query = query.eq("cidade_id", cid.id);
         }
+      } else {
+        const keywordConditions = termosCidade
+          .slice(0, 3)
+          .map((t) => `titulo.ilike.%${t}%,resumo.ilike.%${t}%`)
+          .join(",");
+        query = query.or(keywordConditions);
       }
     }
 
@@ -563,7 +572,47 @@ export async function getMaterias(options?: {
       return [];
     }
 
-    return (data || []) as unknown as MateriaData[];
+    let materiasRetornadas = (data || []) as unknown as MateriaData[];
+
+    // FILTRO ESTRITO DE CIDADE (garante que matérias de outro estado ou cidade diferente nunca entrem no feed da cidade)
+    if (options?.cidadeSlug) {
+      const cidCatalogo = CIDADES_CATALOGO.find((c) => c.slug === options.cidadeSlug);
+      const ufEsperada = (cidCatalogo?.uf || "").toUpperCase().trim();
+      const slugAlvo = options.cidadeSlug;
+
+      materiasRetornadas = materiasRetornadas.filter((m) => {
+        // 1. Se a matéria está vinculada a uma cidade de UF diferente, descarta imediatamente
+        if (m.cidade?.uf && ufEsperada && m.cidade.uf.toUpperCase().trim() !== ufEsperada) {
+          return false;
+        }
+
+        // 2. Se a matéria tem cidade_id ou slug exato
+        if (m.cidade?.slug === slugAlvo) return true;
+
+        // 3. Caso Alphaville: deve citar alphaville ou tamboré obrigatoriamente
+        if (slugAlvo === "alphaville") {
+          const texto = `${m.titulo} ${m.resumo || ""} ${(m.tags || []).join(" ")}`.toLowerCase();
+          return texto.includes("alphaville") || texto.includes("tambore") || texto.includes("tamboré");
+        }
+
+        // 4. Para outras cidades: verifica menção textual exclusiva ou cidade
+        const nomeAlvo = (cidCatalogo?.nome || slugAlvo.replace(/-/g, " ")).toLowerCase().trim();
+        const textoGeral = `${m.titulo} ${m.resumo || ""} ${(m.tags || []).join(" ")}`.toLowerCase();
+        return (
+          (m.cidade?.nome && m.cidade.nome.toLowerCase().includes(nomeAlvo)) ||
+          textoGeral.includes(nomeAlvo)
+        );
+      });
+    }
+
+    // FILTRO DE VALIDADE DE DESTAQUE: Garante que matérias com prazo de destaque vencido não fiquem presas no topo
+    if (options?.destaque) {
+      materiasRetornadas = materiasRetornadas.filter((m) =>
+        verificarDestaqueAtivo(m.id, m.destaque)
+      );
+    }
+
+    return materiasRetornadas;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[Portal Empire] Falha de conexão ao buscar matérias:", msg);
@@ -637,7 +686,7 @@ export async function getMateriasPorCategoriasHome(
  */
 export async function getMateriaBySlug(slug: string): Promise<MateriaData | null> {
   try {
-    const supabase = await createClient();
+    const supabase = getPublicSupabase();
     const { data, error } = await supabase
       .from("materias")
       .select(
@@ -674,7 +723,7 @@ export const getColunasAtivas = cache(async (cidadeSlug?: string): Promise<Colun
   if (cached) return cached;
 
   try {
-    const supabase = await createClient();
+    const supabase = getPublicSupabase();
     let query = supabase
       .from("colunas")
       .select(
@@ -718,7 +767,7 @@ export const getColunasAtivas = cache(async (cidadeSlug?: string): Promise<Colun
  */
 export async function getColunaBySlug(slug: string): Promise<ColunaData | null> {
   try {
-    const supabase = await createClient();
+    const supabase = getPublicSupabase();
     const { data, error } = await supabase
       .from("colunas")
       .select(
@@ -749,7 +798,7 @@ export async function getColunaBySlug(slug: string): Promise<ColunaData | null> 
  */
 export async function getAutorBySlug(slug: string) {
   try {
-    const supabase = await createClient();
+    const supabase = getPublicSupabase();
     const { data, error } = await supabase
       .from("autores_publicos")
       .select("*")
@@ -774,7 +823,7 @@ export async function getAutorBySlug(slug: string) {
  */
 export async function getFontesRssAtivas(): Promise<FonteRssData[]> {
   try {
-    const supabase = await createClient();
+    const supabase = getPublicSupabase();
     const { data, error } = await supabase
       .from("fontes_rss")
       .select("id, nome, veiculo")
@@ -798,7 +847,7 @@ export async function getFontesRssAtivas(): Promise<FonteRssData[]> {
  */
 export async function getShorts(): Promise<ShortData[]> {
   try {
-    const supabase = await createClient();
+    const supabase = getPublicSupabase();
     const { data, error } = await supabase
       .from("shorts")
       .select("id, youtube_id, titulo, ordem")
@@ -823,7 +872,7 @@ export async function getShorts(): Promise<ShortData[]> {
  */
 export async function getConfiguracoes(): Promise<Record<string, unknown>> {
   try {
-    const supabase = await createClient();
+    const supabase = getPublicSupabase();
     const { data, error } = await supabase.from("configuracoes").select("chave, valor");
     if (error) {
       console.error("[Portal Empire] Erro ao buscar configurações:", error.message || error);
@@ -846,7 +895,7 @@ export async function getConfiguracoes(): Promise<Record<string, unknown>> {
  */
 export async function getOrdemBlocosHome(): Promise<string[]> {
   try {
-    const supabase = await createClient();
+    const supabase = getPublicSupabase();
     const { data, error } = await supabase
       .from("configuracoes")
       .select("valor")

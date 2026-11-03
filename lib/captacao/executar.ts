@@ -192,8 +192,8 @@ export async function executarCaptacao(
     if (options.forcar || options.fonteId) return true;
     if (!fonte.ultima_execucao) return true;
     const ultima = new Date(fonte.ultima_execucao);
-    // Intervalo de no máximo 3 minutos para manter o portal sempre atualizado em tempo real
-    const intervaloMinutos = Math.min(fonte.intervalo_minutos || 3, 3);
+    // Intervalo inteligente: mínimo 10 minutos (padrão 15 min) para evitar sobrecarga
+    const intervaloMinutos = Math.max(fonte.intervalo_minutos || 15, 10);
     const intervaloMs = intervaloMinutos * 60 * 1000;
     return agora.getTime() - ultima.getTime() >= intervaloMs;
   });
@@ -205,20 +205,20 @@ export async function executarCaptacao(
     return timeA - timeB;
   });
 
-  // Em execuções automáticas de cron geral, processa um lote de até 15 fontes por ciclo
-  // para garantir resposta ágil (<25s) e rotação contínua de todo o catálogo
+  // Em execuções automáticas de cron geral, processa um lote ágil de até 4 fontes por ciclo
+  // para garantir resposta ultra-rápida (<8s), eliminando qualquer risco de timeout em serviços externos ou na Vercel
   const fontesLote =
-    !options.fonteId && !options.forcar && fontesParaExecutar.length > 15
-      ? fontesParaExecutar.slice(0, 15)
+    !options.fonteId && !options.forcar && fontesParaExecutar.length > 4
+      ? fontesParaExecutar.slice(0, 4)
       : fontesParaExecutar;
 
   const categoriasAfetadas = new Set<string>();
   const cidadesAfetadas = new Set<string>();
 
-  // 5. Processar com concorrência máxima de 5
+  // 5. Processar com concorrência máxima de 4
   const detalhes = await mapConcorrencia(
     fontesLote,
-    5,
+    4,
     async (fonte): Promise<ResultadoFonteCaptacao> => {
       const inicioFonte = new Date().toISOString();
       let logId: string | null = null;
@@ -244,9 +244,10 @@ export async function executarCaptacao(
       }
 
       try {
-        // Baixar e parsear feed com timeout de 15s
+        // Baixar e parsear feed com timeout
         const feed = await parseFeedUrl(fonte.url_feed);
-        const itens = (feed.items || []).slice(0, fonte.max_itens_por_execucao || 20);
+        const limiteItens = options.forcar ? (fonte.max_itens_por_execucao || 20) : Math.min(fonte.max_itens_por_execucao || 10, 10);
+        const itens = (feed.items || []).slice(0, limiteItens);
 
         let itensNovos = 0;
         let itensDuplicados = 0;
@@ -331,14 +332,14 @@ export async function executarCaptacao(
           }
 
           // Data de publicação inteligente:
-          // Se o feed tiver data recente (últimas 2 horas), respeita o pubDate original;
-          // Se o feed trouxer matéria com horas de atraso (> 2h ou pubDate ausente), define a data como agora (momento de entrada no portal)
+          // Se o feed tiver data recente (últimas 2 horas) e não for no futuro, respeita o pubDate original;
+          // Se o feed trouxer matéria com horas de atraso (> 2h, pubDate ausente ou timestamp futuro), define a data como agora
           let publicadoEm = new Date();
           if (item.pubDate) {
             const parsedDate = new Date(item.pubDate);
             if (!isNaN(parsedDate.getTime())) {
               const diffHours = (Date.now() - parsedDate.getTime()) / (1000 * 60 * 60);
-              if (diffHours >= 0 && diffHours <= 2) {
+              if (diffHours >= 0 && diffHours <= 2 && parsedDate.getTime() <= Date.now()) {
                 publicadoEm = parsedDate;
               } else {
                 publicadoEm = new Date();
@@ -500,87 +501,93 @@ export async function executarCaptacao(
     }
   );
 
-  // 6. Exclusão e limpeza automática de matérias antigas (máx 7 dias / 1 semana) para otimização de banco e site
+  // 6. Exclusão e limpeza periódica de matérias antigas
+  // Executado apenas se forçado manualmente ou com baixa probabilidade periódica (evita onerar o cron rápido de rotina)
   let totalDeletadas = 0;
-  try {
-    const { data: configRetencao } = await supabase
-      .from("configuracoes")
-      .select("valor")
-      .eq("chave", "captacao_arquivar_dias")
-      .maybeSingle();
+  const deveExecutarLimpeza = Boolean(options.forcar || Math.random() < 0.02);
+  if (deveExecutarLimpeza) {
+    try {
+      const { data: configRetencao } = await supabase
+        .from("configuracoes")
+        .select("valor")
+        .eq("chave", "captacao_arquivar_dias")
+        .maybeSingle();
 
-    // Padrão estrito de retenção: 7 dias (1 semana)
-    const diasRetencao =
-      configRetencao?.valor !== undefined && configRetencao?.valor !== null && Number(configRetencao.valor) > 0
-        ? Number(configRetencao.valor)
-        : 7;
+      // Padrão estrito de retenção: 7 dias (1 semana)
+      const diasRetencao =
+        configRetencao?.valor !== undefined && configRetencao?.valor !== null && Number(configRetencao.valor) > 0
+          ? Number(configRetencao.valor)
+          : 7;
 
-    // 6.1 Tenta chamar a RPC PostgreSQL `limpar_materias_antigas` (SECURITY DEFINER, sem bloqueios de RLS)
-    const { data: rpcRes, error: rpcErr } = await (supabase as any).rpc("limpar_materias_antigas", {
-      dias_retencao: diasRetencao,
-    });
+      // 6.1 Tenta chamar a RPC PostgreSQL `limpar_materias_antigas` (SECURITY DEFINER, sem bloqueios de RLS)
+      const { data: rpcRes, error: rpcErr } = await (supabase as any).rpc("limpar_materias_antigas", {
+        dias_retencao: diasRetencao,
+      });
 
-    if (!rpcErr && rpcRes && typeof rpcRes.materias_excluidas === "number") {
-      totalDeletadas = rpcRes.materias_excluidas;
-      if (totalDeletadas > 0) {
-        console.log(
-          `[Limpeza Automática RPC] ${totalDeletadas} matérias antigas (> ${diasRetencao} dias) foram excluídas com sucesso.`
-        );
-      }
-    } else {
-      // Fallback via query direta se a RPC ainda não tiver sido criada no Supabase
-      const dataLimite = new Date();
-      dataLimite.setDate(dataLimite.getDate() - diasRetencao);
-      const dataLimiteIso = dataLimite.toISOString();
-
-      const { data: deletadas, error: errDelete } = await supabase
-        .from("materias")
-        .delete()
-        .eq("origem", "captacao")
-        .or(`publicado_em.lt.${dataLimiteIso},created_at.lt.${dataLimiteIso}`)
-        .select("id");
-
-      if (!errDelete && deletadas) {
-        totalDeletadas = deletadas.length;
+      if (!rpcErr && rpcRes && typeof rpcRes.materias_excluidas === "number") {
+        totalDeletadas = rpcRes.materias_excluidas;
         if (totalDeletadas > 0) {
-          console.log(`[Limpeza Automática] ${totalDeletadas} matérias com mais de ${diasRetencao} dias foram deletadas do banco.`);
+          console.log(
+            `[Limpeza Automática RPC] ${totalDeletadas} matérias antigas (> ${diasRetencao} dias) foram excluídas com sucesso.`
+          );
         }
-      }
+      } else {
+        // Fallback via query direta se a RPC ainda não tiver sido criada no Supabase
+        const dataLimite = new Date();
+        dataLimite.setDate(dataLimite.getDate() - diasRetencao);
+        const dataLimiteIso = dataLimite.toISOString();
 
-      await supabase
-        .from("captacao_logs")
-        .delete()
-        .lt("iniciado_em", dataLimiteIso);
+        const { data: deletadas, error: errDelete } = await supabase
+          .from("materias")
+          .delete()
+          .eq("origem", "captacao")
+          .or(`publicado_em.lt.${dataLimiteIso},created_at.lt.${dataLimiteIso}`)
+          .select("id");
+
+        if (!errDelete && deletadas) {
+          totalDeletadas = deletadas.length;
+          if (totalDeletadas > 0) {
+            console.log(`[Limpeza Automática] ${totalDeletadas} matérias com mais de ${diasRetencao} dias foram deletadas do banco.`);
+          }
+        }
+
+        await supabase
+          .from("captacao_logs")
+          .delete()
+          .lt("iniciado_em", dataLimiteIso);
+      }
+    } catch (errLimpeza) {
+      console.warn("[Limpeza Automática] Falha ao excluir dados antigos:", errLimpeza);
     }
-  } catch (errLimpeza) {
-    console.warn("[Limpeza Automática] Falha ao excluir dados antigos:", errLimpeza);
   }
 
-  // 6.2 Auto-cura de matérias antigas que ficaram com URLs Cloudflare truncadas no banco
-  try {
-    const { data: materiasTruncadas } = await supabase
-      .from("materias")
-      .select("id, titulo, url_original")
-      .eq("imagem_url", "https://lncimg.lance.com.br/cdn-cgi/image/width=1200")
-      .limit(30);
+  // 6.2 Auto-cura de matérias antigas que ficaram com URLs Cloudflare truncadas (apenas em execução manual/forçada)
+  if (options.forcar) {
+    try {
+      const { data: materiasTruncadas } = await supabase
+        .from("materias")
+        .select("id, titulo, url_original")
+        .eq("imagem_url", "https://lncimg.lance.com.br/cdn-cgi/image/width=1200")
+        .limit(10);
 
-    if (materiasTruncadas && materiasTruncadas.length > 0) {
-      for (const mat of materiasTruncadas) {
-        let novaImg: string | null = null;
-        if (mat.url_original) {
-          try {
-            const det = await extrairDetalhesMateriaOriginal(mat.url_original);
-            if (det.imagemUrl) novaImg = det.imagemUrl;
-          } catch {}
+      if (materiasTruncadas && materiasTruncadas.length > 0) {
+        for (const mat of materiasTruncadas) {
+          let novaImg: string | null = null;
+          if (mat.url_original) {
+            try {
+              const det = await extrairDetalhesMateriaOriginal(mat.url_original);
+              if (det.imagemUrl) novaImg = det.imagemUrl;
+            } catch {}
+          }
+          if (!novaImg) {
+            novaImg = obterImagemEditorialContextual(mat.titulo);
+          }
+          await supabase.from("materias").update({ imagem_url: novaImg }).eq("id", mat.id);
         }
-        if (!novaImg) {
-          novaImg = obterImagemEditorialContextual(mat.titulo);
-        }
-        await supabase.from("materias").update({ imagem_url: novaImg }).eq("id", mat.id);
       }
+    } catch (errCura) {
+      console.warn("[Auto-cura Imagens] Aviso:", errCura);
     }
-  } catch (errCura) {
-    console.warn("[Auto-cura Imagens] Aviso:", errCura);
   }
 
   // 7. Revalidação de Cache das páginas afetadas

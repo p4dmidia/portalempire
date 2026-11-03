@@ -22,8 +22,7 @@ import {
   Check,
 } from "lucide-react";
 import Image from "next/image";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatarDataCurta } from "@/lib/utils/date-format";
 
 interface AdminUsuariosClientProps {
   initialProfiles: Profile[];
@@ -385,7 +384,7 @@ export function AdminUsuariosClient({
 
                       <td className="px-4 py-4 text-xs text-slate-500 whitespace-nowrap">
                         {user.created_at
-                          ? format(new Date(user.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })
+                          ? formatarDataCurta(user.created_at, true)
                           : "-"}
                       </td>
 

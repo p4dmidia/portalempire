@@ -82,13 +82,7 @@ export default async function CategoriaPage({ params }: CategoriaPageProps) {
 
       <AdSlot posicao="topo" />
 
-      {/* Classificados vinculados a esta editoria / portal */}
-      <ClassificadosFaixaSection
-        classificados={classificados}
-        titulo={`Classificados & Oportunidades — ${categoria.nome}`}
-      />
-
-      {/* Grid Principal + Sidebar */}
+      {/* Grid Principal de Notícias da Editoria + Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Lista de Matérias */}
         <div className="lg:col-span-8 space-y-6">
@@ -111,6 +105,12 @@ export default async function CategoriaPage({ params }: CategoriaPageProps) {
           <AdSlot posicao="lateral" />
         </div>
       </div>
+
+      {/* Classificados vinculados a esta editoria / portal (após as notícias) */}
+      <ClassificadosFaixaSection
+        classificados={classificados}
+        titulo={`Classificados & Oportunidades — ${categoria.nome}`}
+      />
     </div>
   );
 }

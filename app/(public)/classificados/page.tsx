@@ -25,18 +25,31 @@ export const metadata: Metadata = {
   ],
 };
 
-export default async function ClassificadosPage() {
+interface ClassificadosPageProps {
+  searchParams: Promise<{ cidade?: string }>;
+}
+
+export default async function ClassificadosPage({ searchParams }: ClassificadosPageProps) {
+  const { cidade } = (await searchParams) || {};
   const [classificados, ultimasNoticias, cidades] = await Promise.all([
     getClassificados(),
     getMaterias({ limit: 4 }),
     getCidades(),
   ]);
 
+  // Se cidade foi informada pelo slug, resolve o nome da cidade para inicializar o filtro
+  const cidadeObj = cidade ? cidades.find((c) => c.slug === cidade || c.nome.toLowerCase() === cidade.toLowerCase()) : null;
+  const cidadeInicial = cidadeObj ? cidadeObj.nome : cidade || "";
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
       <div className="max-w-[1300px] mx-auto px-4 py-8 space-y-16">
         {/* Conteúdo Principal de Anúncios e Filtros */}
-        <ClassificadosView initialClassificados={classificados} cidades={cidades} />
+        <ClassificadosView
+          initialClassificados={classificados}
+          cidades={cidades}
+          cidadeInicial={cidadeInicial}
+        />
 
         {/* Rodapé: Notícias da Região conforme solicitado */}
         <section className="pt-12 border-t border-slate-200 dark:border-slate-800 space-y-6">

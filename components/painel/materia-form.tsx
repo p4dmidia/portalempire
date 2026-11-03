@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { slugify } from "@/lib/utils/slugify";
+import { formatarParaInputLocal } from "@/lib/utils/date-format";
 import { createClient } from "@/lib/supabase/client";
 import { TiptapEditor } from "./tiptap-editor";
 import type { CategoriaData, CidadeData, MateriaData, ColunaData } from "@/lib/portal/queries";
@@ -44,6 +45,7 @@ const materiaFormSchema = z.object({
   publicado_em: z.string().optional(),
   urgente: z.boolean().default(false),
   destaque: z.boolean().default(false),
+  tempo_destaque: z.enum(["sem_limite", "6h", "12h", "24h", "48h", "7d"]).optional().default("sem_limite"),
   seo_titulo: z.string().optional(),
   seo_descricao: z.string().optional(),
 });
@@ -105,10 +107,11 @@ export function MateriaForm({
       imagem_credito: initialMateria?.imagem_credito || "",
       status: initialMateria?.status || "rascunho",
       publicado_em: initialMateria?.publicado_em
-        ? new Date(initialMateria.publicado_em).toISOString().slice(0, 16)
+        ? formatarParaInputLocal(initialMateria.publicado_em)
         : "",
       urgente: initialMateria?.urgente || false,
       destaque: initialMateria?.destaque || false,
+      tempo_destaque: "sem_limite",
       seo_titulo: initialMateria?.seo_titulo || "",
       seo_descricao: initialMateria?.seo_descricao || "",
     },
@@ -197,7 +200,9 @@ export function MateriaForm({
       conteudo_html: conteudoHtml,
       tags,
       publicado_em: data.publicado_em
-        ? new Date(data.publicado_em).toISOString()
+        ? (data.status === "publicado" && new Date(data.publicado_em).getTime() > Date.now()
+            ? new Date().toISOString()
+            : new Date(data.publicado_em).toISOString())
         : (isEditing && initialMateria?.publicado_em ? initialMateria.publicado_em : null),
     };
 
@@ -425,14 +430,38 @@ export function MateriaForm({
                 )}
 
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                  <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
-                      {...register("destaque")}
-                    />
-                    <span>Marcar como Destaque Principal</span>
-                  </label>
+                  <div>
+                    <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
+                        {...register("destaque")}
+                      />
+                      <span>Marcar como Destaque Principal</span>
+                    </label>
+
+                    {watch("destaque") && (
+                      <div className="pl-6 space-y-1.5 pt-2">
+                        <Label className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
+                          Tempo de Destaque no Topo
+                        </Label>
+                        <Select
+                          className="text-xs h-8"
+                          {...register("tempo_destaque")}
+                        >
+                          <option value="sem_limite">Sem prazo de expiração (Fixo manual)</option>
+                          <option value="6h">6 horas</option>
+                          <option value="12h">12 horas</option>
+                          <option value="24h">24 horas (Recomendado)</option>
+                          <option value="48h">48 horas (2 dias)</option>
+                          <option value="7d">7 dias (1 semana)</option>
+                        </Select>
+                        <p className="text-[11px] text-slate-400 leading-snug">
+                          Após expirar, a matéria volta automaticamente para a ordem normal da pilha.
+                        </p>
+                      </div>
+                    )}
+                  </div>
 
                   <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                     <input

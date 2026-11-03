@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sanitizeContentHtml } from "@/lib/utils/sanitize";
 import { slugify } from "@/lib/utils/slugify";
 import { CATEGORIAS_PADRAO_SISTEMA } from "@/lib/portal/queries";
+import { definirExpiracaoDestaque } from "@/lib/portal/destaques-storage";
 import * as z from "zod";
 
 const materiaSchema = z.object({
@@ -23,6 +24,7 @@ const materiaSchema = z.object({
   publicado_em: z.string().optional().nullable(),
   urgente: z.boolean().default(false),
   destaque: z.boolean().default(false),
+  tempo_destaque: z.enum(["sem_limite", "6h", "12h", "24h", "48h", "7d"]).optional().default("sem_limite"),
   tags: z.array(z.string()).default([]),
   seo_titulo: z.string().optional().nullable(),
   seo_descricao: z.string().optional().nullable(),
@@ -67,8 +69,11 @@ export async function POST(request: NextRequest) {
 
     // Definir publicado_em conforme status
     let publicadoEm = data.publicado_em;
-    if (data.status === "publicado" && !publicadoEm) {
-      publicadoEm = new Date().toISOString();
+    if (data.status === "publicado") {
+      // Se não veio data ou se a data informada for futura, crava no momento atual (evita data futura)
+      if (!publicadoEm || new Date(publicadoEm).getTime() > Date.now()) {
+        publicadoEm = new Date().toISOString();
+      }
     }
 
     // Portal padrão
@@ -172,6 +177,11 @@ export async function POST(request: NextRequest) {
 
     if (insertError) {
       return NextResponse.json({ error: insertError.message }, { status: 400 });
+    }
+
+    // Configurar prazo de expiração do destaque se aplicável
+    if (data.destaque && novaMateria?.id) {
+      definirExpiracaoDestaque(novaMateria.id, data.tempo_destaque || "sem_limite");
     }
 
     // Revalidar cache público

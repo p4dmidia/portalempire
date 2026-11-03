@@ -3,6 +3,9 @@ import { Header } from "@/components/portal/Header";
 import { Footer } from "@/components/portal/Footer";
 import { Ticker } from "@/components/portal/Ticker";
 import { CookieBanner } from "@/components/portal/CookieBanner";
+import { EmpireMidiaPublica } from "@/components/portal/EmpireMidiaPublica";
+
+export const revalidate = 60;
 
 function hexToHsl(hex: string): string {
 
@@ -74,6 +77,7 @@ export default async function PublicLayout({
       <Header portal={portal} categorias={categorias} cidades={cidades} />
       <div className="flex-1 max-w-[1300px] w-full mx-auto px-4 sm:px-6 py-5 md:py-6">
         {children}
+        <EmpireMidiaPublica />
       </div>
       <Footer portal={portal} categorias={categorias} />
       <CookieBanner />

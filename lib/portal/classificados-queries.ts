@@ -1,4 +1,3 @@
-import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 export * from "./classificados-types";
 import type { ClassificadoData } from "./classificados-types";

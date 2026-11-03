@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { formatarDataBrasilia } from "@/lib/utils/date-format";
 import { getMateriaBySlug, getMaterias, getPortalData } from "@/lib/portal/queries";
 import { LabelEditoria } from "@/components/portal/LabelEditoria";
 import { ShareButtons } from "@/components/portal/ShareButtons";
@@ -20,9 +19,7 @@ import {
   Sparkles,
   Eye,
 } from "lucide-react";
-import { extrairDetalhesMateriaOriginal } from "@/lib/captacao/extrator-conteudo";
 import { otimizarUrlImagem } from "@/lib/portal/image-utils";
-import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { calcularVisualizacoesRealistas, formatarVisualizacoes } from "@/lib/portal/views-realistas";
 import { limparEPadronizarTextoJornalistico } from "@/lib/portal/limpador-jornalistico";
 import { decodificarEntidadesHtml, obterSiteUrl } from "@/lib/portal/texto-utils";
@@ -85,59 +82,8 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
     notFound();
   }
 
-  // Obter ou extrair o conteúdo completo da matéria
-  let conteudoHtml = materia.conteudo_html;
-
-  // Se for matéria captada e o conteúdo estiver ausente/curto, OU a imagem estiver em baixa resolução (ex: miniatura w=200/fit=300),
-  // busca os dados completos e a imagem editorial oficial na fonte original
-  const precisaRecarregarConteudo =
-    !conteudoHtml ||
-    conteudoHtml.length < 500 ||
-    conteudoHtml.includes("lead-noticia") ||
-    conteudoHtml.toLowerCase().includes("whatsapp") ||
-    conteudoHtml.includes("Sem resultado");
-  const precisaRecarregarImagem =
-    !materia.imagem_url ||
-    /,\s*https?:\/\//i.test(materia.imagem_url) ||
-    /\/cdn-cgi\/image\/[^/]+$/i.test(materia.imagem_url) ||
-    materia.imagem_url.includes("googleusercontent.com") ||
-    materia.imagem_url.includes("photo-1504711434969") ||
-    materia.imagem_url.includes("w=200") ||
-    materia.imagem_url.includes("w=193") ||
-    materia.imagem_url.includes("fit=300") ||
-    materia.imagem_url.includes("read-too");
-
-  if (materia.origem === "captacao" && materia.url_original && (precisaRecarregarConteudo || precisaRecarregarImagem)) {
-    try {
-      const detalhes = await extrairDetalhesMateriaOriginal(materia.url_original);
-      const updatesParaSalvar: Record<string, unknown> = {};
-
-      if (detalhes.conteudoHtml && detalhes.conteudoHtml.length > 200 && precisaRecarregarConteudo) {
-        conteudoHtml = detalhes.conteudoHtml;
-        materia.conteudo_html = detalhes.conteudoHtml;
-        updatesParaSalvar.conteudo_html = detalhes.conteudoHtml;
-      }
-
-      if (detalhes.imagemUrl && precisaRecarregarImagem) {
-        materia.imagem_url = detalhes.imagemUrl;
-        updatesParaSalvar.imagem_url = detalhes.imagemUrl;
-      }
-
-      // Persiste assincronamente no Supabase para velocidade máxima
-      if (Object.keys(updatesParaSalvar).length > 0) {
-        try {
-          const admin = getSupabaseAdmin();
-          admin
-            .from("materias")
-            .update(updatesParaSalvar)
-            .eq("id", materia.id)
-            .then(() => {});
-        } catch {}
-      }
-    } catch (err) {
-      console.warn("Falha ao carregar conteúdo/imagem completos sob demanda:", err);
-    }
-  }
+  // Obter o conteúdo da matéria
+  let conteudoHtml = materia.conteudo_html || materia.resumo || "";
 
   const [portal, relacionadas] = await Promise.all([
     getPortalData(),
@@ -155,30 +101,7 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
   const pageUrl = `${siteUrl}/materia/${materia.slug}`;
   const visualizacoesCalculadas = calcularVisualizacoesRealistas(materia);
 
-  // Auto-cura do título e das visualizações no banco
-  const updatesMateria: Record<string, unknown> = {};
-  if (tituloLimpo && tituloLimpo !== materia.titulo) {
-    updatesMateria.titulo = tituloLimpo;
-  }
-  if (!materia.visualizacoes || materia.visualizacoes < visualizacoesCalculadas) {
-    updatesMateria.visualizacoes = visualizacoesCalculadas;
-  }
-  if (Object.keys(updatesMateria).length > 0) {
-    try {
-      const admin = getSupabaseAdmin();
-      admin
-        .from("materias")
-        .update(updatesMateria)
-        .eq("id", materia.id)
-        .then(() => {});
-    } catch {}
-  }
-
-  const dataFormatada = materia.publicado_em
-    ? format(new Date(materia.publicado_em), "d 'de' MMMM 'de' yyyy 'às' HH:mm", {
-        locale: ptBR,
-      })
-    : "";
+  const dataFormatada = formatarDataBrasilia(materia.publicado_em, { incluirHora: true });
 
   const autorNome =
     materia.origem === "captacao"
@@ -192,18 +115,6 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
     tituloLimpo,
     materia.cidade?.nome
   );
-
-  // Auto-cura: se o conteúdo foi limpo/otimizado em relação ao banco, atualiza permanentemente
-  if (conteudoHtml && conteudoHtml !== conteudoOriginal) {
-    try {
-      const admin = getSupabaseAdmin();
-      admin
-        .from("materias")
-        .update({ conteudo_html: conteudoHtml })
-        .eq("id", materia.id)
-        .then(() => {});
-    } catch {}
-  }
 
   // JSON-LD NewsArticle para SEO avançado
   const jsonLd = {
