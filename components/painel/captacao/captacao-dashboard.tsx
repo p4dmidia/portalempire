@@ -385,25 +385,17 @@ export function CaptacaoDashboard({
             Testar Feed
           </Button>
 
-          <Button
-            variant="default"
-            size="sm"
-            onClick={handleExecutarTudo}
-            disabled={executandoGlobal}
-            className="gap-1.5 shadow-sm"
+          {/* Badge Informativo de Status da Automação */}
+          <div
+            className="flex items-center gap-2 px-3.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-emerald-700 dark:text-emerald-400 text-xs font-semibold shadow-sm"
+            title="A captação de notícias roda automaticamente pelo servidor da Vercel a cada 10 minutos, sem necessidade de cliques manuais."
           >
-            {executandoGlobal ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Processando Feeds...
-              </>
-            ) : (
-              <>
-                <Play className="w-4 h-4 fill-current" />
-                Executar Agora
-              </>
-            )}
-          </Button>
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            </span>
+            <span>Robô Automático Ativo (a cada 10 min)</span>
+          </div>
         </div>
       </div>
 
@@ -636,21 +628,6 @@ export function CaptacaoDashboard({
                                 title="Testar Feed"
                               >
                                 <FlaskConical className="w-3.5 h-3.5" />
-                              </Button>
-
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                className="h-8 px-2 text-xs gap-1 text-slate-600 hover:text-primary"
-                                onClick={() => handleExecutarFonte(fonte.id!)}
-                                disabled={isExecutando}
-                                title="Executar esta fonte agora"
-                              >
-                                {isExecutando ? (
-                                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : (
-                                  <Play className="w-3.5 h-3.5 fill-current" />
-                                )}
                               </Button>
 
                               <Button

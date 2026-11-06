@@ -18,11 +18,26 @@ export interface Profile {
     youtube?: string;
     linkedin?: string;
     website?: string;
-    [key: string]: string | undefined;
+    whatsapp?: string;
+    endereco?: string;
+    dados_endereco?: {
+      cep?: string;
+      logradouro?: string;
+      numero?: string;
+      complemento?: string;
+      bairro?: string;
+      cidade?: string;
+      uf?: string;
+    };
+    [key: string]: any;
   } | null;
   asaas_wallet_id: string | null;
   cpf_cnpj: string | null;
   telefone: string | null;
+  endereco?: string | null;
+  cep?: string | null;
+  cidade?: string | null;
+  uf?: string | null;
   codigo_afiliado?: string | null;
   indicado_por_id?: string | null;
   saldo_afiliado?: number;
