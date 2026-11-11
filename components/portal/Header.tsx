@@ -50,6 +50,17 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
     setIsSearchOpen(false);
   };
 
+  const handleScrollTo = (id: string, e: React.MouseEvent) => {
+    setIsMobileMenuOpen(false);
+    if (pathname === "/") {
+      e.preventDefault();
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  };
+
   // Outras categorias que vão para o dropdown "+ Mais"
   const catMais = categorias.filter(
     (c) =>
@@ -433,6 +444,33 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
                 </Link>
               );
             })}
+          </div>
+
+          {/* Links TV e Rádio Ao Vivo na Barra Secundária (PC & Tablet) */}
+          <div className="hidden md:flex items-center gap-2 shrink-0 border-l border-white/10 pl-3">
+            <Link
+              href="/#tv-ao-vivo"
+              onClick={(e) => handleScrollTo("tv-ao-vivo", e)}
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-extrabold uppercase tracking-wider text-red-400 hover:text-white hover:bg-red-600/20 transition-all group"
+              title="Assistir TV Empire Ao Vivo"
+            >
+              <Tv className="w-3.5 h-3.5 text-red-500 group-hover:text-white transition-colors" />
+              <span>TV Ao Vivo</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+            </Link>
+
+            <span className="text-white/20 select-none">•</span>
+
+            <Link
+              href="/#radio-ao-vivo"
+              onClick={(e) => handleScrollTo("radio-ao-vivo", e)}
+              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-extrabold uppercase tracking-wider text-amber-300 hover:text-white hover:bg-amber-500/20 transition-all group"
+              title="Ouvir Rádio Empire Ao Vivo"
+            >
+              <Radio className="w-3.5 h-3.5 text-amber-400 group-hover:text-white transition-colors" />
+              <span>Rádio Ao Vivo</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+            </Link>
           </div>
 
           {/* Widget de Clima e Tempo em Tempo Real (Cidades Aleatórias e Rotativas) */}

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { getColunasAtivas, getCidades, getPortalData } from "@/lib/portal/queries";
 import { getClassificadosPorPagina } from "@/lib/portal/classificados-queries";
 import { ClassificadosFaixaSection } from "@/components/portal/ClassificadosFaixaSection";
+import { BotaoFavoritarColuna } from "@/components/portal/BotaoFavoritarColuna";
 import {
   User,
   MapPin,
@@ -127,48 +128,88 @@ export default async function ColunasIndexPage({
               <Link
                 key={col.id}
                 href={`/coluna/${col.slug}`}
-                className="group p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl hover:border-amber-400/50 shadow-sm hover:shadow-lg transition-all flex flex-col justify-between"
+                className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl hover:border-amber-400/60 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col justify-between overflow-hidden"
               >
-                <div>
-                  <div className="flex items-center gap-4 mb-4">
-                    <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-amber-400/80 bg-slate-100 shrink-0">
-                      {autor?.foto_url ? (
-                        <Image
-                          src={autor.foto_url}
-                          alt={autor.nome}
-                          fill
-                          className="object-cover"
-                        />
-                      ) : (
-                        <User className="w-8 h-8 text-slate-400 m-auto mt-3" />
-                      )}
+                {/* Banner de Capa em Alta Definição */}
+                <div className="relative h-44 w-full bg-slate-900 overflow-hidden">
+                  {col.capa_url ? (
+                    <Image
+                      src={col.capa_url}
+                      alt={col.nome}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                    />
+                  ) : (
+                    <div className="w-full h-full bg-gradient-to-br from-slate-900 via-slate-800 to-amber-950/40 flex items-center justify-center">
+                      <Sparkles className="w-10 h-10 text-amber-500/20" />
                     </div>
-                    <div>
-                      <h2 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors">
-                        {col.nome}
-                      </h2>
-                      <span className="text-xs text-slate-500">
-                        Por <strong>{autor?.nome || "Colunista"}</strong>
-                      </span>
-                    </div>
-                  </div>
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
 
                   {col.cidade && (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-0.5 rounded-full font-semibold mb-3">
-                      <MapPin className="w-3 h-3" /> {col.cidade.nome} - {col.cidade.uf}
+                    <span className="absolute top-3 right-3 inline-flex items-center gap-1 text-[11px] font-bold text-white bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 shadow-sm">
+                      <MapPin className="w-3 h-3 text-amber-400" /> {col.cidade.nome} - {col.cidade.uf}
                     </span>
-                  )}
-
-                  {col.descricao && (
-                    <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed">
-                      {col.descricao}
-                    </p>
                   )}
                 </div>
 
-                <div className="mt-6 pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs font-semibold text-amber-500">
-                  <span>Ler artigos da coluna</span>
-                  <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                {/* Conteúdo do Card com Avatar Sobreposto */}
+                <div className="p-6 pt-0 relative flex-1 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-end justify-between -mt-10 mb-3">
+                      <div className="relative w-20 h-20 rounded-2xl overflow-hidden border-4 border-white dark:border-slate-900 bg-slate-100 dark:bg-slate-800 shadow-xl shrink-0">
+                        {autor?.foto_url ? (
+                          <Image
+                            src={autor.foto_url}
+                            alt={autor.nome || col.nome}
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-2xl">
+                            {(autor?.nome || col.nome).charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+
+                      <span className="inline-flex items-center gap-1 text-[11px] font-extrabold uppercase tracking-wider text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border border-amber-300/30 px-2.5 py-1 rounded-full shadow-xs">
+                        <Sparkles className="w-3 h-3 text-amber-500" /> Colunista Oficial
+                      </span>
+                    </div>
+
+                    <h2 className="text-xl font-black text-slate-900 dark:text-white group-hover:text-amber-500 transition-colors leading-snug">
+                      {col.nome}
+                    </h2>
+
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                      Por <strong className="text-slate-800 dark:text-slate-200">{autor?.nome || "Colunista Licenciado"}</strong>
+                    </p>
+
+                    {col.descricao && (
+                      <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-3 leading-relaxed mt-3 pt-3 border-t border-slate-100 dark:border-slate-800/60">
+                        {col.descricao}
+                      </p>
+                    )}
+                  </div>
+
+                  <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-amber-600 dark:text-amber-400 flex items-center gap-1 group-hover:underline">
+                      Acessar Coluna
+                      <ChevronRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    </span>
+
+                    {/* Botão Interativo de Favoritar com 90 Dias Grátis */}
+                    <BotaoFavoritarColuna
+                      colunaId={col.id}
+                      colunaNome={col.nome}
+                      colunaSlug={col.slug}
+                      autorNome={autor?.nome}
+                      autorFoto={autor?.foto_url}
+                      cidadeNome={col.cidade ? `${col.cidade.nome} - ${col.cidade.uf}` : undefined}
+                      capaUrl={col.capa_url}
+                      variacao="card"
+                    />
+                  </div>
                 </div>
               </Link>
             );

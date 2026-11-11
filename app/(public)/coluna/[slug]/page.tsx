@@ -6,6 +6,7 @@ import { getColunaBySlug, getMaterias, getPortalData } from "@/lib/portal/querie
 import { CardMateria } from "@/components/portal/CardMateria";
 import { AdSlot } from "@/components/portal/AdSlot";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
+import { BotaoFavoritarColuna } from "@/components/portal/BotaoFavoritarColuna";
 import { User, MapPin, Sparkles, ArrowLeft } from "lucide-react";
 
 export const revalidate = 60;
@@ -61,52 +62,83 @@ export default async function ColunaDetalhePage({ params }: ColunaPageProps) {
       </div>
 
       {/* Cartão de Destaque da Coluna & Colunista */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 md:p-8 shadow-sm">
-        <div className="flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
-          <div className="relative w-24 h-24 md:w-28 md:h-28 rounded-full overflow-hidden border-4 border-amber-400/80 bg-slate-100 shrink-0 shadow-md">
-            {autor?.foto_url ? (
-              <Image
-                src={autor.foto_url}
-                alt={autor.nome}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <User className="w-12 h-12 text-slate-400 m-auto mt-6" />
-            )}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
+        {/* Banner de Capa */}
+        {coluna.capa_url && (
+          <div className="relative h-48 md:h-64 w-full bg-slate-900 overflow-hidden">
+            <Image
+              src={coluna.capa_url}
+              alt={coluna.nome}
+              fill
+              className="object-cover"
+              priority
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
           </div>
+        )}
 
-          <div className="flex-1 space-y-2">
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
-              <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 text-xs font-bold px-2.5 py-0.5 rounded-full uppercase flex items-center gap-1">
-                <Sparkles className="w-3 h-3" /> Coluna Oficial
-              </span>
-              {coluna.cidade && (
-                <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-medium px-2.5 py-0.5 rounded-full flex items-center gap-1">
-                  <MapPin className="w-3 h-3 text-slate-400" /> {coluna.cidade.nome} - {coluna.cidade.uf}
-                </span>
+        <div className="p-6 md:p-8 relative">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6 text-center md:text-left">
+            <div className={`relative w-24 h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden border-4 border-white dark:border-slate-900 bg-slate-100 dark:bg-slate-800 shrink-0 shadow-xl ${coluna.capa_url ? "-mt-16 md:-mt-20 z-10" : ""}`}>
+              {autor?.foto_url ? (
+                <Image
+                  src={autor.foto_url}
+                  alt={autor.nome || coluna.nome}
+                  fill
+                  className="object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-black text-3xl">
+                  {(autor?.nome || coluna.nome).charAt(0).toUpperCase()}
+                </div>
               )}
             </div>
 
-            <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
-              {coluna.nome}
-            </h1>
+            <div className="flex-1 space-y-2">
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-2">
+                <span className="bg-amber-100 dark:bg-amber-950/40 text-amber-700 dark:text-amber-400 text-xs font-extrabold px-3 py-1 rounded-full uppercase flex items-center gap-1 border border-amber-300/30">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-500" /> Coluna Oficial
+                </span>
+                {coluna.cidade && (
+                  <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 border border-slate-200 dark:border-slate-700">
+                    <MapPin className="w-3.5 h-3.5 text-amber-500" /> {coluna.cidade.nome} - {coluna.cidade.uf}
+                  </span>
+                )}
+              </div>
 
-            <p className="text-sm font-semibold text-slate-500">
-              Por <Link href={`/autor/${autor?.slug}`} className="text-primary hover:underline">{autor?.nome}</Link>
-            </p>
+              <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">
+                {coluna.nome}
+              </h1>
 
-            {coluna.descricao && (
-              <p className="text-sm text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed pt-1">
-                {coluna.descricao}
-              </p>
-            )}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-1">
+                <p className="text-sm font-semibold text-slate-500">
+                  Por <strong className="text-slate-800 dark:text-slate-200">{autor?.nome || "Colunista Licenciado"}</strong>
+                </p>
+
+                <BotaoFavoritarColuna
+                  colunaId={coluna.id}
+                  colunaNome={coluna.nome}
+                  colunaSlug={coluna.slug}
+                  autorNome={autor?.nome}
+                  autorFoto={autor?.foto_url}
+                  cidadeNome={coluna.cidade ? `${coluna.cidade.nome} - ${coluna.cidade.uf}` : undefined}
+                  capaUrl={coluna.capa_url}
+                  variacao="hero"
+                />
+              </div>
+
+              {coluna.descricao && (
+                <p className="text-sm text-slate-600 dark:text-slate-400 max-w-3xl leading-relaxed pt-1">
+                  {coluna.descricao}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Espaço de Anúncio da Coluna */}
-      <AdSlot posicao="topo" colunaId={coluna.id} />
+      {/* Espaço de Anúncio da Coluna (Topo) */}
+      <AdSlot posicao="topo" colunaId={coluna.id} tipoPagina="coluna" />
 
       {/* Artigos da Coluna + Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -132,9 +164,12 @@ export default async function ColunaDetalhePage({ params }: ColunaPageProps) {
 
         <div className="lg:col-span-4 space-y-6">
           <SidebarMaisLidas materias={maisLidas} />
-          <AdSlot posicao="lateral" colunaId={coluna.id} />
+          <AdSlot posicao="lateral" colunaId={coluna.id} tipoPagina="coluna" />
         </div>
       </div>
+
+      {/* Espaço de Anúncio da Coluna (Rodapé) */}
+      <AdSlot posicao="rodape" colunaId={coluna.id} tipoPagina="coluna" />
     </div>
   );
 }

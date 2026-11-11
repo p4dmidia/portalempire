@@ -101,8 +101,12 @@ export function EspacoFormDialog({
       if (formatoAtual.preco_minimo) {
         setValue("preco_mensal", Number(formatoAtual.preco_minimo))
       }
+      const colunaAtualId = watch("coluna_id") || colunaIdFixa
+      const colunaNome = colunas.find((c) => c.id === colunaAtualId)?.nome
+      const nomeSugerido = colunaNome ? `${formatoAtual.nome} - ${colunaNome}` : formatoAtual.nome
+      setValue("nome", nomeSugerido)
     }
-  }, [formatoSelecionadoId, formatoAtual, espacoParaEditar, setValue])
+  }, [formatoSelecionadoId, formatoAtual, espacoParaEditar, setValue, colunas, colunaIdFixa])
 
   const onSubmit = async (data: EspacoFormData) => {
     try {
@@ -221,21 +225,38 @@ export function EspacoFormDialog({
             </div>
           )}
 
-          <div>
-            <Label htmlFor="posicao">Posição *</Label>
-            <Input
-              id="posicao"
-              {...register("posicao")}
-              placeholder="topo, lateral, meio_texto, rodape"
-              className="mt-1"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Identificador de posicionamento no layout (ex.: topo, lateral, meio_texto).
+          {/* Posição no Layout (Detectada Automaticamente do Formato) */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 p-3.5 space-y-1.5">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-semibold text-slate-700 dark:text-slate-300">
+                Posição no Layout:
+              </span>
+              <span className="font-black text-amber-600 dark:text-amber-400 uppercase tracking-wide bg-amber-500/10 px-2 py-0.5 rounded">
+                {formatoAtual?.posicao_padrao === "topo"
+                  ? "Topo da Página (Leaderboard)"
+                  : formatoAtual?.posicao_padrao === "lateral" || formatoAtual?.posicao_padrao === "sidebar"
+                  ? "Barra Lateral (Sidebar)"
+                  : formatoAtual?.posicao_padrao === "meio_texto" || formatoAtual?.posicao_padrao === "artigo"
+                  ? "Meio da Matéria (In-Article)"
+                  : formatoAtual?.posicao_padrao === "rodape"
+                  ? "Rodapé (Footer)"
+                  : formatoAtual?.posicao_padrao || "Automático"}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+              {formatoAtual?.posicao_padrao === "topo"
+                ? "Exibido com destaque máximo no topo da coluna e no cabeçalho das matérias (728x90 px Desktop | 320x50 px Mobile)."
+                : formatoAtual?.posicao_padrao === "lateral" || formatoAtual?.posicao_padrao === "sidebar"
+                ? "Exibido na barra lateral ao lado das matérias e artigos em computadores e tablets (300x250 px)."
+                : formatoAtual?.posicao_padrao === "meio_texto" || formatoAtual?.posicao_padrao === "artigo"
+                ? "Inserido no meio da leitura do texto das matérias, garantindo alta retenção visual (728x90 px)."
+                : formatoAtual?.posicao_padrao === "rodape"
+                ? "Exibido na base inferior da página da coluna (970x90 px Desktop | 320x50 px Mobile)."
+                : "Posicionamento padronizado no portal de notícias."}
             </p>
-            {errors.posicao && (
-              <p className="mt-1 text-xs text-destructive">{errors.posicao.message}</p>
-            )}
           </div>
+
+          <input type="hidden" {...register("posicao")} />
 
           <div className="grid grid-cols-2 gap-3">
             <div>

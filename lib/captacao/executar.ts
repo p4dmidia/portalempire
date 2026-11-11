@@ -1,7 +1,7 @@
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { parseFeedUrl } from "./parser";
+import { parseFeedUrl, isTituloValido } from "./parser";
 import { normalizarUrl, gerarHashUrl, limparResumo, extrairImagem } from "./normalizar";
 import { classificarMateria } from "./classificar";
 import { reescreverNoticiaCaptada } from "./reescritor";
@@ -272,8 +272,43 @@ export async function executarCaptacao(
           }
 
           const rawTitulo = decodificarEntidadesHtml(item.title?.trim() || "Sem título");
+
+          // 1. Validação estrita do título: descarta títulos curtos, menus ou nomes de categoria
+          if (!isTituloValido(rawTitulo)) {
+            console.log(`[Captacao] Descartando item com título inválido ou menu: "${rawTitulo}"`);
+            continue;
+          }
+
           const rawResumo = decodificarEntidadesHtml(item.contentSnippet || item.summary || item.description || "");
-          const imagemUrl = extrairImagem(item);
+          let imagemFinal = extrairImagem(item);
+          let conteudoOriginalExtraido: string | null = null;
+
+          // 2. Extrair o conteúdo jornalístico integral e imagem editorial em alta resolução da página original
+          if (linkNormalizado) {
+            try {
+              const detalhes = await extrairDetalhesMateriaOriginal(linkNormalizado);
+              if (detalhes.conteudoHtml && detalhes.conteudoHtml.length > 200) {
+                conteudoOriginalExtraido = detalhes.conteudoHtml;
+              }
+              if (detalhes.imagemUrl) {
+                imagemFinal = detalhes.imagemUrl;
+              }
+            } catch (errExtracao) {
+              console.warn("[Captacao] Falha ao extrair texto/imagem da página original:", errExtracao);
+            }
+          }
+
+          // Se a raspagem falhou, usar o conteúdo bruto do feed RSS se for substancial
+          if (!conteudoOriginalExtraido && item.content && item.content.length > 250) {
+            conteudoOriginalExtraido = item.content;
+          }
+
+          // 3. Regra de Ouro: NÃO publicar matérias sem conteúdo real substancial
+          // Evita matérias rasas, sem corpo ou inventadas
+          if (!conteudoOriginalExtraido || conteudoOriginalExtraido.length < 200) {
+            console.log(`[Captacao] Descartando matéria sem corpo substantivo: "${rawTitulo}"`);
+            continue;
+          }
 
           // Classificar cidade e categoria
           const classificacao = classificarMateria({
@@ -288,7 +323,7 @@ export async function executarCaptacao(
           let tituloFinal = rawTitulo;
           let subtituloFinal: string | null = null;
           let resumoFinal = limparResumo(rawResumo, 400);
-          let conteudoHtmlFinal: string | null = null;
+          let conteudoHtmlFinal: string | null = conteudoOriginalExtraido;
 
           if (reescritaAtiva) {
             const cidadeEncontrada = cidades.find(
@@ -299,7 +334,7 @@ export async function executarCaptacao(
               const reescrito = await reescreverNoticiaCaptada({
                 titulo: rawTitulo,
                 resumoBruto: rawResumo,
-                conteudoBruto: item.content,
+                conteudoBruto: conteudoOriginalExtraido,
                 veiculo: fonte.veiculo,
                 cidadeNome: cidadeEncontrada?.nome,
                 apiKeyIa,
@@ -308,27 +343,15 @@ export async function executarCaptacao(
               tituloFinal = reescrito.titulo;
               subtituloFinal = reescrito.subtitulo || null;
               resumoFinal = reescrito.resumo;
-              conteudoHtmlFinal = reescrito.conteudoHtml;
+              conteudoHtmlFinal = reescrito.conteudoHtml || conteudoOriginalExtraido;
             } catch (err) {
               console.warn("[Reescrita] Erro ao reescrever, mantendo original:", err);
             }
           }
 
-          let imagemFinal = imagemUrl;
-
-          // Extrair o conteúdo jornalístico integral e imagem editorial em alta resolução da página original
-          if (linkNormalizado) {
-            try {
-              const detalhes = await extrairDetalhesMateriaOriginal(linkNormalizado);
-              if (detalhes.conteudoHtml && detalhes.conteudoHtml.length > 250) {
-                conteudoHtmlFinal = detalhes.conteudoHtml;
-              }
-              if (detalhes.imagemUrl) {
-                imagemFinal = detalhes.imagemUrl;
-              }
-            } catch (errExtracao) {
-              console.warn("[Captacao] Falha ao extrair texto/imagem da página original:", errExtracao);
-            }
+          // Se após reescrita o conteúdo ficou vazio, não publicar
+          if (!conteudoHtmlFinal || conteudoHtmlFinal.length < 200) {
+            continue;
           }
 
           // Data de publicação inteligente:

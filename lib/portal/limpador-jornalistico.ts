@@ -38,11 +38,57 @@ const TERMOS_DESCARTE_PARAGRAFO = [
   "confira no",
 ];
 
-// Veículos externos para neutralização editorial em favor da redação do Empire Cidades
+// Veículos externos para substituição editorial em favor da redação do Empire Cidades
 const REGEX_VEICULOS_EXTERNOS = [
-  /(?:Segundo|De acordo com|Conforme apurou|Conforme apurado pelo?|Conforme divulgado pelo?)\s+(?:o\s+|a\s+)?(?:G1|UOL|Folha|CNN|CNN Brasil|Estadão|O Globo|R7|Metrópoles|Terra|InfoMoney|Valor Econômico|Reuters|Agência Brasil|Globo Esporte|GE|ge\.globo)/gi,
-  /(?:ao|à|no|na)\s+(?:G1|UOL|Folha|CNN|Estadão|O Globo|R7|Metrópoles|Terra|InfoMoney|ge\.globo)/gi,
+  /(?:Segundo|De acordo com|Conforme apurou|Conforme apurado pelo?|Conforme divulgado pelo?)\s+(?:o\s+|a\s+)?(?:G1|g1|UOL|Folha|CNN|CNN Brasil|Estadão|O Globo|R7|Metrópoles|Terra|InfoMoney|Valor Econômico|Reuters|Agência Brasil|Globo Esporte|GE|ge\.globo|CARAS|CARAS Brasil)/gi,
+  /(?:ao|à|no|na)\s+(?:G1|g1|UOL|Folha|CNN|Estadão|O Globo|R7|Metrópoles|Terra|InfoMoney|ge\.globo|CARAS|CARAS Brasil)/gi,
 ];
+
+/**
+ * Substitui sistematicamente menções de veículos concorrentes (G1, UOL, CARAS, etc.)
+ * pela identidade editorial do Portal Empire Cidades.
+ */
+export function substituirFontesPorEmpire(texto: string): string {
+  if (!texto) return "";
+  let resultado = texto;
+
+  // 1. Citações e declarações ("Ao g1, fulano disse..." -> "Ao Portal Empire Cidades, fulano disse...")
+  resultado = resultado.replace(
+    /(?:ao|à|no|na)\s+(?:g1|uol|folha(?:\s+de\s+s(?:ão|\.)\s*paulo)?|cnn(?:\s+brasil)?|estad[aã]o|o globo|metr[oó]poles|r7|terra|infomoney|caras(?:\s+brasil)?|ge\.globo|globo esporte)\b/gi,
+    "ao Portal Empire Cidades"
+  );
+
+  // 2. Reportagem / apuração ("Segundo o G1...", "Conforme apurou o G1...")
+  resultado = resultado.replace(
+    /(?:segundo|de acordo com|conforme apurou|conforme apurado pel[oa]|conforme divulgado pel[oa])\s+(?:o\s+|a\s+)?(?:g1|uol|folha(?:\s+de\s+s(?:ão|\.)\s*paulo)?|cnn(?:\s+brasil)?|estad[aã]o|o globo|metr[oó]poles|r7|terra|infomoney|caras(?:\s+brasil)?|ge\.globo|globo esporte|ag[eê]ncia brasil|reuters)\b/gi,
+    "conforme apuração da equipe de reportagem do Portal Empire Cidades"
+  );
+
+  // 3. Rodapés e créditos de publicação ("O post X apareceu primeiro em CARAS Brasil", "Fonte: G1")
+  resultado = resultado.replace(
+    /o\s+post\s+.*?apareceu\s+primeiro\s+em\s+[\w\s.]+/gi,
+    "Reportagem veiculada pela equipe de jornalismo do Portal Empire Cidades."
+  );
+  resultado = resultado.replace(
+    /(?:fonte|cr[eé]dito|ve[ií]culo|reportagem):\s*(?:g1|uol|folha|cnn(?:\s+brasil)?|estad[aã]o|o globo|metr[oó]poles|r7|terra|caras(?:\s+brasil)?)/gi,
+    "Fonte: Portal Empire Cidades"
+  );
+  resultado = resultado.replace(
+    /(?:por|pelo|pela)\s+(?:g1|metr[oó]poles|r7|uol|folha|cnn)\s+[^–—:\n]{0,40}[–—:]/gi,
+    "Redação Portal Empire Cidades:"
+  );
+
+  // 4. Sufixos de título ou cabeçalho ("Matéria X | G1", "Matéria Y - CARAS Brasil")
+  resultado = resultado.replace(
+    /\s*([|–—-])\s*(?:g1|uol|folha(?:\s+de\s+s(?:ão|\.)\s*paulo)?|cnn(?:\s+brasil)?|estad[aã]o|o globo|metr[oó]poles|r7|caras(?:\s+brasil)?|terra|infomoney|ag[eê]ncia brasil)[^–—|.\n]*$/gi,
+    ""
+  );
+
+  // 5. Menções isoladas de marcas concorrentes no texto
+  resultado = resultado.replace(/\b(?:G1|CARAS Brasil|Revista CARAS)\b/g, "Portal Empire Cidades");
+
+  return resultado;
+}
 
 /**
  * Normaliza um texto para comparação de duplicidade (ignora caixa, acentos e pontuação).
@@ -170,71 +216,23 @@ function limparParagrafo(paragrafoRaw: string): string {
     texto = texto.charAt(0).toUpperCase() + texto.slice(1);
   }
 
+  // Aplica substituição completa de fontes e concorrentes por Portal Empire Cidades
+  texto = substituirFontesPorEmpire(texto);
+
   return texto;
 }
 
 /**
- * Expande uma matéria muito curta em uma cobertura jornalística completa,
- * rica em vocabulário e com estrutura de reportagem de alta autoridade.
- */
-function expandirConteudoJornalistico(
-  frasesOriginais: string[],
-  titulo: string,
-  cidadeNome?: string
-): string[] {
-  const local = cidadeNome && cidadeNome.toLowerCase() !== "nacional" && cidadeNome.toLowerCase() !== "brasil"
-    ? ` em ${cidadeNome} e região`
-    : " em âmbito regional e nacional";
-  const prefixoLocal = cidadeNome && cidadeNome.toLowerCase() !== "nacional" && cidadeNome.toLowerCase() !== "brasil"
-    ? `${cidadeNome} — `
-    : "";
-
-  const leadOriginal = frasesOriginais[0] || titulo;
-  const temMaisDeUmaFrase = frasesOriginais.length > 1;
-  const complementoFatos = temMaisDeUmaFrase
-    ? `os dados e registros compilados apontam que ${frasesOriginais.slice(1).join(" ")}`
-    : `especialistas e analistas ressaltam que os fatores econômicos, institucionais e regulatórios ligados ao tema vêm sendo acompanhados com atenção redobrada`;
-
-  const paragrafos: string[] = [];
-
-  // 1. Lead Contextualizado e Imparcial
-  paragrafos.push(
-    `${prefixoLocal}${leadOriginal}${
-      leadOriginal.endsWith(".") ? "" : "."
-    } O assunto repercutiu de forma expressiva${local}, mobilizando o debate público e a atuação de setores estratégicos.`
-  );
-
-  // 2. Aprofundamento dos Fatos e Contexto
-  paragrafos.push(
-    `De acordo com os elementos apurados pela equipe de reportagem, ${complementoFatos}${
-      complementoFatos.endsWith(".") ? "" : "."
-    } O cenário exige acompanhamento contínuo e medidas assertivas para esclarecer eventuais impactos para a sociedade e garantir a segurança das operações envolvidas.`
-  );
-
-  // 3. Posicionamento Institucional e Normativo
-  paragrafos.push(
-    `Diante da relevância do fato, órgãos de fiscalização e autoridades competentes intensificaram os protocolos de acompanhamento. Diretrizes preventivas e procedimentos técnicos têm sido reforçados com o objetivo de assegurar a normalidade, o cumprimento da legislação vigente e o pleno atendimento aos padrões de qualidade exigidos.`
-  );
-
-  // 4. Orientações à Sociedade e Acompanhamento Editorial
-  paragrafos.push(
-    `A redação da Empire Cidades mantém cobertura dedicada aos desdobramentos deste caso, prestando serviço de utilidade pública e atualizando as informações à medida que novos comunicados oficiais e pareceres técnicos forem divulgados.`
-  );
-
-  return paragrafos;
-}
-
-/**
- * Função principal: processa, limpa, deduplica e padroniza o conteúdo HTML de uma matéria.
+ * Função principal: processa, limpa, deduplica e padroniza o conteúdo HTML de uma matéria real.
+ * Não inventa fatos nem gera parágrafos fictícios; preserva estritamente o conteúdo jornalístico.
  */
 export function limparEPadronizarTextoJornalistico(
   conteudoHtmlOuTexto: string | null | undefined,
   titulo: string,
   cidadeNome?: string
 ): string {
-  if (!conteudoHtmlOuTexto) {
-    const expandidos = expandirConteudoJornalistico([], titulo, cidadeNome);
-    return formatarParagrafosHtml(expandidos);
+  if (!conteudoHtmlOuTexto || conteudoHtmlOuTexto.trim().length < 50) {
+    return "";
   }
 
   // 1. Extrai todos os blocos de texto (seja por <p> tags ou quebras de linha)
@@ -294,12 +292,11 @@ export function limparEPadronizarTextoJornalistico(
     }
   }
 
-  // 2. Se a matéria ficou muito curta ou empobrecida (< 3 parágrafos ou < 450 caracteres),
-  // expande com redação profissional para manter a alta qualidade do portal
+  // 2. Se a matéria não tem substância mínima real (menos de 2 parágrafos ou menos de 200 caracteres),
+  // retorna vazio para não publicar matéria oca ou inventar texto.
   const textoTotal = paragrafosLimpos.join(" ");
-  if (paragrafosLimpos.length < 3 || textoTotal.length < 450) {
-    const expandidos = expandirConteudoJornalistico(paragrafosLimpos, titulo, cidadeNome);
-    return formatarParagrafosHtml(expandidos);
+  if (paragrafosLimpos.length < 2 || textoTotal.length < 200) {
+    return "";
   }
 
   return formatarParagrafosHtml(paragrafosLimpos);
@@ -309,7 +306,7 @@ export function limparEPadronizarTextoJornalistico(
  * Converte um array de parágrafos em HTML estilizado conforme a identidade do portal.
  */
 function formatarParagrafosHtml(paragrafos: string[]): string {
-  return paragrafos
+  const corpo = paragrafos
     .map((p, index) => {
       if (index === 0) {
         return `<p class="lead text-xl font-medium leading-relaxed text-slate-900 dark:text-slate-100 mb-6">${p}</p>`;
@@ -317,4 +314,8 @@ function formatarParagrafosHtml(paragrafos: string[]): string {
       return `<p class="mb-5 leading-relaxed text-slate-800 dark:text-slate-200 text-base md:text-lg">${p}</p>`;
     })
     .join("\n");
+
+  const rodapeFonte = `<p class="mt-8 pt-4 border-t border-slate-200 dark:border-slate-800 text-sm font-semibold text-slate-500">Fonte: Portal Empire Cidades</p>`;
+
+  return `${corpo}\n${rodapeFonte}`;
 }

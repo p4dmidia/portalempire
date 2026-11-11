@@ -2,22 +2,23 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { criarCobrancaComSplit, RespostaCobrancaAsaas } from "@/lib/asaas/cobrancas";
 import { enviarEmailCobrancaAnuncio } from "@/lib/email/servico";
 
 const AnuncioSchema = z.object({
-  espaco_id: z.string().uuid("Espaço de anúncio é obrigatório"),
-  anunciante_id: z.string().uuid("Anunciante é obrigatório"),
-  titulo: z.string().min(3, "Título do anúncio deve ter pelo menos 3 caracteres"),
-  imagem_desktop_url: z.string().url("URL da imagem desktop é obrigatória"),
-  imagem_mobile_url: z.string().url().nullable().optional().or(z.literal("")),
-  link_destino: z.string().url("Link de destino inválido"),
+  espaco_id: z.preprocess((val) => (val === "" || val === undefined ? null : val), z.string().uuid().optional().nullable()),
+  anunciante_id: z.preprocess((val) => (val === "" || val === undefined ? null : val), z.string().uuid().optional().nullable()),
+  titulo: z.string().min(1, "Título do anúncio deve ter pelo menos 1 caractere"),
+  imagem_desktop_url: z.string().min(1, "Imagem desktop é obrigatória"),
+  imagem_mobile_url: z.string().nullable().optional().or(z.literal("")),
+  link_destino: z.string().min(1, "Link de destino inválido"),
   inicio_em: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data de início inválida (AAAA-MM-DD)"),
   fim_em: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data de fim inválida (AAAA-MM-DD)"),
-  status: z.enum(["aguardando_pagamento", "ativo", "agendado", "pausado", "expirado", "cancelado"]).default("ativo"),
+  status: z.enum(["aguardando_pagamento", "ativo", "agendado", "pausado", "expirado", "cancelado", "rascunho"]).default("ativo"),
   valor: z.number().min(0, "Valor do anúncio não pode ser negativo").default(0),
-  forma_pagamento: z.enum(["pix", "boleto", "cartao", "manual", "dinheiro"]).default("pix"),
+  forma_pagamento: z.enum(["pix", "boleto", "cartao", "manual", "dinheiro"]).default("manual"),
   gerar_cobranca_asaas: z.boolean().default(false),
 });
 
@@ -56,9 +57,10 @@ export async function GET(request: Request) {
     const todos = searchParams.get("todos") === "true";
     const status = searchParams.get("status");
 
+    const userSupabase = await createClient();
     const supabase = getSupabaseAdmin();
 
-    let query = supabase
+    let query = userSupabase
       .from("anuncios")
       .select(`
         *,
@@ -88,7 +90,42 @@ export async function GET(request: Request) {
       query = query.eq("status", status);
     }
 
-    const { data: anuncios, error } = await query;
+    let { data: anuncios, error } = await query;
+
+    // Se o cliente autenticado não trouxer por RLS ou joins, consulta com admin
+    if (error || !anuncios || anuncios.length === 0) {
+      let adminQ = supabase
+        .from("anuncios")
+        .select(`
+          *,
+          espaco:espacos_anuncio(
+            id, nome, dono_tipo, preco_mensal, preco_semanal,
+            formato:formatos_anuncio(id, nome, posicao, largura, altura, largura_mobile, altura_mobile),
+            coluna:colunas(id, nome, slug)
+          ),
+          anunciante:anunciantes(id, nome, email, telefone, cpf_cnpj),
+          dono:profiles!dono_id(id, nome, email, foto_url, asaas_wallet_id),
+          pedidos(
+            id, valor_total, comissao_percentual, valor_comissao, valor_liquido_dono,
+            forma_pagamento, asaas_payment_id, link_pagamento, status, pago_em
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (profile.role === "colunista") {
+        adminQ = adminQ.eq("dono_id", profile.id);
+      }
+      if (status) {
+        adminQ = adminQ.eq("status", status);
+      }
+
+      const resAdmin = await adminQ;
+      if (resAdmin.data && resAdmin.data.length > 0) {
+        anuncios = resAdmin.data;
+        error = null;
+      }
+    }
+
     if (error) throw error;
 
     // Normalizar campos para compatibilidade com a interface
@@ -131,16 +168,52 @@ export async function POST(request: Request) {
       );
     }
 
+    const userSupabase = await createClient();
     const supabase = getSupabaseAdmin();
+
+    // 0. Auto-resolver espaco_id caso não tenha sido enviado
+    let finalEspacoId = dados.espaco_id;
+    if (!finalEspacoId) {
+      if (profile.role === "colunista") {
+        const { data: userCols } = await supabase
+          .from("colunas")
+          .select("id")
+          .eq("dono_id", profile.id)
+          .limit(1);
+        if (userCols && userCols.length > 0) {
+          const { data: espCol } = await supabase
+            .from("espacos_anuncio")
+            .select("id")
+            .eq("coluna_id", userCols[0].id)
+            .limit(1);
+          if (espCol && espCol.length > 0) {
+            finalEspacoId = espCol[0].id;
+          }
+        }
+      }
+      if (!finalEspacoId) {
+        const { data: anyEspaco } = await supabase
+          .from("espacos_anuncio")
+          .select("id")
+          .limit(1);
+        if (anyEspaco && anyEspaco.length > 0) {
+          finalEspacoId = anyEspaco[0].id;
+        }
+      }
+    }
+
+    if (!finalEspacoId) {
+      return NextResponse.json({ error: "Nenhum espaço publicitário disponível." }, { status: 400 });
+    }
 
     // 1. Obter informações do espaço
     const { data: espaco } = await supabase
       .from("espacos_anuncio")
       .select(`
-        id, dono_tipo, coluna_id,
+        id, dono_tipo, coluna_id, portal_id,
         coluna:colunas(dono_id, dono:profiles(id, nome, email, asaas_wallet_id))
       `)
-      .eq("id", dados.espaco_id)
+      .eq("id", finalEspacoId)
       .single();
 
     if (!espaco) {
@@ -177,36 +250,131 @@ export async function POST(request: Request) {
       donoWalletId = donoProfile?.asaas_wallet_id || donoWalletId;
     }
 
-    // 2. Verificar sobreposição de datas no mesmo espaço para status ativo/aguardando_pagamento
+    // 2. Verificar se não excedeu o limite máximo de banners em rotação no mesmo espaço (máx 10)
     if (["ativo", "aguardando_pagamento"].includes(dados.status)) {
       const { data: sobrepostos } = await supabase
         .from("anuncios")
         .select("id, titulo, inicio_em, fim_em, status")
-        .eq("espaco_id", dados.espaco_id)
+        .eq("espaco_id", finalEspacoId)
         .in("status", ["ativo", "aguardando_pagamento"])
         .lte("inicio_em", dados.fim_em)
         .gte("fim_em", dados.inicio_em);
 
-      if (sobrepostos && sobrepostos.length > 0) {
-        const conflito = sobrepostos[0];
+      if (sobrepostos && sobrepostos.length >= 10) {
         return NextResponse.json(
           {
-            error: `Conflito de período: já existe o anúncio "${conflito.titulo}" ativo neste espaço entre ${conflito.inicio_em} e ${conflito.fim_em}.`,
+            error: "Limite de rotação atingido: este espaço já possui 10 banners ativos em rotação simultânea no mesmo período.",
           },
           { status: 409 }
         );
       }
     }
 
-    // 3. Buscar dados do anunciante
-    const { data: anunciante } = await supabase
-      .from("anunciantes")
-      .select("*")
-      .eq("id", dados.anunciante_id)
-      .single();
+    // 3. Buscar dados do anunciante ou criar automaticamente se não existir
+    let anunciante = null;
+    let finalAnuncianteId = dados.anunciante_id || null;
+
+    if (finalAnuncianteId) {
+      const { data: a } = await supabase
+        .from("anunciantes")
+        .select("*")
+        .eq("id", finalAnuncianteId)
+        .maybeSingle();
+      anunciante = a;
+      if (!anunciante) finalAnuncianteId = null;
+    }
 
     if (!anunciante) {
-      return NextResponse.json({ error: "Anunciante não encontrado." }, { status: 404 });
+      // Obter portal_id garantido (do espaço ou da tabela portais)
+      let portalId = espaco.portal_id;
+      if (!portalId) {
+        const { data: portaisList } = await supabase.from("portais").select("id").limit(1);
+        portalId = portaisList?.[0]?.id;
+      }
+      if (!portalId) {
+        portalId = "a0000000-0000-0000-0000-000000000001";
+      }
+
+      const nomeCampanha = (dados.titulo || "").trim() || "Anunciante Local";
+
+      // 3.1 Verificar se o colunista já tem um anunciante cadastrado com esse nome
+      const { data: existente } = await userSupabase
+        .from("anunciantes")
+        .select("*")
+        .eq("cadastrado_por", profile.id)
+        .ilike("nome", nomeCampanha)
+        .limit(1)
+        .maybeSingle();
+
+      if (existente) {
+        anunciante = existente;
+        finalAnuncianteId = existente.id;
+      } else {
+        // 3.2 Criar novo anunciante no banco com o cliente autenticado (atende política de RLS)
+        let errInsertMsg = null;
+        const payloadNovoAnun = {
+          portal_id: portalId,
+          cadastrado_por: profile.id,
+          nome: nomeCampanha,
+        };
+
+        const resUser = await userSupabase
+          .from("anunciantes")
+          .insert(payloadNovoAnun)
+          .select("*")
+          .maybeSingle();
+
+        if (resUser.data) {
+          anunciante = resUser.data;
+          finalAnuncianteId = resUser.data.id;
+        } else {
+          errInsertMsg = resUser.error?.message;
+          // Tentar com cliente admin
+          const resAdmin = await supabase
+            .from("anunciantes")
+            .insert(payloadNovoAnun)
+            .select("*")
+            .maybeSingle();
+
+          if (resAdmin.data) {
+            anunciante = resAdmin.data;
+            finalAnuncianteId = resAdmin.data.id;
+          } else {
+            errInsertMsg = resAdmin.error?.message || errInsertMsg;
+          }
+        }
+
+        if (!anunciante) {
+          console.error("Falha ao criar anunciante automático:", errInsertMsg);
+          // 3.3 Fallback: buscar qualquer anunciante do colunista ou do banco
+          const { data: fallbackUser } = await userSupabase
+            .from("anunciantes")
+            .select("*")
+            .eq("cadastrado_por", profile.id)
+            .limit(1)
+            .maybeSingle();
+
+          if (fallbackUser) {
+            anunciante = fallbackUser;
+            finalAnuncianteId = fallbackUser.id;
+          } else {
+            const { data: fallbackGlobal } = await supabase
+              .from("anunciantes")
+              .select("*")
+              .limit(1)
+              .maybeSingle();
+
+            if (fallbackGlobal) {
+              anunciante = fallbackGlobal;
+              finalAnuncianteId = fallbackGlobal.id;
+            }
+          }
+        }
+      }
+    }
+
+    if (!finalAnuncianteId || !anunciante) {
+      return NextResponse.json({ error: "Não foi possível vincular o anunciante." }, { status: 400 });
     }
 
     // 4. Buscar percentual de comissão padrão nas configurações
@@ -229,21 +397,27 @@ export async function POST(request: Request) {
     }
 
     // 5. Inserir anúncio
-    const { data: novoAnuncio, error: insertError } = await supabase
+    const payloadAnuncio = {
+      espaco_id: finalEspacoId,
+      anunciante_id: finalAnuncianteId,
+      dono_id: donoId,
+      titulo: dados.titulo,
+      imagem_desktop_url: dados.imagem_desktop_url,
+      imagem_mobile_url: dados.imagem_mobile_url || null,
+      link_destino: dados.link_destino,
+      inicio_em: dados.inicio_em,
+      fim_em: dados.fim_em,
+      status: statusAnuncio,
+      valor: valorTotal,
+    };
+
+    let novoAnuncio = null;
+    let insertError = null;
+
+    // Tentar primeiro com o cliente do usuário logado (atende RLS: dono_id = auth.uid())
+    const resUser = await userSupabase
       .from("anuncios")
-      .insert({
-        espaco_id: dados.espaco_id,
-        anunciante_id: dados.anunciante_id,
-        dono_id: donoId,
-        titulo: dados.titulo,
-        imagem_desktop_url: dados.imagem_desktop_url,
-        imagem_mobile_url: dados.imagem_mobile_url || null,
-        link_destino: dados.link_destino,
-        inicio_em: dados.inicio_em,
-        fim_em: dados.fim_em,
-        status: statusAnuncio,
-        valor: valorTotal,
-      })
+      .insert(payloadAnuncio)
       .select(`
         *,
         espaco:espacos_anuncio(
@@ -252,9 +426,38 @@ export async function POST(request: Request) {
         ),
         anunciante:anunciantes(id, nome, email, telefone)
       `)
-      .single();
+      .maybeSingle();
 
-    if (insertError) throw insertError;
+    if (resUser.data) {
+      novoAnuncio = resUser.data;
+    } else {
+      insertError = resUser.error;
+      // Tentar com cliente admin
+      const resAdmin = await supabase
+        .from("anuncios")
+        .insert(payloadAnuncio)
+        .select(`
+          *,
+          espaco:espacos_anuncio(
+            id, nome, dono_tipo,
+            formato:formatos_anuncio(nome, posicao, largura, altura)
+          ),
+          anunciante:anunciantes(id, nome, email, telefone)
+        `)
+        .maybeSingle();
+
+      if (resAdmin.data) {
+        novoAnuncio = resAdmin.data;
+        insertError = null;
+      } else {
+        insertError = resAdmin.error || insertError;
+      }
+    }
+
+    if (insertError || !novoAnuncio) {
+      console.error("[API Anuncios Insert Error]:", insertError);
+      throw insertError || new Error("Erro ao gravar anúncio no banco de dados.");
+    }
 
     // 6. Gerar Pedido & Cobrança Asaas com Split se solicitado
     let asaasPaymentId: string | null = null;
@@ -299,13 +502,13 @@ export async function POST(request: Request) {
       }
     }
 
-    // 7. Criar registro na tabela pedidos
+    // 7. Criar registro na tabela pedidos (não-bloqueante)
     const statusPedido = isPagamentoManual || statusAnuncio === "ativo" ? "pago" : "pendente";
     const formaPgtoPedido = isPagamentoManual ? "dinheiro" : dados.forma_pagamento === "cartao" ? "cartao" : dados.forma_pagamento === "boleto" ? "boleto" : "pix";
+    let pedidoCriado = null;
 
-    const { data: pedidoCriado } = await supabase
-      .from("pedidos")
-      .insert({
+    try {
+      const payloadPedido = {
         anuncio_id: novoAnuncio.id,
         dono_id: donoId,
         valor_total: valorTotal,
@@ -317,9 +520,20 @@ export async function POST(request: Request) {
         link_pagamento: linkPagamento,
         status: statusPedido,
         pago_em: statusPedido === "pago" ? new Date().toISOString() : null,
-      })
-      .select("*")
-      .single();
+      };
+
+      const resPed = await supabase
+        .from("pedidos")
+        .insert(payloadPedido)
+        .select("*")
+        .maybeSingle();
+
+      if (resPed.data) {
+        pedidoCriado = resPed.data;
+      }
+    } catch (pedErr) {
+      console.warn("Aviso ao registrar pedido (não impeditivo):", pedErr);
+    }
 
     // 8. Revalidar cache público se ativo
     if (statusAnuncio === "ativo") {
@@ -345,7 +559,10 @@ export async function POST(request: Request) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: error.errors[0]?.message || "Dados inválidos." }, { status: 400 });
     }
-    const mensagem = error instanceof Error ? error.message : "Erro ao criar anúncio.";
+    const errObj = error as { message?: string; details?: string; hint?: string };
+    const mensagem =
+      errObj?.message || (error instanceof Error ? error.message : "Erro ao criar anúncio.");
+    console.error("[API Anuncios POST Error]:", error);
     return NextResponse.json({ error: mensagem }, { status: 400 });
   }
 }

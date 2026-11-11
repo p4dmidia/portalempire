@@ -1,5 +1,6 @@
 import { requireRole } from "@/lib/auth"
 import { createClient } from "@/lib/supabase/server"
+import { getSupabaseAdmin } from "@/lib/supabase/admin"
 import { ColunistaAnunciosView } from "@/components/painel/anuncios/colunista-anuncios-view"
 import { AnuncioItem } from "@/components/painel/anuncios/anuncio-form-dialog"
 
@@ -23,13 +24,63 @@ export default async function ColunistaAnunciosPage() {
   const profile = await requireRole(["admin", "colunista"])
   const supabase = await createClient()
 
-  // 1. Buscar colunas do colunista
+  // 1. Buscar colunas do colunista e portal
+  const { data: portal } = await supabase.from("portais").select("id").limit(1).single()
+  const portalId = portal?.id
+
   const { data: colunas } = await supabase
     .from("colunas")
-    .select("id")
+    .select("id, nome")
     .eq("dono_id", profile.id)
 
   const colunaIds = (colunas || []).map((c) => c.id)
+
+  if (portalId && colunaIds.length > 0) {
+    // 1.1 Garantir exatamente 1 espaço para cada posição da coluna
+      const { data: formatosDb } = await supabase
+        .from("formatos_anuncio")
+        .select("id, nome, posicao, largura, altura, largura_mobile, altura_mobile")
+
+      if (formatosDb && formatosDb.length > 0) {
+        for (const col of colunas || []) {
+          const { data: espacosCol } = await supabase
+            .from("espacos_anuncio")
+            .select("id, formato_id")
+            .eq("coluna_id", col.id)
+
+          const posicoesVistas = new Set<string>()
+
+          for (const e of espacosCol || []) {
+            const fmt = formatosDb.find((f) => f.id === e.formato_id)
+            if (fmt?.posicao) {
+              posicoesVistas.add(fmt.posicao)
+            }
+          }
+
+          const posicoesNecessarias: Array<"topo" | "lateral" | "meio_texto" | "rodape"> = [
+            "topo",
+            "lateral",
+            "meio_texto",
+            "rodape",
+          ]
+
+          for (const pos of posicoesNecessarias) {
+            if (!posicoesVistas.has(pos)) {
+              const fmt = formatosDb.find((f) => f.posicao === pos) || formatosDb[0]
+              await supabase.from("espacos_anuncio").insert({
+                portal_id: portalId,
+                dono_tipo: "coluna",
+                coluna_id: col.id,
+                formato_id: fmt.id,
+                nome: `${fmt.nome} - ${col.nome}`,
+                preco_mensal: 150,
+                ativo: true,
+              })
+            }
+          }
+        }
+      }
+    }
 
   // 2. Buscar anúncios
   let queryAnuncios = supabase
@@ -40,11 +91,11 @@ export default async function ColunistaAnunciosPage() {
       espaco:espacos_anuncio(
         id,
         nome,
-        posicao,
         preco_mensal,
         formato:formatos_anuncio(
           id,
           nome,
+          posicao,
           largura,
           altura,
           largura_mobile,
@@ -74,12 +125,12 @@ export default async function ColunistaAnunciosPage() {
     .select(`
       id,
       nome,
-      posicao,
       preco_mensal,
       coluna_id,
       formato:formatos_anuncio(
         id,
         nome,
+        posicao,
         largura,
         altura,
         largura_mobile,
@@ -96,7 +147,7 @@ export default async function ColunistaAnunciosPage() {
     }
   }
 
-  const [
+  let [
     { data: anunciosDb },
     { data: anunciantesDb },
     { data: espacosDb },
@@ -105,6 +156,45 @@ export default async function ColunistaAnunciosPage() {
     queryAnunciantes,
     queryEspacos,
   ])
+
+  // Fallback garantido se RLS restringir a leitura do usuário
+  if (!anunciosDb || anunciosDb.length === 0) {
+    try {
+      const admin = getSupabaseAdmin();
+      let adminQ = admin
+        .from("anuncios")
+        .select(`
+          *,
+          anunciante:anunciantes(id, nome, email, telefone),
+          espaco:espacos_anuncio(
+            id,
+            nome,
+            preco_mensal,
+            formato:formatos_anuncio(
+              id,
+              nome,
+              posicao,
+              largura,
+              altura,
+              largura_mobile,
+              altura_mobile
+            )
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (profile.role !== "admin") {
+        adminQ = adminQ.eq("dono_id", profile.id);
+      }
+
+      const { data: adminAnuncios } = await adminQ;
+      if (adminAnuncios && adminAnuncios.length > 0) {
+        anunciosDb = adminAnuncios;
+      }
+    } catch (e) {
+      console.warn("Aviso na consulta admin de anúncios:", e);
+    }
+  }
 
   // Formatar anunciantes para o componente
   const anunciantesFormatados = (anunciantesDb || []).map((a) => ({
@@ -122,7 +212,7 @@ export default async function ColunistaAnunciosPage() {
     return {
       id: String(e.id || ""),
       nome: String(e.nome || ""),
-      posicao: (e.posicao as string) || "topo",
+      posicao: (fmt?.posicao as string) || "topo",
       preco_mensal: Number(e.preco_mensal) || 0,
       coluna_id: (e.coluna_id as string | null) || null,
       formato: {
@@ -161,7 +251,7 @@ export default async function ColunistaAnunciosPage() {
         ? {
             id: String(espaco.id || ""),
             nome: String(espaco.nome || ""),
-            posicao: (espaco.posicao as string) || "topo",
+            posicao: (formato?.posicao as string) || "topo",
             preco_mensal: Number(espaco.preco_mensal) || 0,
             formato: formato
               ? {

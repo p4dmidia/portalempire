@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
   Columns,
@@ -50,6 +51,30 @@ export function ColunasColunistaView({
       router.refresh();
     }
   };
+
+  // Atualização em Tempo Real (Supabase Realtime): atualiza o status instantaneamente sem F5
+  useEffect(() => {
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`colunas-status-realtime-${userId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "colunas",
+          filter: `dono_id=eq.${userId}`,
+        },
+        () => {
+          refreshData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [userId]);
 
   const handleExcluir = async (id: string, nome: string) => {
     if (!confirm(`Tem certeza que deseja excluir a coluna "${nome}"?`)) return;

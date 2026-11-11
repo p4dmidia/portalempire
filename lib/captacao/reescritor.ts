@@ -6,7 +6,7 @@
  * veracidade dos fatos e a devida atribuição da fonte original.
  */
 
-import { limparEPadronizarTextoJornalistico } from "@/lib/portal/limpador-jornalistico";
+import { limparEPadronizarTextoJornalistico, substituirFontesPorEmpire } from "@/lib/portal/limpador-jornalistico";
 
 export interface DadosNoticiaParaReescrita {
   titulo: string;
@@ -70,61 +70,48 @@ const PREFIXOS_EDITORIAIS = [
 export function reescreverComAlgoritmo(dados: DadosNoticiaParaReescrita): NoticiaReescrita {
   const { titulo, resumoBruto, veiculo, cidadeNome } = dados;
 
-  // 1. REESCRITA DO TÍTULO
-  let tituloModificado = titulo.trim();
+  // 1. REESCRITA DO TÍTULO (Preservar fatos, remover marcas concorrentes, aplicar sinônimos sutis)
+  let tituloLimpo = substituirFontesPorEmpire(titulo.trim());
+  // Remove sufixos como " - G1", " | G1", " - Nome do Portal"
+  tituloLimpo = tituloLimpo.replace(/\s+[-|–—]\s+[^-|–—]+$/, "").trim();
 
-  // Substituir termos e verbos chave
+  let tituloModificado = tituloLimpo;
+
+  // Substituir termos e verbos chave por sinônimos precisos
   for (const [regex, opcoes] of SINONIMOS_VERBOS) {
     if (regex.test(tituloModificado)) {
       const substituto = opcoes[Math.floor(Math.random() * opcoes.length)];
       tituloModificado = tituloModificado.replace(regex, substituto);
-      break; // Aplica uma substituição para manter a fluidez natural
+      break; // Aplica no máximo uma substituição para manter a naturalidade
     }
   }
 
-  // Se o título não mudou muito, aplicar formatação jornalística de lead
-  let tituloFinal = tituloModificado;
-  if (tituloFinal === titulo) {
-    const prefixo = PREFIXOS_EDITORIAIS[Math.floor(Math.random() * PREFIXOS_EDITORIAIS.length)];
-    // Tentar inverter antes de dois pontos se houver
-    if (titulo.includes(":")) {
-      const partes = titulo.split(":");
-      tituloFinal = `${partes[1].trim()} — ${partes[0].trim()}`;
-    } else {
-      tituloFinal = `${prefixo} ${titulo}`;
-    }
-  }
+  // Título final sem inventar matéria
+  const tituloFinal = tituloModificado || tituloLimpo;
 
   // 2. REESCRITA DO RESUMO E CRIAÇÃO DO SUBTÍTULO
-  const textoLimpo = resumoBruto
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  const textoLimpo = substituirFontesPorEmpire(
+    resumoBruto
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 
   const frases = textoLimpo
     .split(/(?<=[.?!])\s+/)
     .filter((f) => f.length > 15);
 
   const primeiroPonto = frases[0] || textoLimpo;
-  // Variação na introdução do resumo
-  const introducoesLead = [
-    "De acordo com informações recentes,",
-    "Conforme acompanhado na região,",
-    "Novos desdobramentos indicam que",
-    "Em apuração recente,",
-  ];
-  const introEscolhida = introducoesLead[Math.floor(Math.random() * introducoesLead.length)];
-
-  const resumoReescrito = `${introEscolhida} ${primeiroPonto.charAt(0).toLowerCase() + primeiroPonto.slice(1)}`;
-
   const subtitulo = frases[1]
     ? frases[1].slice(0, 160)
-    : `Acompanhe os detalhes e principais informações apuradas sobre este caso.`;
+    : primeiroPonto.slice(0, 160);
+
+  const resumoReescrito = textoLimpo.slice(0, 380);
 
   // 3. CONTEÚDO HTML COM REDAÇÃO JORNALÍSTICA PROFISSIONAL E COMPLETA
   const textoParaProcessar = dados.conteudoBruto && dados.conteudoBruto.length > 200
     ? dados.conteudoBruto
-    : (frases.length > 0 ? frases.join(" ") : textoLimpo);
+    : (frases.length > 1 ? frases.join(" ") : textoLimpo);
 
   const conteudoHtml = limparEPadronizarTextoJornalistico(
     textoParaProcessar,
@@ -134,8 +121,8 @@ export function reescreverComAlgoritmo(dados: DadosNoticiaParaReescrita): Notici
 
   return {
     titulo: tituloFinal,
-    subtitulo,
-    resumo: resumoReescrito.slice(0, 380),
+    subtitulo: subtitulo || `Principais atualizações e desdobramentos apurados pela equipe de reportagem.`,
+    resumo: resumoReescrito,
     conteudoHtml,
     metodo: "algoritmo",
   };

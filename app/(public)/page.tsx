@@ -91,7 +91,7 @@ export default async function PortalHomePage() {
   return (
     <div className="space-y-10">
       {/* 1. Publicidade Topo */}
-      <AdSlot posicao="topo" />
+      <AdSlot posicao="topo" tipoPagina="home" />
 
       {/* 2. Top Hero Magazine: 3 Colunas Exatas da Referência */}
       <TopHeroMagazine
@@ -108,7 +108,7 @@ export default async function PortalHomePage() {
 
       {/* 4. Banner Entre Blocos */}
       <div className="my-6">
-        <AdSlot posicao="home_entre_blocos" />
+        <AdSlot posicao="home_entre_blocos" tipoPagina="home" />
       </div>
 
       {/* 4.1 Vitrine de Classificados em Destaque na Home */}
@@ -199,7 +199,7 @@ export default async function PortalHomePage() {
           )}
 
           {/* Banner Publicidade Lateral */}
-          <AdSlot posicao="lateral" />
+          <AdSlot posicao="lateral" tipoPagina="home" />
 
           {/* Widget WhatsApp VIP */}
           <a

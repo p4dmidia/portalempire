@@ -5,10 +5,10 @@ import { requireRole } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
 const AnuncioUpdateSchema = z.object({
-  titulo: z.string().min(3).optional(),
-  imagem_desktop_url: z.string().url().optional(),
-  imagem_mobile_url: z.string().url().nullable().optional().or(z.literal("")),
-  link_destino: z.string().url().optional(),
+  titulo: z.string().min(2).optional(),
+  imagem_desktop_url: z.string().min(1).optional(),
+  imagem_mobile_url: z.string().nullable().optional().or(z.literal("")),
+  link_destino: z.string().min(1).optional(),
   inicio_em: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   fim_em: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   status: z.enum(["aguardando_pagamento", "ativo", "pausado", "expirado", "cancelado"]).optional(),
@@ -96,11 +96,10 @@ export async function PUT(
         .lte("inicio_em", novoFim)
         .gte("fim_em", novoInicio);
 
-      if (sobrepostos && sobrepostos.length > 0) {
-        const conflito = sobrepostos[0];
+      if (sobrepostos && sobrepostos.length >= 10) {
         return NextResponse.json(
           {
-            error: `Conflito de período: o anúncio "${conflito.titulo}" já está ativo neste espaço entre ${conflito.inicio_em} e ${conflito.fim_em}.`,
+            error: "Limite de rotação atingido: este espaço já possui 10 banners ativos em rotação simultânea no mesmo período.",
           },
           { status: 409 }
         );

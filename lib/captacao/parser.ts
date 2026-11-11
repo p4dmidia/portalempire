@@ -52,6 +52,63 @@ const parser = new Parser<Record<string, unknown>, ParsedFeedItem>({
   },
 });
 
+export function isTituloValido(titulo: string | undefined | null): boolean {
+  if (!titulo) return false;
+  const texto = titulo.trim();
+  if (texto.length < 25) return false;
+
+  const palavras = texto.split(/\s+/).filter(Boolean);
+  if (palavras.length < 4) return false;
+
+  const norm = texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, "")
+    .trim();
+
+  const termosProibidos = new Set([
+    "economia",
+    "esportes",
+    "cultura",
+    "concursos",
+    "cidades",
+    "geral",
+    "politica",
+    "policial",
+    "home",
+    "inicio",
+    "opiniao",
+    "artigos",
+    "noticias",
+    "brasil",
+    "mundo",
+    "saude",
+    "educacao",
+    "futebol",
+    "tecnologia",
+    "videos",
+    "fotos",
+    "fique por dentro",
+    "em destaque",
+    "entenda",
+    "ultimas noticias",
+    "pagina inicial",
+    "todas as materias",
+    "ver mais",
+    "leia mais",
+    "classificados",
+    "revistas",
+    "contato",
+    "sobre nos",
+    "anuncie",
+  ]);
+
+  if (termosProibidos.has(norm)) return false;
+
+  return true;
+}
+
 function isHtml(text: string): boolean {
   const trimmed = text.trim().toLowerCase();
   return (
@@ -230,22 +287,27 @@ function scrapeNewsFromHtml(html: string, pageUrl: string): ParsedFeedItem[] {
         }
       }
 
-      if (!titulo || titulo.length < 15) continue;
+      if (!titulo || !isTituloValido(titulo)) continue;
 
-      // Validação do padrão de link de notícia:
-      // - Contém termos de editoria/seção no path OU
-      // - Contém slug com hífen (padrão WordPress / CMS moderno) com pelo menos 8 caracteres no segmento final OU
-      // - Termina com .html/.htm OU
-      // - Possui parâmetro numérico (id=123)
-      const hasNewsPrefix =
-        /(?:noticia|noticias|materia|materias|post|posts|artigo|artigos|conteudo|cidades|politica|policia|economia|cultura|esporte|esportes|futebol|geral|brasil|mundo|turismo|prisma|agro|\d{4}\/\d{2})/i.test(
-          pathname
-        );
+      // Validação rigorosa do link de notícia (evita capturar menus e páginas de categoria):
+      // - Descarta se for apenas página de categoria raiz (ex: /cidades, /economia, /concursos)
       const segments = pathname.split("/").filter(Boolean);
       const lastSegment = segments[segments.length - 1] || "";
-      const hasHyphenSlug = (pathname.match(/-/g) || []).length >= 1 && lastSegment.length >= 8;
+      const hyphenCount = (pathname.match(/-/g) || []).length;
       const endsWithHtml = /\.html?$/i.test(pathname);
       const hasIdParam = /[?&]id=\d+/i.test(parsedUrl.search);
+
+      const isCategoryPage = segments.length <= 1 && !endsWithHtml && !hasIdParam && hyphenCount < 2;
+      if (isCategoryPage) {
+        continue;
+      }
+
+      // Deve ter pelo menos um slug com hífen significativo, extensão de matéria (.html) ou id
+      const hasHyphenSlug = hyphenCount >= 1 && lastSegment.length >= 8;
+      const hasNewsPrefix =
+        /(?:noticia|noticias|materia|materias|post|posts|artigo|artigos|conteudo|\d{4}\/\d{2})/i.test(
+          pathname
+        );
 
       if (!hasNewsPrefix && !hasHyphenSlug && !endsWithHtml && !hasIdParam) {
         continue;
@@ -303,18 +365,20 @@ async function fetchGoogleNewsBridge(targetUrl: string): Promise<ParsedFeed | nu
       const rawItems = parsed.items || [];
       if (rawItems.length > 0) {
         console.log(`[Universal RSS Bridge] ${rawItems.length} matérias resgatadas com sucesso para ${host}`);
-        const cleanItems: ParsedFeedItem[] = rawItems.map((item) => {
-          let cleanTitle = (item.title || "").trim();
-          // Remove sufixo comum de veículo adicionado pelo agregador (ex: " - Nome do Portal")
-          cleanTitle = cleanTitle.replace(/\s+-\s+[^-]+$/, "").trim();
-          return {
-            title: cleanTitle || item.title,
-            link: item.link,
-            pubDate: item.pubDate || new Date().toISOString(),
-            summary: item.contentSnippet || item.summary || cleanTitle,
-            contentSnippet: item.contentSnippet || item.summary || cleanTitle,
-          };
-        });
+        const cleanItems: ParsedFeedItem[] = rawItems
+          .map((item) => {
+            let cleanTitle = (item.title || "").trim();
+            // Remove sufixo comum de veículo adicionado pelo agregador (ex: " - Nome do Portal")
+            cleanTitle = cleanTitle.replace(/\s+-\s+[^-]+$/, "").trim();
+            return {
+              title: cleanTitle || item.title,
+              link: item.link,
+              pubDate: item.pubDate || new Date().toISOString(),
+              summary: item.contentSnippet || item.summary || cleanTitle,
+              contentSnippet: item.contentSnippet || item.summary || cleanTitle,
+            };
+          })
+          .filter((item) => isTituloValido(item.title));
 
         return {
           title: parsed.title || `Notícias - ${host}`,

@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
@@ -53,6 +54,7 @@ export function ColunistaAnunciosView({
   anunciantes,
   espacos,
 }: ColunistaAnunciosViewProps) {
+  const router = useRouter()
   const [anuncios, setAnuncios] = useState<AnuncioItem[]>(initialAnuncios)
   const [busca, setBusca] = useState("")
   const [statusFiltro, setStatusFiltro] = useState<string>("todos")
@@ -60,16 +62,23 @@ export function ColunistaAnunciosView({
   const [modalMetricasAberto, setModalMetricasAberto] = useState(false)
   const [anuncioSelecionado, setAnuncioSelecionado] = useState<AnuncioItem | null>(null)
 
+  useEffect(() => {
+    if (initialAnuncios) {
+      setAnuncios(initialAnuncios)
+    }
+  }, [initialAnuncios])
+
   const recarregar = async () => {
     try {
       const res = await fetch("/api/anuncios")
       const json = await res.json()
-      if (res.ok) {
-        setAnuncios(json.anuncios || [])
+      if (res.ok && Array.isArray(json.anuncios)) {
+        setAnuncios(json.anuncios)
       }
     } catch (e) {
       console.error(e)
     }
+    router.refresh()
   }
 
   const handleStatusChange = async (anuncio: AnuncioItem, novoStatus: string) => {
@@ -135,9 +144,9 @@ export function ColunistaAnunciosView({
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Meus Anúncios</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Banners Patrocinados</h1>
           <p className="text-sm text-muted-foreground">
-            Crie e acompanhe as campanhas publicitárias veiculadas nas suas colunas
+            Cadastre os banners dos seus patrocinadores nas suas colunas e matérias.
           </p>
         </div>
         <Button
@@ -145,17 +154,12 @@ export function ColunistaAnunciosView({
             setAnuncioSelecionado(null)
             setModalFormAberto(true)
           }}
+          className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold shadow-sm"
         >
           <Plus className="mr-2 h-4 w-4" />
-          Novo Anúncio
+          Novo Banner
         </Button>
       </div>
-
-      {espacos.length === 0 && (
-        <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-300">
-          Você ainda não possui nenhum espaço publicitário ativo. Cadastre um espaço na aba &quot;Espaços de Anúncio&quot; para veicular suas campanhas.
-        </div>
-      )}
 
       <div className="flex flex-col sm:flex-row items-center gap-3">
         <div className="relative flex-1 max-w-sm w-full">
@@ -210,34 +214,71 @@ export function ColunistaAnunciosView({
                     ? ((anuncio.cliques / anuncio.impressoes) * 100).toFixed(2)
                     : "0.00"
 
+                const tituloLimpo = (anuncio.titulo || "").replace(/\[paginas:.*?\]/, "").trim() || "Anúncio"
+                const pagMatch = (anuncio.titulo || "").match(/\[paginas:(.*?)\]/)
+                const pagConfig = pagMatch ? pagMatch[1] : "todas"
+
                 return (
                   <TableRow key={anuncio.id}>
                     <TableCell>
-                      <div className="font-medium flex items-center gap-1.5">
-                        {anuncio.titulo}
-                        {anuncio.link_destino && (
-                          <a
-                            href={anuncio.link_destino}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-muted-foreground hover:text-primary"
-                            title="Abrir link de destino"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
+                      <div className="flex items-center gap-3">
+                        {anuncio.imagem_desktop_url && (
+                          <div className="relative w-16 h-10 rounded-lg overflow-hidden bg-slate-900 border shrink-0">
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={anuncio.imagem_desktop_url}
+                              alt={tituloLimpo}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
                         )}
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-0.5">
-                        {anuncio.anunciante?.empresa || anuncio.anunciante?.nome_contato}
+                        <div className="min-w-0">
+                          <div className="font-bold text-sm flex items-center gap-1.5 truncate">
+                            {tituloLimpo}
+                            {anuncio.link_destino && (
+                              <a
+                                href={anuncio.link_destino}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-muted-foreground hover:text-primary shrink-0"
+                                title="Abrir link de destino"
+                              >
+                                <ExternalLink className="h-3.5 w-3.5" />
+                              </a>
+                            )}
+                          </div>
+                          <div className="text-xs text-muted-foreground truncate">
+                            {anuncio.anunciante?.empresa || anuncio.anunciante?.nome_contato || "Anunciante"}
+                          </div>
+                          <div className="mt-1 flex items-center gap-1">
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold border">
+                              {pagConfig === "home_portal" || pagConfig === "home_coluna"
+                                ? "🏠 Home do Portal"
+                                : pagConfig === "coluna_apenas"
+                                ? "✍️ Capa da Coluna"
+                                : pagConfig === "artigos"
+                                ? "📰 Artigos / Matérias"
+                                : "🌐 Todo o Site"}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm font-medium">
-                        {anuncio.espaco?.nome || "Espaço"}
+                      <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-muted">
+                        {anuncio.espaco?.posicao === "topo"
+                          ? "Topo da Página"
+                          : anuncio.espaco?.posicao === "lateral" || anuncio.espaco?.posicao === "sidebar"
+                          ? "Barra Lateral"
+                          : anuncio.espaco?.posicao === "meio_texto" || anuncio.espaco?.posicao === "artigo"
+                          ? "Meio da Matéria"
+                          : anuncio.espaco?.posicao === "rodape"
+                          ? "Rodapé"
+                          : anuncio.espaco?.nome || "Banner"}
                       </span>
                       {anuncio.espaco?.formato && (
-                        <div className="text-xs text-muted-foreground">
-                          {anuncio.espaco.formato.nome}
+                        <div className="text-[11px] text-muted-foreground mt-0.5">
+                          {anuncio.espaco.formato.largura_desktop}x{anuncio.espaco.formato.altura_desktop} px
                         </div>
                       )}
                     </TableCell>

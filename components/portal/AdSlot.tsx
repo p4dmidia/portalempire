@@ -8,6 +8,7 @@ import { Megaphone, ChevronLeft, ChevronRight } from "lucide-react";
 interface AdSlotProps {
   posicao: "topo" | "lateral" | "meio_texto" | "rodape" | "home_entre_blocos";
   colunaId?: string;
+  tipoPagina?: "home" | "coluna" | "materia" | "todas";
   className?: string;
   intervalo?: number; // ms entre cada rotação (padrão: 5000)
   carrossel?: boolean; // habilitar rotação se houver múltiplos anúncios (padrão: true)
@@ -25,6 +26,7 @@ interface AnuncioAtivo {
 export function AdSlot({
   posicao,
   colunaId,
+  tipoPagina,
   className = "",
   intervalo = 5000,
   carrossel = true,
@@ -44,6 +46,7 @@ export function AdSlot({
       try {
         const queryParams = new URLSearchParams({ posicao });
         if (colunaId) queryParams.set("coluna_id", colunaId);
+        if (tipoPagina) queryParams.set("tipo_pagina", tipoPagina);
 
         const res = await fetch(`/api/ads/slot?${queryParams.toString()}`);
         const data = await res.json();
@@ -153,6 +156,8 @@ export function AdSlot({
 
   // Se houver anúncios cadastrados
   if (total > 0) {
+    const isHorizontal = posicao === "topo" || posicao === "rodape" || posicao === "home_entre_blocos";
+
     return (
       <div
         ref={slotRef}
@@ -162,7 +167,7 @@ export function AdSlot({
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative inline-block max-w-full overflow-hidden rounded-2xl group shadow-sm bg-slate-900/5 dark:bg-white/5 border border-slate-200/60 dark:border-slate-800/60">
+        <div className="relative inline-block max-w-full overflow-hidden rounded-xl group shadow-sm bg-slate-900/5 dark:bg-white/5 border border-slate-200/60 dark:border-slate-800/60">
           {/* Tag de Publicidade com indicador de quantidade */}
           <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5 text-[9px] uppercase font-bold tracking-widest bg-black/70 text-white/95 px-2 py-0.5 rounded-md backdrop-blur-md shadow-sm pointer-events-none">
             <span>Publicidade</span>
@@ -221,7 +226,7 @@ export function AdSlot({
                   href={`/api/ads/click/${anuncio.id}`}
                   target="_blank"
                   rel="noopener nofollow"
-                  className="inline-block relative overflow-hidden rounded-2xl transition-transform hover:scale-[1.003]"
+                  className="inline-block relative overflow-hidden rounded-xl transition-transform hover:scale-[1.003]"
                   title={anuncio.titulo}
                   tabIndex={idx === indiceAtual ? 0 : -1}
                 >
@@ -230,9 +235,11 @@ export function AdSlot({
                     <Image
                       src={anuncio.imagem_desktop_url}
                       alt={anuncio.titulo}
-                      width={970}
-                      height={250}
-                      className="rounded-2xl object-contain mx-auto max-h-[250px] w-auto h-auto"
+                      width={isHorizontal ? 970 : 300}
+                      height={isHorizontal ? 90 : 250}
+                      className={`rounded-xl object-contain mx-auto w-auto h-auto ${
+                        isHorizontal ? "max-h-[120px]" : "max-h-[250px]"
+                      }`}
                       priority={idx === 0}
                       unoptimized
                     />
@@ -243,9 +250,11 @@ export function AdSlot({
                     <Image
                       src={anuncio.imagem_mobile_url || anuncio.imagem_desktop_url}
                       alt={anuncio.titulo}
-                      width={350}
-                      height={250}
-                      className="rounded-2xl object-contain mx-auto max-h-[160px] w-auto h-auto"
+                      width={320}
+                      height={isHorizontal ? 50 : 250}
+                      className={`rounded-xl object-contain mx-auto w-auto h-auto ${
+                        isHorizontal ? "max-h-[80px]" : "max-h-[200px]"
+                      }`}
                       priority={idx === 0}
                       unoptimized
                     />

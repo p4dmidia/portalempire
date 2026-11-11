@@ -273,7 +273,7 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
         <ShareButtons url={pageUrl} titulo={tituloLimpo} />
 
         {/* AD SLOT 1: Topo do Texto */}
-        <AdSlot posicao="topo" />
+        <AdSlot posicao="topo" colunaId={materia.coluna_id || undefined} tipoPagina="materia" />
 
         {/* CONTEÚDO DA MATÉRIA COMPLETA */}
         <div className="prose prose-lg dark:prose-invert max-w-none text-base md:text-lg text-slate-800 dark:text-slate-200 leading-relaxed font-normal">
@@ -302,7 +302,7 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
         )}
 
         {/* AD SLOT 2: Meio de Texto / Rodapé da Matéria */}
-        <AdSlot posicao="meio_texto" />
+        <AdSlot posicao="meio_texto" colunaId={materia.coluna_id || undefined} tipoPagina="materia" />
 
         {/* Matérias Relacionadas */}
         {materiasRelacionadas.length > 0 && (
