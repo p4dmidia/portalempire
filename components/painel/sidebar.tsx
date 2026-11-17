@@ -78,7 +78,7 @@ export function Sidebar({ profile }: SidebarProps) {
     { label: "Meus Anunciantes", href: "/painel/colunista/anunciantes", icon: Users },
     { label: "Programa de Afiliados", href: "/painel/colunista/afiliados", icon: Share2 },
     { label: "Minha Assinatura", href: "/painel/colunista/assinatura", icon: CreditCard },
-    { label: "Financeiro & Split", href: "/painel/colunista/financeiro", icon: DollarSign },
+    { label: "Financeiro & Assinantes", href: "/painel/colunista/financeiro", icon: DollarSign },
   ];
 
   const anuncianteNav: NavItem[] = [

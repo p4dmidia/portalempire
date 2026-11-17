@@ -542,8 +542,8 @@ export function AnuncioFormDialog({
         fim_em: fimEmFinal,
         valor: Number(data.valor_total) || 0,
         status: data.status || "ativo",
-        forma_pagamento: data.forma_pagamento || "manual",
-        gerar_cobranca_asaas: data.forma_pagamento !== "manual" && data.gerar_cobranca_asaas,
+        forma_pagamento: "manual",
+        gerar_cobranca_asaas: false,
       }
 
       const url = anuncioParaEditar
@@ -1135,34 +1135,20 @@ export function AnuncioFormDialog({
                     {...register("forma_pagamento")}
                     className="mt-1 w-full h-10 px-3 rounded-md border border-input bg-background text-sm font-medium"
                   >
-                    <option value="manual">Negociação Direta / Link Externo (Sem taxas)</option>
-                    <option value="pix">PIX Automático (Asaas Split)</option>
-                    <option value="cartao">Cartão de Crédito</option>
-                    <option value="boleto">Boleto Bancário</option>
+                    <option value="manual">Negociação Direta (Cobrança por fora - 100% seu)</option>
                   </select>
                 </div>
               </div>
 
-              {formaPagamento === "manual" ? (
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-1 text-xs text-emerald-900 dark:text-emerald-200">
-                  <p className="font-bold flex items-center gap-1.5">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    Pagamento Direto / Negociação Externa
-                  </p>
-                  <p className="text-[11px] leading-relaxed opacity-90">
-                    Você negocia e recebe diretamente com seu anunciante (via seu próprio PIX, link externo ou dinheiro). O portal não cobrará nenhuma taxa e o banner ficará <strong>Ativo</strong> imediatamente após ser salvo!
-                  </p>
-                </div>
-              ) : (
-                <div className="rounded-lg border p-3 bg-primary/5 space-y-1">
-                  <p className="text-xs font-semibold text-primary">
-                    ⚡ Split Asaas Automático
-                  </p>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    Será gerada uma fatura online com QR Code PIX. Quando o cliente pagar, o sistema ativará o anúncio sozinho e repassará a comissão líquida para a sua conta.
-                  </p>
-                </div>
-              )}
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 space-y-1 text-xs text-emerald-900 dark:text-emerald-200">
+                <p className="font-bold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                  Cobrança Direta pelo Colunista (Sem taxas da Empire Cidades)
+                </p>
+                <p className="text-[11px] leading-relaxed opacity-90">
+                  Todo anúncio vendido na sua coluna é <strong>100% seu</strong>. Você negocia e recebe diretamente do seu cliente (via seu PIX ou conta externa). A Empire Cidades não retém comissão sobre seus anúncios e o banner fica <strong>Ativo</strong> imediatamente após ser salvo!
+                </p>
+              </div>
 
               {erro && (
                 <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive flex items-center gap-2">

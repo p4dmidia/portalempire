@@ -1,34 +1,5 @@
 [
   {
-    "id": "cls-teste-moto-fazer-2024",
-    "titulo": "Moto Fazer 2024/2024",
-    "slug": "moto-fazer-2024",
-    "descricao": "Moto Yamaha Fazer impecável, revisões em concessionária, documentação 100% em dia. Excelente estado e pronta para rodar.",
-    "tipo": "venda",
-    "categoria": "veiculos",
-    "preco": 15000,
-    "preco_sob_consulta": false,
-    "imagem_principal": "https://omvrwukcrfsgyzqmomtg.supabase.co/storage/v1/object/public/materias/classificados/654653b1-e14f-4903-a7e4-8a5b330a2766-1793642720487-lcm4k.png",
-    "galeria_fotos": [],
-    "cidade_nome": "Belo Horizonte",
-    "bairro": "Centro",
-    "uf": "MG",
-    "contato_nome": "Administrador Empire Cidades",
-    "contato_whatsapp": "11999999999",
-    "destaque_home": true,
-    "destaque_classificados": true,
-    "paginas_exibicao": [
-      "classificados",
-      "home"
-    ],
-    "status": "ativo",
-    "visualizacoes": 1,
-    "created_at": "2026-11-02T17:54:12.761Z",
-    "updated_at": "2026-11-02T18:05:33.233Z",
-    "contato_telefone": null,
-    "link_externo": null
-  },
-  {
     "id": "cls-00000000-0006",
     "titulo": "Troco Trator John Deere 6100J por Caminhonete Hilux ou Ranger",
     "slug": "troco-trator-john-deere-6100j-por-caminhonete",

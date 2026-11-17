@@ -1,9 +1,9 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -11,306 +11,561 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { SubcontaConfigDialog } from "@/components/painel/financeiro/subconta-config-dialog"
+} from "@/components/ui/table";
+import { PixConfigDialog } from "@/components/painel/financeiro/pix-config-dialog";
+import { SolicitarSaqueDialog } from "@/components/painel/financeiro/solicitar-saque-dialog";
 import {
-  DollarSign,
+  Users,
   TrendingUp,
-  CreditCard,
-  Clock,
+  Percent,
   CheckCircle2,
-  ExternalLink,
   Search,
-  Share2,
-  Wallet,
-} from "lucide-react"
+  QrCode,
+  ArrowUpRight,
+  Clock,
+  Sparkles,
+  Megaphone,
+  CreditCard,
+  Building2,
+  FileText,
+} from "lucide-react";
 
-export interface PedidoItem {
-  id: string
-  anuncio_id: string
-  valor_total: number
-  comissao_percentual: number
-  valor_comissao: number
-  valor_liquido_dono: number
-  forma_pagamento: string
-  asaas_payment_id: string | null
-  link_pagamento: string | null
-  status: string
-  pago_em: string | null
-  created_at: string
-  anuncio?: {
-    id: string
-    titulo: string
-    inicio_em: string
-    fim_em: string
-    anunciante?: {
-      nome: string
-      telefone: string | null
-    }
-  }
+export interface SeguidorItem {
+  id: string;
+  nome: string;
+  whatsapp: string;
+  email: string | null;
+  plano_trial: boolean;
+  status: string;
+  created_at: string;
+}
+
+export interface SaqueItem {
+  id: string;
+  valor: number;
+  chave_pix: string;
+  tipo_chave_pix: string;
+  status: "pendente" | "pago" | "rejeitado";
+  comprovante?: string | null;
+  motivo_rejeicao?: string | null;
+  solicitado_em: string;
+  pago_em?: string | null;
 }
 
 interface ColunistaFinanceiroViewProps {
-  initialPedidos: PedidoItem[]
+  initialSeguidores: SeguidorItem[];
+  initialSaques: SaqueItem[];
   userProfile: {
-    id: string
-    nome: string
-    email: string
-    cpf_cnpj: string | null
-    telefone: string | null
-    asaas_wallet_id: string | null
-  }
+    id: string;
+    nome: string;
+    email: string;
+    cpf_cnpj: string | null;
+    telefone: string | null;
+    chave_pix: string | null;
+    tipo_chave_pix: string | null;
+    saldo_afiliado: number;
+  };
+  colunaNome?: string;
+  mensalidadeValor: number;
+  percentualColunista: number;
+  percentualPlataforma: number;
+  saqueMinimo: number;
 }
 
 export function ColunistaFinanceiroView({
-  initialPedidos,
+  initialSeguidores,
+  initialSaques,
   userProfile,
+  colunaNome,
+  mensalidadeValor,
+  percentualColunista,
+  percentualPlataforma,
+  saqueMinimo,
 }: ColunistaFinanceiroViewProps) {
-  const [pedidos] = useState<PedidoItem[]>(initialPedidos)
-  const [busca, setBusca] = useState("")
-  const [modalSubcontaAberto, setModalSubcontaAberto] = useState(false)
+  const [seguidores] = useState<SeguidorItem[]>(initialSeguidores);
+  const [saques, setSaques] = useState<SaqueItem[]>(initialSaques);
+  const [busca, setBusca] = useState("");
+  const [abaAtiva, setAbaAtiva] = useState<"assinantes" | "saques">("assinantes");
 
-  // Cálculos financeiros
-  const totalVendido = pedidos
-    .filter((p) => p.status === "pago")
-    .reduce((acc, p) => acc + Number(p.valor_total), 0)
+  const [modalPixAberto, setModalPixAberto] = useState(false);
+  const [modalSaqueAberto, setModalSaqueAberto] = useState(false);
 
-  const totalComissaoPlataforma = pedidos
-    .filter((p) => p.status === "pago")
-    .reduce((acc, p) => acc + Number(p.valor_comissao), 0)
+  const [chavePix, setChavePix] = useState<string | null>(
+    userProfile.chave_pix
+  );
+  const [tipoChavePix, setTipoChavePix] = useState<string | null>(
+    userProfile.tipo_chave_pix
+  );
+  const [saldoDisponivel, setSaldoDisponivel] = useState<number>(
+    userProfile.saldo_afiliado || 0
+  );
 
-  const totalLiquidoColunista = pedidos
-    .filter((p) => p.status === "pago")
-    .reduce((acc, p) => acc + Number(p.valor_liquido_dono), 0)
+  // --------------------------------------------------------------------------
+  // CÁLCULOS FINANCEIROS DAS ASSINATURAS DA COLUNA (60% / 40%)
+  // --------------------------------------------------------------------------
+  const totalAssinantes = seguidores.length;
+  const assinantesAtivos = seguidores.filter((s) => s.status === "ativo").length;
 
-  const totalPendente = pedidos
-    .filter((p) => p.status === "pendente")
-    .reduce((acc, p) => acc + Number(p.valor_liquido_dono), 0)
+  const valorPorAssinante = mensalidadeValor; // R$ 9,90
+  const receitaBrutaTotal = assinantesAtivos * valorPorAssinante;
+  const valorColunistaPorAssinante = valorPorAssinante * (percentualColunista / 100); // R$ 5,94
+  const participacaoMensalLiquida = assinantesAtivos * valorColunistaPorAssinante;
+  const taxaPlataformaTotal = receitaBrutaTotal * (percentualPlataforma / 100);
 
-  const pedidosFiltrados = pedidos.filter((p) => {
-    const termo = busca.toLowerCase()
-    const titulo = p.anuncio?.titulo?.toLowerCase() || ""
-    const anunciante = p.anuncio?.anunciante?.nome?.toLowerCase() || ""
-    return titulo.includes(termo) || anunciante.includes(termo)
-  })
+  // Histórico de saques
+  const totalPago = saques
+    .filter((s) => s.status === "pago")
+    .reduce((acc, s) => acc + Number(s.valor), 0);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "pago":
-        return <Badge className="bg-emerald-500 hover:bg-emerald-600">Pago (Split OK)</Badge>
-      case "pendente":
-        return <Badge className="bg-amber-500 hover:bg-amber-600">Aguardando Pagamento</Badge>
-      case "cancelado":
-        return <Badge variant="destructive">Cancelado</Badge>
-      case "reembolsado":
-        return <Badge variant="secondary">Reembolsado</Badge>
-      default:
-        return <Badge variant="outline">{status}</Badge>
+  const totalPendente = saques
+    .filter((s) => s.status === "pendente")
+    .reduce((acc, s) => acc + Number(s.valor), 0);
+
+  // Filtro de assinantes
+  const seguidoresFiltrados = seguidores.filter((s) => {
+    const termo = busca.toLowerCase();
+    const nome = s.nome?.toLowerCase() || "";
+    const email = s.email?.toLowerCase() || "";
+    const whats = s.whatsapp || "";
+    return nome.includes(termo) || email.includes(termo) || whats.includes(termo);
+  });
+
+  const handlePixSalvo = (novaChave: string, novoTipo: string) => {
+    setChavePix(novaChave);
+    setTipoChavePix(novoTipo);
+  };
+
+  const handleSaqueSucesso = (novoS掛け: unknown, novoSaldo: number) => {
+    if (novoS掛け) {
+      setSaques([novoS掛け as SaqueItem, ...saques]);
     }
-  }
-
-  const gerarTextoWhatsApp = (pedido: PedidoItem) => {
-    const link = pedido.link_pagamento || "https://sandbox.asaas.com"
-    const titulo = pedido.anuncio?.titulo || "Anúncio"
-    const valor = Number(pedido.valor_total).toFixed(2)
-    const texto = `Olá! Segue o link seguro para pagamento da sua campanha "${titulo}" no Portal Empire no valor de R$ ${valor}:\n\n${link}\n\nAssim que o pagamento for concluído, seu anúncio entra no ar automaticamente!`
-    return encodeURIComponent(texto)
-  }
+    setSaldoDisponivel(novoSaldo);
+    setAbaAtiva("saques");
+  };
 
   return (
     <div className="space-y-6">
+      {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Financeiro & Repasses</h1>
-          <p className="text-sm text-muted-foreground">
-            Acompanhe o split de receitas, vendas de anúncios e sua carteira de recebimento
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-white flex items-center gap-2">
+            Financeiro & Assinaturas da Coluna
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Acompanhe as mensalidades dos assinantes que seguem sua coluna {colunaNome ? `"${colunaNome}"` : ""}, seus repasses de 60% e sua chave PIX.
           </p>
         </div>
         <Button
-          variant={userProfile.asaas_wallet_id ? "outline" : "default"}
-          onClick={() => setModalSubcontaAberto(true)}
+          variant={chavePix ? "outline" : "default"}
+          onClick={() => setModalPixAberto(true)}
           className="flex items-center gap-2"
         >
-          <Wallet className="h-4 w-4" />
-          {userProfile.asaas_wallet_id ? "Gerenciar Conta Asaas" : "Ativar Recebimento Asaas"}
+          <QrCode className="h-4 w-4 text-primary" />
+          {chavePix ? "Alterar Chave PIX" : "Cadastrar Chave PIX"}
         </Button>
       </div>
 
-      {/* Banner de status da carteira Asaas */}
-      {userProfile.asaas_wallet_id ? (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-800 dark:text-emerald-300 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+      {/* Banner de status da Chave PIX */}
+      {chavePix ? (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 text-sm text-emerald-900 dark:text-emerald-300 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
             <CheckCircle2 className="h-5 w-5 text-emerald-600 shrink-0" />
             <div>
-              <p className="font-semibold">Conta Asaas Integrada (Split Automático Ativo)</p>
-              <p className="text-xs opacity-80 font-mono">
-                Wallet ID: {userProfile.asaas_wallet_id}
+              <p className="font-semibold text-emerald-950 dark:text-emerald-200">
+                Chave PIX Cadastrada (Pronto para Recebimento de Repasses)
+              </p>
+              <p className="text-xs opacity-90 font-mono mt-0.5">
+                Tipo: <span className="uppercase font-bold">{tipoChavePix}</span> • Chave: <span className="font-bold">{chavePix}</span>
               </p>
             </div>
           </div>
-          <Badge className="bg-emerald-600 text-white">Pronto para Repasses</Badge>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setModalPixAberto(true)}
+            className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-500/20 self-start sm:self-auto"
+          >
+            Editar Chave
+          </Button>
         </div>
       ) : (
-        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-300 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <div>
-            <p className="font-semibold">⚠️ Carteira de Recebimento Não Configurada</p>
-            <p className="text-xs opacity-90">
-              Configure seus dados cadastrais para que os pagamentos dos anunciantes sejam repassados automaticamente para sua conta.
-            </p>
+        <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+          <div className="flex items-center gap-3">
+            <QrCode className="h-5 w-5 text-amber-600 shrink-0" />
+            <div>
+              <p className="font-semibold text-amber-950 dark:text-amber-100">
+                Você ainda não cadastrou sua Chave PIX
+              </p>
+              <p className="text-xs opacity-90 mt-0.5">
+                Cadastre sua chave PIX para que o portal possa transferir sua participação de 60% nas mensalidades dos seus assinantes.
+              </p>
+            </div>
           </div>
-          <Button size="sm" onClick={() => setModalSubcontaAberto(true)}>
-            Configurar Agora
+          <Button
+            size="sm"
+            onClick={() => setModalPixAberto(true)}
+            className="text-xs font-semibold bg-amber-600 hover:bg-amber-700 text-white self-start sm:self-auto"
+          >
+            Cadastrar Chave PIX
           </Button>
         </div>
       )}
 
-      {/* Cards de Métricas Financeiras */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="rounded-xl border bg-card p-5 space-y-2">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">Líquido Recebido</span>
-            <DollarSign className="h-4 w-4 text-emerald-600" />
+      {/* Regras Claras de Monetização do Portal */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm space-y-2">
+          <div className="flex items-center gap-2 text-primary font-bold text-sm">
+            <Sparkles className="w-4 h-4" />
+            Assinaturas da Coluna (Repasse de 60%)
           </div>
-          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
-            R$ {totalLiquidoColunista.toFixed(2)}
-          </div>
-          <p className="text-xs text-muted-foreground">Já transferido / split consolidado</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Cada leitor que assina e acompanha sua coluna paga uma mensalidade de <strong>R$ {valorPorAssinante.toFixed(2)}/mês</strong>. 
+            Deste valor, <strong>60% é seu (R$ {valorColunistaPorAssinante.toFixed(2)}/mês por assinante)</strong> e 40% é retido pela Empire Cidades para custos de infraestrutura e distribuição.
+          </p>
         </div>
 
-        <div className="rounded-xl border bg-card p-5 space-y-2">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total em Vendas</span>
-            <TrendingUp className="h-4 w-4 text-blue-600" />
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm space-y-2">
+          <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+            <Megaphone className="w-4 h-4" />
+            Anúncios e Banners na Coluna (100% Seu)
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">
-            R$ {totalVendido.toFixed(2)}
-          </div>
-          <p className="text-xs text-muted-foreground">Valor bruto total pago pelos clientes</p>
-        </div>
-
-        <div className="rounded-xl border bg-card p-5 space-y-2">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">Taxa da Plataforma</span>
-            <CreditCard className="h-4 w-4 text-slate-400" />
-          </div>
-          <div className="text-2xl font-black text-slate-600 dark:text-slate-400">
-            R$ {totalComissaoPlataforma.toFixed(2)}
-          </div>
-          <p className="text-xs text-muted-foreground">Comissão retida (média ~20%)</p>
-        </div>
-
-        <div className="rounded-xl border bg-card p-5 space-y-2">
-          <div className="flex items-center justify-between text-muted-foreground">
-            <span className="text-xs font-semibold uppercase tracking-wider">Aguardando Pagto</span>
-            <Clock className="h-4 w-4 text-amber-500" />
-          </div>
-          <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
-            R$ {totalPendente.toFixed(2)}
-          </div>
-          <p className="text-xs text-muted-foreground">Valor líquido de pedidos pendentes</p>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            Todo banner ou publicidade que você vende dentro da sua coluna é <strong>100% seu</strong>. Você negocia e cobra diretamente do anunciante por fora. 
+            A Empire Cidades <strong>não cobra nenhuma comissão</strong> sobre seus anúncios e não gerencia esses pagamentos.
+          </p>
         </div>
       </div>
 
-      {/* Tabela de Pedidos */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar por anúncio ou anunciante..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="pl-8"
-            />
+      {/* Cards de Métricas Principais */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="rounded-2xl border border-emerald-500/20 bg-gradient-to-br from-emerald-50/50 to-white dark:from-emerald-950/20 dark:to-slate-900 p-5 shadow-sm space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400">
+              Sua Parte Mensal (60%)
+            </span>
+            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-600">
+              <TrendingUp className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-extrabold text-emerald-900 dark:text-emerald-200">
+            R$ {participacaoMensalLiquida.toFixed(2)}
+            <span className="text-xs font-normal text-muted-foreground ml-1">/mês</span>
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            Líquido mensal dos seus {assinantesAtivos} assinantes ativos
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Total de Assinantes
+            </span>
+            <div className="p-2 rounded-xl bg-primary/10 text-primary">
+              <Users className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">
+            {totalAssinantes}
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            Leitores que favoritaram sua coluna
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Receita Bruta Total
+            </span>
+            <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <CreditCard className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">
+            R$ {receitaBrutaTotal.toFixed(2)}
+            <span className="text-xs font-normal text-muted-foreground ml-1">/mês</span>
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            Total bruto arrecadado pelas mensalidades
+          </p>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-1">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Taxa da Plataforma (40%)
+            </span>
+            <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <Building2 className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-extrabold text-slate-900 dark:text-white">
+            R$ {taxaPlataformaTotal.toFixed(2)}
+            <span className="text-xs font-normal text-muted-foreground ml-1">/mês</span>
+          </p>
+          <p className="text-[11px] text-muted-foreground">
+            40% retido para infraestrutura do portal
+          </p>
+        </div>
+      </div>
+
+      {/* Card de Saldo Disponível para Saque e Histórico */}
+      <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="space-y-1">
+          <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+            Saldo Disponível para Saque
+          </span>
+          <p className="text-3xl font-extrabold text-slate-900 dark:text-white">
+            R$ {saldoDisponivel.toFixed(2)}
+          </p>
+          <div className="flex items-center gap-4 text-xs text-muted-foreground pt-1">
+            <span>
+              Total já repassado: <strong className="text-slate-700 dark:text-slate-300">R$ {totalPago.toFixed(2)}</strong>
+            </span>
+            {totalPendente > 0 && (
+              <span className="text-amber-600 dark:text-amber-400 font-medium">
+                • Em processamento: R$ {totalPendente.toFixed(2)}
+              </span>
+            )}
           </div>
         </div>
 
-        <div className="rounded-md border bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data</TableHead>
-                <TableHead>Campanha / Anunciante</TableHead>
-                <TableHead>Bruto</TableHead>
-                <TableHead>Comissão</TableHead>
-                <TableHead>Líquido (Você)</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {pedidosFiltrados.length === 0 ? (
+        <Button
+          size="lg"
+          onClick={() => setModalSaqueAberto(true)}
+          disabled={saldoDisponivel < saqueMinimo}
+          className="gap-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md disabled:opacity-50"
+        >
+          <ArrowUpRight className="w-5 h-5" />
+          Solicitar Saque via PIX
+        </Button>
+      </div>
+
+      {/* Navegação entre Abas */}
+      <div className="border-b border-slate-200 dark:border-slate-800 flex items-center gap-4">
+        <button
+          type="button"
+          onClick={() => setAbaAtiva("assinantes")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            abaAtiva === "assinantes"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-slate-900 dark:hover:text-white"
+          }`}
+        >
+          <Users className="w-4 h-4" />
+          Assinantes da Coluna ({totalAssinantes})
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setAbaAtiva("saques")}
+          className={`pb-3 text-sm font-semibold border-b-2 transition-colors flex items-center gap-2 ${
+            abaAtiva === "saques"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-slate-900 dark:hover:text-white"
+          }`}
+        >
+          <Clock className="w-4 h-4" />
+          Histórico de Repasses e Saques PIX ({saques.length})
+        </button>
+      </div>
+
+      {/* Conteúdo da Aba 1: Assinantes */}
+      {abaAtiva === "assinantes" && (
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por nome, e-mail ou WhatsApp..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+                className="pl-9 text-xs"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="h-32 text-center text-muted-foreground">
-                    Nenhum pedido ou transação financeira registrada.
-                  </TableCell>
+                  <TableHead className="text-xs">Leitor / Assinante</TableHead>
+                  <TableHead className="text-xs">Contato (WhatsApp)</TableHead>
+                  <TableHead className="text-xs">Data de Adesão</TableHead>
+                  <TableHead className="text-xs">Modalidade</TableHead>
+                  <TableHead className="text-xs text-right">Mensalidade</TableHead>
+                  <TableHead className="text-xs text-right text-emerald-600 dark:text-emerald-400 font-bold">
+                    Sua Parte (60%)
+                  </TableHead>
                 </TableRow>
-              ) : (
-                pedidosFiltrados.map((pedido) => (
-                  <TableRow key={pedido.id}>
-                    <TableCell className="text-xs text-muted-foreground font-mono">
-                      {new Date(pedido.created_at).toLocaleDateString("pt-BR")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="font-medium text-sm">
-                        {pedido.anuncio?.titulo || "Campanha Publicitária"}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {pedido.anuncio?.anunciante?.nome || "Anunciante"}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-semibold text-slate-800 dark:text-slate-200">
-                      R$ {Number(pedido.valor_total).toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-xs text-muted-foreground">
-                      R$ {Number(pedido.valor_comissao).toFixed(2)} ({pedido.comissao_percentual}%)
-                    </TableCell>
-                    <TableCell className="font-bold text-emerald-600 dark:text-emerald-400">
-                      R$ {Number(pedido.valor_liquido_dono).toFixed(2)}
-                    </TableCell>
-                    <TableCell>{getStatusBadge(pedido.status)}</TableCell>
-                    <TableCell className="text-right space-x-1">
-                      {pedido.link_pagamento && (
-                        <>
-                          <a
-                            href={pedido.link_pagamento}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center p-2 rounded hover:bg-muted text-muted-foreground hover:text-primary transition-colors"
-                            title="Abrir fatura Asaas"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </a>
-                          <a
-                            href={`https://api.whatsapp.com/send?text=${gerarTextoWhatsApp(pedido)}${
-                              pedido.anuncio?.anunciante?.telefone
-                                ? `&phone=${pedido.anuncio.anunciante.telefone.replace(/\D/g, "")}`
-                                : ""
-                            }`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center justify-center p-2 rounded hover:bg-emerald-50 dark:hover:bg-emerald-950/30 text-emerald-600 hover:text-emerald-700 transition-colors"
-                            title="Enviar cobrança pelo WhatsApp"
-                          >
-                            <Share2 className="h-4 w-4" />
-                          </a>
-                        </>
-                      )}
+              </TableHeader>
+              <TableBody>
+                {seguidoresFiltrados.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="text-center py-10 text-muted-foreground text-sm"
+                    >
+                      {busca
+                        ? "Nenhum assinante encontrado para a busca informada."
+                        : "Sua coluna ainda não possui assinantes inscritos. Compartilhe o link da sua coluna para conquistar seus primeiros leitores!"}
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  seguidoresFiltrados.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell className="font-medium text-xs">
+                        <div>
+                          <p className="font-semibold text-slate-900 dark:text-white">
+                            {s.nome}
+                          </p>
+                          {s.email && (
+                            <p className="text-[11px] text-muted-foreground">
+                              {s.email}
+                            </p>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-xs font-mono">
+                        {s.whatsapp || "—"}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {new Date(s.created_at).toLocaleDateString("pt-BR")}
+                      </TableCell>
+                      <TableCell>
+                        {s.plano_trial ? (
+                          <Badge variant="outline" className="text-[11px] border-primary/30 text-primary">
+                            Trial 90 Dias
+                          </Badge>
+                        ) : (
+                          <Badge className="text-[11px] bg-emerald-600">
+                            Assinatura Ativa
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-right font-medium">
+                        R$ {valorPorAssinante.toFixed(2)}/mês
+                      </TableCell>
+                      <TableCell className="text-xs text-right font-bold text-emerald-600 dark:text-emerald-400">
+                        R$ {valorColunistaPorAssinante.toFixed(2)}/mês
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
-      </div>
+      )}
 
-      <SubcontaConfigDialog
-        open={modalSubcontaAberto}
-        onOpenChange={setModalSubcontaAberto}
-        userProfile={userProfile}
-        onSuccess={() => window.location.reload()}
+      {/* Conteúdo da Aba 2: Saques PIX */}
+      {abaAtiva === "saques" && (
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="text-xs">Data da Solicitação</TableHead>
+                  <TableHead className="text-xs">Valor do Saque</TableHead>
+                  <TableHead className="text-xs">Chave PIX de Destino</TableHead>
+                  <TableHead className="text-xs">Status</TableHead>
+                  <TableHead className="text-xs">Data de Pagamento</TableHead>
+                  <TableHead className="text-xs text-right">Comprovante</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {saques.length === 0 ? (
+                  <TableRow>
+                    <TableCell
+                      colSpan={6}
+                      className="text-center py-10 text-muted-foreground text-sm"
+                    >
+                      Nenhuma solicitação de saque realizada até o momento.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  saques.map((saque) => (
+                    <TableRow key={saque.id}>
+                      <TableCell className="text-xs text-muted-foreground font-medium">
+                        {new Date(saque.solicitado_em).toLocaleString("pt-BR")}
+                      </TableCell>
+                      <TableCell className="text-xs font-bold text-slate-900 dark:text-white">
+                        R$ {Number(saque.valor).toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-xs font-mono">
+                        {saque.chave_pix}{" "}
+                        <span className="text-[10px] text-muted-foreground uppercase font-sans">
+                          ({saque.tipo_chave_pix})
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        {saque.status === "pago" ? (
+                          <Badge className="bg-emerald-600 text-[11px]">
+                            Pago via PIX
+                          </Badge>
+                        ) : saque.status === "pendente" ? (
+                          <Badge className="bg-amber-500 text-[11px]">
+                            Aguardando Transferência
+                          </Badge>
+                        ) : (
+                          <Badge variant="destructive" className="text-[11px]">
+                            Rejeitado
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {saque.pago_em
+                          ? new Date(saque.pago_em).toLocaleString("pt-BR")
+                          : "—"}
+                      </TableCell>
+                      <TableCell className="text-xs text-right">
+                        {saque.comprovante ? (
+                          <a
+                            href={saque.comprovante}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-primary hover:underline font-semibold inline-flex items-center gap-1"
+                          >
+                            <FileText className="w-3.5 h-3.5" />
+                            Ver Comprovante
+                          </a>
+                        ) : (
+                          "—"
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Cadastrar / Alterar Chave PIX */}
+      <PixConfigDialog
+        open={modalPixAberto}
+        onOpenChange={setModalPixAberto}
+        userProfile={{
+          nome: userProfile.nome,
+          chave_pix: chavePix,
+          tipo_chave_pix: tipoChavePix,
+        }}
+        onSuccess={handlePixSalvo}
+      />
+
+      {/* Modal para Solicitar Saque via PIX */}
+      <SolicitarSaqueDialog
+        open={modalSaqueAberto}
+        onOpenChange={setModalSaqueAberto}
+        saldoDisponivel={saldoDisponivel}
+        saqueMinimo={saqueMinimo}
+        chavePix={chavePix}
+        tipoChavePix={tipoChavePix}
+        onOpenPixDialog={() => setModalPixAberto(true)}
+        onSuccess={handleSaqueSucesso}
       />
     </div>
-  )
+  );
 }
