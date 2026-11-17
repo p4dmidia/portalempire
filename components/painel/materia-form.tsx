@@ -565,7 +565,7 @@ export function MateriaForm({
                     </Label>
                     {userRole === "colunista" && colunas.length === 0 ? (
                       <div className="p-3 mt-1.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900 rounded-lg text-amber-800 dark:text-amber-300 text-xs leading-relaxed">
-                        Você não possui nenhuma coluna <strong>ativa</strong> no momento. Acesse &quot;Minhas Colunas&quot; para cadastrar ou aguardar aprovação antes de publicar artigos.
+                        Você não possui nenhuma coluna <strong>ativa</strong> no momento. Acesse &quot;Minha Coluna&quot; para cadastrar ou aguardar aprovação antes de publicar artigos.
                       </div>
                     ) : (
                       <Select id="coluna_id" className="mt-1" {...register("coluna_id")}>

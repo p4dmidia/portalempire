@@ -108,13 +108,22 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
       ? "Redatores da Empire Cidades"
       : materia.autor?.nome || "Redatores da Empire Cidades";
 
-  // Limpeza profunda de quaisquer menções a veículos externos, ruídos e deduplicação editorial
-  const conteudoOriginal = conteudoHtml;
-  conteudoHtml = limparEPadronizarTextoJornalistico(
-    conteudoHtml,
-    tituloLimpo,
-    materia.cidade?.nome
-  );
+  // Limpeza de ruídos de scraping apenas para matérias captadas automaticamente via RSS
+  // Matérias manuais de colunistas e redatores mantêm toda a formatação rica (negrito, tópicos, títulos, etc.)
+  const isCaptacao = materia.origem === "captacao" && !materia.coluna_id;
+  if (isCaptacao) {
+    conteudoHtml = limparEPadronizarTextoJornalistico(
+      conteudoHtml,
+      tituloLimpo,
+      materia.cidade?.nome
+    );
+  } else if (conteudoHtml && !conteudoHtml.includes("<p") && !conteudoHtml.includes("<div")) {
+    // Fallback caso texto manual tenha vindo sem tags HTML: divide quebras de linha em parágrafos
+    conteudoHtml = conteudoHtml
+      .split(/\n{2,}/)
+      .map((p) => `<p class="mb-5 leading-relaxed">${p.replace(/\n/g, "<br/>")}</p>`)
+      .join("\n");
+  }
 
   // JSON-LD NewsArticle para SEO avançado
   const jsonLd = {
@@ -276,7 +285,7 @@ export default async function MateriaDetalhePage({ params }: MateriaPageProps) {
         <AdSlot posicao="topo" colunaId={materia.coluna_id || undefined} tipoPagina="materia" />
 
         {/* CONTEÚDO DA MATÉRIA COMPLETA */}
-        <div className="prose prose-lg dark:prose-invert max-w-none text-base md:text-lg text-slate-800 dark:text-slate-200 leading-relaxed font-normal">
+        <div className="prose prose-materia prose-lg dark:prose-invert max-w-none text-base md:text-lg text-slate-800 dark:text-slate-200 leading-relaxed">
           {conteudoHtml ? (
             <div dangerouslySetInnerHTML={{ __html: conteudoHtml }} />
           ) : (

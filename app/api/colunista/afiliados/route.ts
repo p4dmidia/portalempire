@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { headers } from "next/headers";
 
 export async function GET() {
   try {
@@ -10,7 +11,10 @@ export async function GET() {
     }
 
     const supabase = await createClient();
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const headersList = await headers();
+    const host = headersList.get("x-forwarded-host") || headersList.get("host");
+    const proto = headersList.get("x-forwarded-proto") || (host?.includes("localhost") ? "http" : "https");
+    const siteUrl = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL || "https://empirecidades.com.br");
 
     // 1. Garantir que o colunista tenha um código de afiliado único
     let codigoAfiliado = profile.codigo_afiliado;

@@ -74,7 +74,25 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Portal não encontrado." }, { status: 400 });
     }
 
-    // 2. Verificar regra de aprovação manual em configuracoes
+    // 2. Regra estrita: Cada colunista pode possuir apenas 1 coluna oficial
+    if (profile.role !== "admin") {
+      const { count: totalColunasExistentes } = await supabaseAdmin
+        .from("colunas")
+        .select("id", { count: "exact", head: true })
+        .eq("dono_id", profile.id);
+
+      if (totalColunasExistentes && totalColunasExistentes >= 1) {
+        return NextResponse.json(
+          {
+            error:
+              "Cada colunista pode ter apenas 1 coluna oficial no portal. Você já possui uma coluna cadastrada; para fazer alterações, utilize o botão de edição.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 3. Verificar regra de aprovação manual em configuracoes
     let statusInicial: "pendente" | "ativa" | "suspensa" = "pendente";
 
     if (profile.role === "admin") {

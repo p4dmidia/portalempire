@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -99,6 +99,23 @@ export function ColunistaAfiliadosView({ initialData }: ColunistaAfiliadosViewPr
   const [data, setData] = useState(initialData);
   const [abaAtiva, setAbaAtiva] = useState<"indicados" | "comissoes" | "saques">("indicados");
   const [copiado, setCopiado] = useState(false);
+
+  // Garantir que o link de afiliado reflita o domínio exato em que o usuário está navegando
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.origin) {
+      const origin = window.location.origin;
+      setData((prev) => {
+        if (prev.link_afiliado.includes("localhost") && !origin.includes("localhost")) {
+          const path = prev.link_afiliado.split("/seja-colunista")[1] || `?ref=${prev.codigo_afiliado}`;
+          return {
+            ...prev,
+            link_afiliado: `${origin}/seja-colunista${path}`,
+          };
+        }
+        return prev;
+      });
+    }
+  }, []);
 
   // Modal de Saque
   const [modalSaqueAberto, setModalSaqueAberto] = useState(false);

@@ -88,7 +88,7 @@ export default async function ColunistaDashboardPage() {
           <Link href="/painel/colunista/colunas">
             <Button variant="outline" size="sm" className="gap-1.5">
               <Columns className="w-4 h-4" />
-              Minhas Colunas
+              Minha Coluna
             </Button>
           </Link>
 

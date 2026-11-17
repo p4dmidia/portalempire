@@ -99,32 +99,36 @@ export function ColunasColunistaView({
             <div className="p-2 bg-amber-500/10 text-amber-600 rounded-xl">
               <Columns className="w-6 h-6" />
             </div>
-            Minhas Colunas
+            Minha Coluna
           </h1>
           <p className="text-sm text-slate-500">
-            Gerencie suas colunas de opinião, cobertura municipal e espaços de monetização.
+            {colunas.length > 0
+              ? "Gerencie sua coluna oficial no portal. Você pode publicar quantas matérias e artigos desejar!"
+              : "Cadastre sua coluna oficial para começar a publicar artigos e monetizar com anúncios na sua região."}
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <Link href="/painel/colunista/artigos/novo">
-            <Button variant="secondary" size="sm" className="gap-1.5">
-              <PenTool className="w-4 h-4 text-primary" />
+            <Button size="sm" className="gap-1.5 shadow-sm">
+              <PenTool className="w-4 h-4" />
               Escrever Artigo
             </Button>
           </Link>
 
-          <Button
-            size="sm"
-            onClick={() => {
-              setSelectedColuna(null);
-              setModalOpen(true);
-            }}
-            className="gap-1.5 shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Nova Coluna
-          </Button>
+          {colunas.length === 0 && (
+            <Button
+              size="sm"
+              onClick={() => {
+                setSelectedColuna(null);
+                setModalOpen(true);
+              }}
+              className="gap-1.5 shadow-sm"
+            >
+              <Plus className="w-4 h-4" />
+              Criar Minha Coluna
+            </Button>
+          )}
         </div>
       </div>
 
@@ -209,6 +213,15 @@ export function ColunasColunistaView({
                       )}
                       <span className="font-mono text-[11px] text-slate-400">
                         /{col.slug}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-300/60 dark:border-amber-800">
+                        ⭐ Coluna Oficial
+                      </span>
+                      <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
+                        ✓ Artigos Ilimitados
                       </span>
                     </div>
 

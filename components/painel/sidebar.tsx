@@ -71,7 +71,7 @@ export function Sidebar({ profile }: SidebarProps) {
 
   const colunistaNav: NavItem[] = [
     { label: "Meu Dashboard", href: "/painel/colunista/dashboard", icon: LayoutDashboard },
-    { label: "Minhas Colunas", href: "/painel/colunista/colunas", icon: Columns },
+    { label: "Minha Coluna", href: "/painel/colunista/colunas", icon: Columns },
     { label: "Meus Artigos", href: "/painel/colunista/artigos", icon: FileText },
     { label: "Banners Patrocinados", href: "/painel/colunista/anuncios", icon: Megaphone },
     { label: "Meus Classificados", href: "/painel/colunista/classificados", icon: Tag },
