@@ -608,7 +608,7 @@ export async function getMaterias(options?: {
     // FILTRO DE VALIDADE DE DESTAQUE: Garante que matérias com prazo de destaque vencido não fiquem presas no topo
     if (options?.destaque) {
       materiasRetornadas = materiasRetornadas.filter((m) =>
-        verificarDestaqueAtivo(m.id, m.destaque)
+        verificarDestaqueAtivo(m.id, m.destaque, m.conteudo)
       );
     }
 
@@ -724,7 +724,7 @@ export const getColunasAtivas = cache(async (cidadeSlug?: string): Promise<Colun
 
   try {
     const supabase = getPublicSupabase();
-    let query = supabase
+    const { data, error } = await supabase
       .from("colunas")
       .select(
         `
@@ -733,26 +733,46 @@ export const getColunasAtivas = cache(async (cidadeSlug?: string): Promise<Colun
         cidade:cidades(id, nome, slug, uf)
       `
       )
-      .eq("status", "ativa");
+      .eq("status", "ativa")
+      .order("created_at", { ascending: false });
 
-    if (cidadeSlug) {
-      const { data: cid } = await supabase
-        .from("cidades")
-        .select("id")
-        .eq("slug", cidadeSlug)
-        .maybeSingle();
-      if (cid) {
-        query = query.eq("cidade_id", cid.id);
-      }
-    }
-
-    const { data, error } = await query.order("created_at", { ascending: false });
     if (error) {
       console.error("[Portal Empire] Erro ao buscar colunas ativas:", error.message || error);
       return [];
     }
 
-    const resultado = (data || []) as unknown as ColunaData[];
+    let resultado = (data || []) as unknown as ColunaData[];
+
+    // FILTRO ESTRITO POR CIDADE: garante que colunistas de outras cidades/estados nunca apareçam na cidade selecionada
+    if (cidadeSlug) {
+      const slugAlvo = cidadeSlug.toLowerCase().trim();
+      const cidCatalogo = CIDADES_CATALOGO.find((c) => c.slug === slugAlvo);
+      const nomeAlvo = (cidCatalogo?.nome || slugAlvo.replace(/-/g, " ")).toLowerCase().trim();
+      const ufAlvo = (cidCatalogo?.uf || "").toUpperCase().trim();
+
+      resultado = resultado.filter((col) => {
+        // Se a coluna não tem cidade associada, descarta
+        if (!col.cidade && !col.cidade_id) return false;
+
+        // Se tem UF e a UF for diferente da UF da cidade selecionada, descarta
+        if (col.cidade?.uf && ufAlvo && col.cidade.uf.toUpperCase().trim() !== ufAlvo) {
+          return false;
+        }
+
+        // Match por slug exato da cidade
+        if (col.cidade?.slug && col.cidade.slug.toLowerCase().trim() === slugAlvo) {
+          return true;
+        }
+
+        // Match por nome exato da cidade
+        if (col.cidade?.nome && col.cidade.nome.toLowerCase().trim() === nomeAlvo) {
+          return true;
+        }
+
+        return false;
+      });
+    }
+
     setCached(cacheKey, resultado);
     return resultado;
   } catch (err: unknown) {

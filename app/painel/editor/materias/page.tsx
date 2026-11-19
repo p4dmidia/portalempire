@@ -28,9 +28,11 @@ export default async function EditorMateriasPage() {
   return (
     <MateriasDataTable
       initialMaterias={(materias || []) as unknown as MateriaData[]}
+      initialTotal={(materias || []).length}
       categorias={categorias}
       cidades={cidades}
       userRole={profile.role}
+      autorId={profile.id}
     />
   );
 }

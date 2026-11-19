@@ -7,7 +7,9 @@ import { CardMateria } from "@/components/portal/CardMateria";
 import { AdSlot } from "@/components/portal/AdSlot";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { BotaoFavoritarColuna } from "@/components/portal/BotaoFavoritarColuna";
-import { User, MapPin, Sparkles, ArrowLeft } from "lucide-react";
+import { User, MapPin, Sparkles, ArrowLeft, BookOpen } from "lucide-react";
+import { LiveColunaViewsCounter } from "@/components/portal/LiveViewsCounter";
+import { calcularVisualizacoesColuna } from "@/lib/portal/views-realistas";
 
 export const revalidate = 60;
 
@@ -48,6 +50,7 @@ export default async function ColunaDetalhePage({ params }: ColunaPageProps) {
   ]);
 
   const autor = coluna.dono;
+  const viewsColuna = calcularVisualizacoesColuna(coluna, materias.length);
 
   return (
     <div className="space-y-8">
@@ -104,6 +107,16 @@ export default async function ColunaDetalhePage({ params }: ColunaPageProps) {
                     <MapPin className="w-3.5 h-3.5 text-amber-500" /> {coluna.cidade.nome} - {coluna.cidade.uf}
                   </span>
                 )}
+                <span className="bg-amber-50 dark:bg-amber-950/30 text-amber-800 dark:text-amber-300 text-xs font-bold px-3 py-1 rounded-full border border-amber-300/40">
+                  <LiveColunaViewsCounter
+                    coluna={coluna}
+                    initialViews={viewsColuna}
+                    totalArtigos={materias.length}
+                  />
+                </span>
+                <span className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1.5 border border-slate-200 dark:border-slate-700">
+                  <BookOpen className="w-3.5 h-3.5 text-amber-500" /> {materias.length} {materias.length === 1 ? "artigo" : "artigos"}
+                </span>
               </div>
 
               <h1 className="text-2xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight">

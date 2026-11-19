@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sanitizeContentHtml } from "@/lib/utils/sanitize";
 import { slugify } from "@/lib/utils/slugify";
 import { CATEGORIAS_PADRAO_SISTEMA } from "@/lib/portal/queries";
-import { definirExpiracaoDestaque } from "@/lib/portal/destaques-storage";
+import { definirExpiracaoDestaque, calcularDataExpiracao } from "@/lib/portal/destaques-storage";
 import * as z from "zod";
 
 const materiaSchema = z.object({
@@ -13,9 +13,9 @@ const materiaSchema = z.object({
   slug: z.string().min(3),
   subtitulo: z.string().optional().nullable(),
   resumo: z.string().min(10, "O resumo deve ter no mínimo 10 caracteres"),
-  categoria_id: z.string().uuid("Selecione uma editoria válida"),
-  cidade_id: z.string().uuid().optional().nullable(),
-  coluna_id: z.string().uuid().optional().nullable(),
+  categoria_id: z.string().min(1, "Selecione uma editoria válida"),
+  cidade_id: z.string().optional().nullable(),
+  coluna_id: z.string().optional().nullable(),
   imagem_url: z.string().optional().nullable(),
   imagem_credito: z.string().optional().nullable(),
   conteudo: z.any().optional().nullable(),
@@ -29,6 +29,112 @@ const materiaSchema = z.object({
   seo_titulo: z.string().optional().nullable(),
   seo_descricao: z.string().optional().nullable(),
 });
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const search = searchParams.get("search")?.trim() || "";
+    const status = searchParams.get("status") || "todos";
+    const categoria = searchParams.get("categoria") || "todas";
+    const cidade = searchParams.get("cidade") || "todas";
+    const origem = searchParams.get("origem") || "todas";
+    const autorId = searchParams.get("autor_id") || "";
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10));
+    const limit = Math.min(
+      100,
+      Math.max(1, parseInt(searchParams.get("limit") || "25", 10))
+    );
+    const offset = (page - 1) * limit;
+
+    const supabase = await createClient();
+
+    let query = supabase
+      .from("materias")
+      .select(
+        `
+        id,
+        titulo,
+        slug,
+        subtitulo,
+        resumo,
+        conteudo,
+        imagem_url,
+        imagem_credito,
+        categoria_id,
+        cidade_id,
+        coluna_id,
+        autor_id,
+        status,
+        origem,
+        urgente,
+        destaque,
+        visualizacoes,
+        publicado_em,
+        created_at,
+        updated_at,
+        categoria:categorias(id, nome, slug, cor),
+        cidade:cidades(id, nome, slug, uf),
+        autor:profiles(id, nome, slug, foto_url)
+      `,
+        { count: "exact" }
+      );
+
+    if (autorId) {
+      query = query.eq("autor_id", autorId);
+    }
+
+    if (status !== "todos") {
+      query = query.eq("status", status);
+    }
+
+    if (categoria !== "todas") {
+      query = query.eq("categoria_id", categoria);
+    }
+
+    if (cidade !== "todas") {
+      query = query.eq("cidade_id", cidade);
+    }
+
+    if (origem !== "todas") {
+      if (origem === "manual") {
+        query = query.neq("origem", "captacao");
+      } else if (origem === "captacao") {
+        query = query.eq("origem", "captacao");
+      }
+    }
+
+    if (search) {
+      query = query.or(
+        `titulo.ilike.%${search}%,slug.ilike.%${search}%,resumo.ilike.%${search}%`
+      );
+    }
+
+    query = query
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+
+    const { data: materias, count, error } = await query;
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+
+    const total = count || 0;
+    const totalPages = Math.ceil(total / limit) || 1;
+
+    return NextResponse.json({
+      materias: materias || [],
+      total,
+      page,
+      limit,
+      totalPages,
+    });
+  } catch (error: unknown) {
+    const message =
+      error instanceof Error ? error.message : "Erro desconhecido";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -147,19 +253,50 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const finalTempoDestaque = data.destaque ? data.tempo_destaque || "sem_limite" : "sem_limite";
+    const conteudoFinal =
+      typeof data.conteudo === "object" && data.conteudo !== null
+        ? {
+            ...data.conteudo,
+            tempo_destaque: finalTempoDestaque,
+            destaque_expira_em: data.destaque ? calcularDataExpiracao(finalTempoDestaque) : null,
+          }
+        : {
+            tempo_destaque: finalTempoDestaque,
+            destaque_expira_em: data.destaque ? calcularDataExpiracao(finalTempoDestaque) : null,
+          };
+
+    // Validação de cidade_id para Postgres UUID (evita crash se for ID tipo 'extra-alphaville' ou inválido)
+    let cidadeIdFinal: string | null = null;
+    if (data.cidade_id && !data.cidade_id.startsWith("extra-")) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.cidade_id);
+      if (isUuid) {
+        cidadeIdFinal = data.cidade_id;
+      }
+    }
+
+    // Validação de coluna_id para Postgres UUID
+    let colunaIdFinal: string | null = null;
+    if (data.coluna_id) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.coluna_id);
+      if (isUuid) {
+        colunaIdFinal = data.coluna_id;
+      }
+    }
+
     const { data: novaMateria, error: insertError } = await supabase
       .from("materias")
       .insert({
         portal_id: portalId,
         autor_id: profile.id,
-        coluna_id: data.coluna_id || null,
+        coluna_id: colunaIdFinal,
         categoria_id: categoriaIdFinal,
-        cidade_id: data.cidade_id || null,
+        cidade_id: cidadeIdFinal,
         titulo: data.titulo,
         slug: finalSlug,
         subtitulo: data.subtitulo || null,
         resumo: data.resumo,
-        conteudo: data.conteudo || null,
+        conteudo: conteudoFinal,
         conteudo_html: sanitizedHtml,
         imagem_url: data.imagem_url || null,
         imagem_credito: data.imagem_credito || null,
@@ -181,13 +318,22 @@ export async function POST(request: NextRequest) {
 
     // Configurar prazo de expiração do destaque se aplicável
     if (data.destaque && novaMateria?.id) {
-      definirExpiracaoDestaque(novaMateria.id, data.tempo_destaque || "sem_limite");
+      try {
+        definirExpiracaoDestaque(novaMateria.id, finalTempoDestaque);
+      } catch (err) {
+        console.warn("[destaques-storage] Aviso ao registrar expiração:", err);
+      }
     }
 
-    // Revalidar cache público
-    revalidatePath("/");
-    revalidatePath(`/materia/${finalSlug}`);
-    revalidatePath("/categoria");
+    // Revalidar cache público apenas para matérias publicadas
+    if (data.status === "publicado") {
+      try {
+        revalidatePath("/");
+        revalidatePath(`/materia/${finalSlug}`);
+      } catch (e) {
+        console.warn("[revalidatePath] Falha na revalidação:", e);
+      }
+    }
 
     return NextResponse.json({ success: true, materia: novaMateria });
   } catch (error: unknown) {

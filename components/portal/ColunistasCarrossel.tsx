@@ -38,9 +38,9 @@ export function ColunistasCarrossel({ colunas }: ColunistasCarrosselProps) {
             <Link
               key={col.id}
               href={`/coluna/${col.slug}`}
-              className="bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 rounded-2xl p-5 flex flex-col items-center text-center transition-all hover:scale-[1.02] group"
+              className="bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 rounded-2xl p-5 flex flex-col items-center text-center transition-all hover:scale-[1.02] group w-full min-w-0 overflow-hidden"
             >
-              <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-amber-400/80 mb-3 bg-slate-700">
+              <div className="relative w-20 h-20 rounded-full overflow-hidden border-2 border-amber-400/80 mb-3 bg-slate-700 shrink-0">
                 {autor?.foto_url ? (
                   <Image
                     src={autor.foto_url}
@@ -53,22 +53,22 @@ export function ColunistasCarrossel({ colunas }: ColunistasCarrosselProps) {
                 )}
               </div>
 
-              <h3 className="font-bold text-base text-white group-hover:text-amber-300 transition-colors">
+              <h3 className="font-bold text-base text-white group-hover:text-amber-300 transition-colors w-full truncate">
                 {col.nome}
               </h3>
 
-              <p className="text-xs text-slate-400 mt-0.5 font-medium">
+              <p className="text-xs text-slate-400 mt-0.5 font-medium w-full truncate">
                 Por {autor?.nome || "Colunista"}
               </p>
 
               {col.cidade && (
-                <span className="inline-flex items-center gap-1 text-[11px] text-amber-400/90 mt-2 bg-amber-400/10 px-2.5 py-0.5 rounded-full font-medium">
-                  <MapPin className="w-3 h-3" /> {col.cidade.nome} - {col.cidade.uf}
+                <span className="inline-flex items-center gap-1 text-[11px] text-amber-400/90 mt-2 bg-amber-400/10 px-2.5 py-0.5 rounded-full font-medium max-w-full truncate">
+                  <MapPin className="w-3 h-3 shrink-0" /> {col.cidade.nome} - {col.cidade.uf}
                 </span>
               )}
 
               {col.descricao && (
-                <p className="text-xs text-slate-400 mt-2.5 line-clamp-2 leading-relaxed">
+                <p className="text-xs text-slate-400 mt-2.5 line-clamp-2 leading-relaxed w-full break-words break-all [overflow-wrap:anywhere] overflow-hidden">
                   {col.descricao}
                 </p>
               )}

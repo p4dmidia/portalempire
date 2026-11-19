@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CategoriaData, CidadeData, MateriaData } from "@/lib/portal/queries";
@@ -21,50 +21,156 @@ import {
   AlertCircle,
   CheckCircle2,
   Star,
+  ChevronLeft,
+  ChevronRight,
+  X,
+  Sparkles,
+  RotateCcw,
 } from "lucide-react";
 import { formatarDataCurta } from "@/lib/utils/date-format";
 
 interface MateriasDataTableProps {
   initialMaterias: MateriaData[];
+  initialTotal?: number;
   categorias: CategoriaData[];
   cidades: CidadeData[];
   userRole: string;
+  autorId?: string;
 }
 
 export function MateriasDataTable({
   initialMaterias,
+  initialTotal,
   categorias,
   cidades,
   userRole,
+  autorId,
 }: MateriasDataTableProps) {
   const router = useRouter();
-  const [materias, setMaterias] = useState<MateriaData[]>(initialMaterias);
 
-  useEffect(() => {
-    setMaterias(initialMaterias);
-  }, [initialMaterias]);
+  // Estados dos dados e paginação
+  const [materias, setMaterias] = useState<MateriaData[]>(initialMaterias);
+  const [total, setTotal] = useState<number>(
+    initialTotal ?? initialMaterias.length
+  );
+  const [page, setPage] = useState<number>(1);
+  const [limit] = useState<number>(25);
+
+  // Estados dos filtros
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("todos");
   const [filterCategoria, setFilterCategoria] = useState("todas");
   const [filterCidade, setFilterCidade] = useState("todas");
+  const [filterOrigem, setFilterOrigem] = useState("todas");
+
+  // Estados de feedback e carregamento
+  const [isSearching, setIsSearching] = useState(false);
   const [loadingActionId, setLoadingActionId] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{
+    type: "success" | "error";
+    message: string;
+  } | null>(null);
 
-  const filtered = materias.filter((m) => {
-    const matchesSearch =
-      m.titulo.toLowerCase().includes(search.toLowerCase()) ||
-      m.slug.toLowerCase().includes(search.toLowerCase()) ||
-      (m.resumo && m.resumo.toLowerCase().includes(search.toLowerCase()));
+  // Sincronizar com initialMaterias quando o servidor revalidar
+  useEffect(() => {
+    setMaterias(initialMaterias);
+    if (initialTotal !== undefined) {
+      setTotal(initialTotal);
+    }
+  }, [initialMaterias, initialTotal]);
 
-    const matchesStatus = filterStatus === "todos" || m.status === filterStatus;
-    const matchesCategoria =
-      filterCategoria === "todas" || m.categoria_id === filterCategoria;
-    const matchesCidade =
-      filterCidade === "todas" || m.cidade_id === filterCidade;
+  const isFirstRender = useRef(true);
 
-    return matchesSearch && matchesStatus && matchesCategoria && matchesCidade;
-  });
+  // --------------------------------------------------------------------------
+  // BUSCA SERVER-SIDE DIRETAMENTE NO BANCO DE DADOS (10.000+ MATÉRIAS)
+  // --------------------------------------------------------------------------
+  const carregarMaterias = useCallback(
+    async (
+      buscaTermo: string,
+      statusVal: string,
+      catVal: string,
+      cidVal: string,
+      origemVal: string,
+      pagina: number
+    ) => {
+      setIsSearching(true);
+      try {
+        const params = new URLSearchParams();
+        if (buscaTermo.trim()) params.set("search", buscaTermo.trim());
+        if (statusVal !== "todos") params.set("status", statusVal);
+        if (catVal !== "todas") params.set("categoria", catVal);
+        if (cidVal !== "todas") params.set("cidade", cidVal);
+        if (origemVal !== "todas") params.set("origem", origemVal);
+        if (autorId) params.set("autor_id", autorId);
+        params.set("page", String(pagina));
+        params.set("limit", String(limit));
 
+        const res = await fetch(`/api/materias?${params.toString()}`);
+        const json = await res.json();
+        if (!res.ok) {
+          throw new Error(json.error || "Erro ao buscar matérias no servidor.");
+        }
+
+        setMaterias((json.materias || []) as MateriaData[]);
+        setTotal(json.total || 0);
+      } catch (err: unknown) {
+        console.error("Erro na busca de matérias:", err);
+      } finally {
+        setIsSearching(false);
+      }
+    },
+    [autorId, limit]
+  );
+
+  // Debounce automático de busca (350ms) ao alterar qualquer filtro ou busca
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      carregarMaterias(
+        search,
+        filterStatus,
+        filterCategoria,
+        filterCidade,
+        filterOrigem,
+        page
+      );
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [
+    search,
+    filterStatus,
+    filterCategoria,
+    filterCidade,
+    filterOrigem,
+    page,
+    carregarMaterias,
+  ]);
+
+  const handleLimparFiltros = () => {
+    setSearch("");
+    setFilterStatus("todos");
+    setFilterCategoria("todas");
+    setFilterCidade("todas");
+    setFilterOrigem("todas");
+    setPage(1);
+    carregarMaterias("", "todos", "todas", "todas", "todas", 1);
+  };
+
+  const temFiltroAtivo =
+    search.trim() !== "" ||
+    filterStatus !== "todos" ||
+    filterCategoria !== "todas" ||
+    filterCidade !== "todas" ||
+    filterOrigem !== "todas";
+
+  // --------------------------------------------------------------------------
+  // AÇÕES SOBRE MATÉRIA (Excluir, Destaque, Publicar/Despublicar)
+  // --------------------------------------------------------------------------
   const handleDelete = async (id: string, titulo: string) => {
     if (!window.confirm(`Tem certeza que deseja excluir a matéria "${titulo}"?`)) {
       return;
@@ -83,6 +189,7 @@ export function MateriasDataTable({
 
       setFeedback({ type: "success", message: "Matéria excluída com sucesso." });
       setMaterias((prev) => prev.filter((m) => m.id !== id));
+      setTotal((prev) => Math.max(0, prev - 1));
       router.refresh();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Erro na exclusão";
@@ -120,7 +227,18 @@ export function MateriasDataTable({
       });
 
       setMaterias((prev) =>
-        prev.map((m) => (m.id === materia.id ? { ...m, destaque: novoDestaque } : m))
+        prev.map((m) =>
+          m.id === materia.id
+            ? {
+                ...m,
+                destaque: novoDestaque,
+                conteudo: {
+                  ...((m.conteudo as Record<string, unknown> | null) || {}),
+                  tempo_destaque: novoDestaque ? "24h" : "sem_limite",
+                },
+              }
+            : m
+        )
       );
       router.refresh();
     } catch (err: unknown) {
@@ -132,7 +250,8 @@ export function MateriasDataTable({
   };
 
   const handleToggleStatus = async (materia: MateriaData) => {
-    const novoStatus = materia.status === "publicado" ? "despublicado" : "publicado";
+    const novoStatus =
+      materia.status === "publicado" ? "despublicado" : "publicado";
     setLoadingActionId(materia.id);
     setFeedback(null);
 
@@ -150,7 +269,9 @@ export function MateriasDataTable({
 
       setFeedback({
         type: "success",
-        message: `Matéria ${novoStatus === "publicado" ? "publicada" : "despublicada"} com sucesso.`,
+        message: `Matéria ${
+          novoStatus === "publicado" ? "publicada" : "despublicada"
+        } com sucesso.`,
       });
 
       setMaterias((prev) =>
@@ -165,12 +286,20 @@ export function MateriasDataTable({
     }
   };
 
-  const statusVariants: Record<string, "success" | "warning" | "destructive" | "secondary"> = {
+  const statusVariants: Record<
+    string,
+    "success" | "warning" | "destructive" | "secondary"
+  > = {
     publicado: "success",
     agendado: "warning",
     despublicado: "destructive",
     rascunho: "secondary",
   };
+
+  // Cálculos de paginação
+  const totalPages = Math.ceil(total / limit) || 1;
+  const registroInicio = total === 0 ? 0 : (page - 1) * limit + 1;
+  const registroFim = Math.min(page * limit, total);
 
   return (
     <div className="space-y-6">
@@ -217,51 +346,155 @@ export function MateriasDataTable({
         </div>
       )}
 
-      {/* Barra de Filtros */}
+      {/* Barra de Filtros Completa com Busca no Banco */}
       <Card>
-        <CardContent className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between">
-          <div className="relative flex-1 w-full">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <Input
-              placeholder="Buscar por título, resumo ou slug..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-9"
-            />
+        <CardContent className="p-4 space-y-3">
+          <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
+            {/* Campo de Busca com Feedback Visual de Carregamento */}
+            <div className="relative flex-1 w-full">
+              {isSearching ? (
+                <Loader2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-primary animate-spin" />
+              ) : (
+                <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              )}
+              <Input
+                placeholder="Buscar por título, resumo ou slug em todo o portal..."
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                className="pl-9 pr-8"
+              />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearch("");
+                    setPage(1);
+                  }}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            {/* Filtros em linha */}
+            <div className="flex flex-wrap gap-2.5 w-full md:w-auto items-center">
+              {/* Filtro de Origem (Essencial para separar matérias do admin de RSS) */}
+              <div className="w-44">
+                <Select
+                  value={filterOrigem}
+                  onChange={(e) => {
+                    setFilterOrigem(e.target.value);
+                    setPage(1);
+                  }}
+                  title="Origem da Matéria"
+                >
+                  <option value="todas">Origem: Todas</option>
+                  <option value="manual">✍️ Próprias / Autorais</option>
+                  <option value="captacao">📡 Captação RSS</option>
+                </Select>
+              </div>
+
+              {/* Filtro de Status */}
+              <div className="w-36">
+                <Select
+                  value={filterStatus}
+                  onChange={(e) => {
+                    setFilterStatus(e.target.value);
+                    setPage(1);
+                  }}
+                  title="Status"
+                >
+                  <option value="todos">Todos Status</option>
+                  <option value="publicado">Publicado</option>
+                  <option value="rascunho">Rascunho</option>
+                  <option value="agendado">Agendado</option>
+                  <option value="despublicado">Despublicado</option>
+                </Select>
+              </div>
+
+              {/* Filtro de Editoria */}
+              <div className="w-36">
+                <Select
+                  value={filterCategoria}
+                  onChange={(e) => {
+                    setFilterCategoria(e.target.value);
+                    setPage(1);
+                  }}
+                  title="Editoria"
+                >
+                  <option value="todas">Todas Editorias</option>
+                  {categorias.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              {/* Filtro de Cidade */}
+              <div className="w-36">
+                <Select
+                  value={filterCidade}
+                  onChange={(e) => {
+                    setFilterCidade(e.target.value);
+                    setPage(1);
+                  }}
+                  title="Cidade"
+                >
+                  <option value="todas">Todas Cidades</option>
+                  {cidades.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nome}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+
+              {/* Botão de Limpar Filtros */}
+              {temFiltroAtivo && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLimparFiltros}
+                  className="text-xs text-muted-foreground hover:text-slate-900 dark:hover:text-white gap-1 px-2 h-9"
+                  title="Limpar todos os filtros"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  Limpar
+                </Button>
+              )}
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 w-full md:w-auto">
-            <div className="w-36">
-              <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-                <option value="todos">Todos os Status</option>
-                <option value="publicado">Publicado</option>
-                <option value="rascunho">Rascunho</option>
-                <option value="agendado">Agendado</option>
-                <option value="despublicado">Despublicado</option>
-              </Select>
-            </div>
+          {/* Contador de Resultados e Status de Busca */}
+          <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-slate-100 dark:border-slate-800">
+            <span>
+              {isSearching ? (
+                <span className="flex items-center gap-1.5 text-primary font-medium">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Pesquisando no banco de dados...
+                </span>
+              ) : temFiltroAtivo ? (
+                <span>
+                  Encontradas <strong>{total.toLocaleString("pt-BR")}</strong> matérias com os filtros selecionados
+                </span>
+              ) : (
+                <span>
+                  Total no portal: <strong>{total.toLocaleString("pt-BR")}</strong> matérias cadastradas
+                </span>
+              )}
+            </span>
 
-            <div className="w-36">
-              <Select value={filterCategoria} onChange={(e) => setFilterCategoria(e.target.value)}>
-                <option value="todas">Todas Editorias</option>
-                {categorias.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nome}
-                  </option>
-                ))}
-              </Select>
-            </div>
-
-            <div className="w-36">
-              <Select value={filterCidade} onChange={(e) => setFilterCidade(e.target.value)}>
-                <option value="todas">Todas Cidades</option>
-                {cidades.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nome}
-                  </option>
-                ))}
-              </Select>
-            </div>
+            {filterOrigem === "manual" && (
+              <Badge variant="outline" className="text-[11px] gap-1 text-primary border-primary/30">
+                <Sparkles className="w-3 h-3" /> Exibindo apenas matérias autorais / manuais
+              </Badge>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -273,7 +506,7 @@ export function MateriasDataTable({
             <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 text-xs uppercase font-semibold border-b border-slate-200 dark:border-slate-800">
               <tr>
                 <th className="px-6 py-4">Matéria</th>
-                <th className="px-4 py-4">Editoria</th>
+                <th className="px-4 py-4">Editoria / Origem</th>
                 <th className="px-4 py-4">Status</th>
                 <th className="px-4 py-4">Publicado Em</th>
                 <th className="px-4 py-4 text-center">Visualizações</th>
@@ -281,14 +514,21 @@ export function MateriasDataTable({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-              {filtered.length === 0 ? (
+              {materias.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="px-6 py-12 text-center text-slate-400">
-                    Nenhuma matéria encontrada.
+                    {isSearching ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin text-primary" />
+                        <span>Carregando resultados...</span>
+                      </div>
+                    ) : (
+                      "Nenhuma matéria encontrada com os filtros informados."
+                    )}
                   </td>
                 </tr>
               ) : (
-                filtered.map((mat) => {
+                materias.map((mat) => {
                   const isLoading = loadingActionId === mat.id;
 
                   return (
@@ -314,11 +554,21 @@ export function MateriasDataTable({
                           <div>
                             <div className="font-bold text-slate-900 dark:text-white line-clamp-1 flex items-center gap-1.5">
                               {mat.titulo}
-                              {mat.destaque && (
-                                <span className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0">
-                                  <Star className="w-2.5 h-2.5 fill-current" /> Destaque
-                                </span>
-                              )}
+                              {mat.destaque && (() => {
+                                const meta = (mat.conteudo as Record<string, unknown> | null) || null;
+                                const tempo = meta?.tempo_destaque as string;
+                                const rotulo = tempo && tempo !== "sem_limite"
+                                  ? `Destaque (${tempo})`
+                                  : "Destaque";
+                                return (
+                                  <span
+                                    className="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shrink-0"
+                                    title={tempo && tempo !== "sem_limite" ? `Destaque temporário: expira em ${tempo}` : "Destaque fixo manual"}
+                                  >
+                                    <Star className="w-2.5 h-2.5 fill-current" /> {rotulo}
+                                  </span>
+                                );
+                              })()}
                               {mat.urgente && (
                                 <span className="text-[10px] bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-300 font-bold px-1.5 py-0.2 rounded">
                                   Urgente
@@ -333,11 +583,22 @@ export function MateriasDataTable({
                       </td>
 
                       <td className="px-4 py-4">
-                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
-                          {mat.categoria?.nome || "-"}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+                            {mat.categoria?.nome || "-"}
+                          </span>
+                          {mat.origem !== "captacao" ? (
+                            <Badge variant="outline" className="text-[9px] px-1 py-0 border-emerald-500/40 text-emerald-600 dark:text-emerald-400">
+                              Autoral
+                            </Badge>
+                          ) : (
+                            <span className="text-[9px] text-slate-400">
+                              RSS
+                            </span>
+                          )}
+                        </div>
                         {mat.cidade && (
-                          <span className="text-[11px] text-slate-400 block">
+                          <span className="text-[11px] text-slate-400 block mt-0.5">
                             {mat.cidade.nome}
                           </span>
                         )}
@@ -355,7 +616,7 @@ export function MateriasDataTable({
                       <td className="px-4 py-4 text-xs text-slate-500 whitespace-nowrap">
                         {mat.publicado_em
                           ? formatarDataCurta(mat.publicado_em, true)
-                          : "-"}
+                          : formatarDataCurta(mat.created_at, true)}
                       </td>
 
                       <td className="px-4 py-4 text-center font-mono text-xs text-slate-600 dark:text-slate-300">
@@ -393,7 +654,11 @@ export function MateriasDataTable({
                                   : "Colocar em Destaque no Topo da Capa (24h)"
                               }
                             >
-                              <Star className={`w-4 h-4 ${mat.destaque ? "fill-amber-400 text-amber-500" : ""}`} />
+                              <Star
+                                className={`w-4 h-4 ${
+                                  mat.destaque ? "fill-amber-400 text-amber-500" : ""
+                                }`}
+                              />
                             </button>
 
                             <Link
@@ -435,6 +700,44 @@ export function MateriasDataTable({
             </tbody>
           </table>
         </div>
+
+        {/* Barra de Paginação Real */}
+        {total > 0 && (
+          <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-muted-foreground">
+            <div>
+              Mostrando <strong>{registroInicio}</strong> a <strong>{registroFim}</strong> de{" "}
+              <strong>{total.toLocaleString("pt-BR")}</strong> matérias
+            </div>
+
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={page <= 1 || isSearching}
+                className="h-8 gap-1 text-xs"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Anterior
+              </Button>
+
+              <span className="px-2 font-medium text-slate-700 dark:text-slate-300">
+                Página {page} de {totalPages}
+              </span>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setPage((prev) => Math.min(totalPages, prev + 1))}
+                disabled={page >= totalPages || isSearching}
+                className="h-8 gap-1 text-xs"
+              >
+                Próxima
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

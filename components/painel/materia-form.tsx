@@ -8,6 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { slugify } from "@/lib/utils/slugify";
 import { formatarParaInputLocal } from "@/lib/utils/date-format";
+import { calcularDataExpiracao } from "@/lib/utils/destaque-tempo";
 import { createClient } from "@/lib/supabase/client";
 import { TiptapEditor } from "./tiptap-editor";
 import type { CategoriaData, CidadeData, MateriaData, ColunaData } from "@/lib/portal/queries";
@@ -16,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Upload,
@@ -87,6 +89,17 @@ export function MateriaForm({
   const [isSaving, setIsSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  const initialMeta = (initialMateria?.conteudo as Record<string, unknown> | null) || null;
+  const [exibirCapaArtigo, setExibirCapaArtigo] = useState<boolean>(() => {
+    if (initialMeta && typeof initialMeta.exibir_capa_artigo === "boolean") {
+      return initialMeta.exibir_capa_artigo;
+    }
+    if (initialMateria?.tags?.includes("sem_capa_topo")) {
+      return false;
+    }
+    return isEditing ? true : userRole !== "colunista";
+  });
+
   const {
     register,
     handleSubmit,
@@ -111,7 +124,14 @@ export function MateriaForm({
         : "",
       urgente: initialMateria?.urgente || false,
       destaque: initialMateria?.destaque || false,
-      tempo_destaque: "sem_limite",
+      tempo_destaque: (() => {
+        const meta = (initialMateria?.conteudo as Record<string, unknown> | null) || null;
+        const t = meta?.tempo_destaque as string;
+        if (t && ["6h", "12h", "24h", "48h", "7d", "sem_limite"].includes(t)) {
+          return t as "sem_limite" | "6h" | "12h" | "24h" | "48h" | "7d";
+        }
+        return "sem_limite";
+      })(),
       seo_titulo: initialMateria?.seo_titulo || "",
       seo_descricao: initialMateria?.seo_descricao || "",
     },
@@ -191,14 +211,36 @@ export function MateriaForm({
     setIsSaving(true);
     setFeedback(null);
 
+    const finalTags = tags.filter((t) => t !== "sem_capa_topo");
+    if (!exibirCapaArtigo) {
+      finalTags.push("sem_capa_topo");
+    }
+
+    const finalTempoDestaque = data.destaque ? data.tempo_destaque || "sem_limite" : "sem_limite";
+    const finalConteudo =
+      typeof conteudoJson === "object" && conteudoJson !== null
+        ? {
+            ...(conteudoJson as Record<string, unknown>),
+            exibir_capa_artigo: exibirCapaArtigo,
+            tempo_destaque: finalTempoDestaque,
+            destaque_expira_em: data.destaque ? calcularDataExpiracao(finalTempoDestaque) : null,
+          }
+        : {
+            type: "doc",
+            exibir_capa_artigo: exibirCapaArtigo,
+            tempo_destaque: finalTempoDestaque,
+            destaque_expira_em: data.destaque ? calcularDataExpiracao(finalTempoDestaque) : null,
+          };
+
     const payload = {
       ...data,
+      tempo_destaque: finalTempoDestaque,
       cidade_id: data.cidade_id || null,
       coluna_id: data.coluna_id || null,
       imagem_url: imagemDestaque || null,
-      conteudo: conteudoJson,
+      conteudo: finalConteudo,
       conteudo_html: conteudoHtml,
-      tags,
+      tags: finalTags,
       publicado_em: data.publicado_em
         ? (data.status === "publicado" && new Date(data.publicado_em).getTime() > Date.now()
             ? new Date().toISOString()
@@ -238,8 +280,7 @@ export function MateriaForm({
         } else {
           router.push("/painel/editor/materias");
         }
-        router.refresh();
-      }, 1000);
+      }, 350);
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : "Erro na gravação";
       setFeedback({ type: "error", message: msg });
@@ -493,9 +534,9 @@ export function MateriaForm({
             {/* Imagem de Destaque */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Imagem de Capa</CardTitle>
+                <CardTitle className="text-base">Imagem de Capa (Card & Vitrine)</CardTitle>
                 <CardDescription>
-                  Foto principal exibida no topo da matéria e nos cards.
+                  Foto principal usada nos cards da home, listagens e compartilhamento nas redes sociais.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -546,6 +587,30 @@ export function MateriaForm({
                       className="mt-1 text-xs"
                       {...register("imagem_credito")}
                     />
+                  </div>
+
+                  {/* Switch para Exibir ou Não a Capa no Topo Interno do Artigo */}
+                  <div className="pt-3 mt-1 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-0.5">
+                        <Label
+                          htmlFor="switch-exibir-capa"
+                          className="text-xs font-semibold cursor-pointer text-slate-800 dark:text-slate-200"
+                        >
+                          Exibir capa fixa no topo da matéria
+                        </Label>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-tight">
+                          {exibirCapaArtigo
+                            ? "A foto de capa aparecerá fixa no topo da matéria e também nos cards do portal."
+                            : "A foto de capa será usada apenas nos cards e redes sociais. Dentro do artigo só aparecerão as imagens que você inserir no corpo do texto."}
+                        </p>
+                      </div>
+                      <Switch
+                        id="switch-exibir-capa"
+                        checked={exibirCapaArtigo}
+                        onCheckedChange={setExibirCapaArtigo}
+                      />
+                    </div>
                   </div>
                 </div>
               </CardContent>

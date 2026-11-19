@@ -236,7 +236,12 @@ export function ColunaFormDialog({
 
           {/* Imagem de Capa / Banner */}
           <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
-            <Label className="text-xs font-semibold">Capa ou Banner da Coluna</Label>
+            <div>
+              <Label className="text-xs font-semibold">Banner Institucional Fixo da Coluna (Identidade Visual Oficial)</Label>
+              <p className="text-[11px] text-slate-500 leading-tight mt-0.5">
+                Esta é a marca visual permanente da sua coluna (recomendado: 1200x400 a 1920x600 px). Ela fica fixa no topo da sua página e no cabeçalho dos seus artigos, sendo independente das fotos de cada matéria.
+              </p>
+            </div>
             <div className="relative aspect-[21/9] w-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
               {capaUrl ? (
                 <Image

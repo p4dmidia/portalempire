@@ -84,6 +84,19 @@ export default async function CidadeDetalhePage({ params }: CidadePageProps) {
   const slugCidade = cidade.slug.toLowerCase().trim();
   const ufCidade = (cidade.uf || "").toUpperCase().trim();
 
+  // FILTRO ESTRITO DE COLUNISTAS: Exibe APENAS colunistas associados à cidade selecionada
+  const colunasCidade = colunas.filter((col) => {
+    if (!col.cidade && !col.cidade_id) return false;
+    if (col.cidade?.uf && ufCidade && col.cidade.uf.toUpperCase().trim() !== ufCidade) {
+      return false;
+    }
+    return (
+      (col.cidade?.slug && col.cidade.slug.toLowerCase().trim() === slugCidade) ||
+      (col.cidade?.nome && col.cidade.nome.toLowerCase().trim() === nomeCidadeLower) ||
+      col.cidade_id === cidade.id
+    );
+  });
+
   const classificadosCidade = todosClassificados.filter((c) => {
     const cNome = (c.cidade_nome || "").toLowerCase().trim();
     const cBairro = (c.bairro || "").toLowerCase().trim();
@@ -152,7 +165,7 @@ export default async function CidadeDetalhePage({ params }: CidadePageProps) {
       <AdSlot posicao="topo" />
 
       {/* Colunas da Cidade se houver */}
-      {colunas.length > 0 && <ColunistasCarrossel colunas={colunas} />}
+      {colunasCidade.length > 0 && <ColunistasCarrossel colunas={colunasCidade} />}
 
       {/* 1. Bloco Principal de Notícias da Cidade + Sidebar */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

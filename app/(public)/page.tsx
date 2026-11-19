@@ -12,6 +12,7 @@ import {
 import { getClassificadosDestaqueHome } from "@/lib/portal/classificados-queries";
 import { TopHeroMagazine } from "@/components/portal/TopHeroMagazine";
 import { FaixaUltimasNoticias } from "@/components/portal/FaixaUltimasNoticias";
+import { ColunistasEsteira } from "@/components/portal/ColunistasEsteira";
 import { BlocoEditoria } from "@/components/portal/BlocoEditoria";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { ClassificadosHomeSection } from "@/components/portal/ClassificadosHomeSection";
@@ -105,6 +106,9 @@ export default async function PortalHomePage() {
         materias={ultimasCarrossel}
         titulo="Últimas de Empire Cidades"
       />
+
+      {/* 3.1 Esteira Contínua em Loop de Todos os Colunistas do Portal */}
+      {colunas.length > 0 && <ColunistasEsteira colunas={colunas} />}
 
       {/* 4. Banner Entre Blocos */}
       <div className="my-6">

@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sanitizeContentHtml } from "@/lib/utils/sanitize";
 import { slugify } from "@/lib/utils/slugify";
 import { CATEGORIAS_PADRAO_SISTEMA } from "@/lib/portal/queries";
-import { definirExpiracaoDestaque, removerExpiracaoDestaque } from "@/lib/portal/destaques-storage";
+import { definirExpiracaoDestaque, removerExpiracaoDestaque, calcularDataExpiracao } from "@/lib/portal/destaques-storage";
 import * as z from "zod";
 
 const updateSchema = z.object({
@@ -13,9 +13,9 @@ const updateSchema = z.object({
   slug: z.string().min(3).optional(),
   subtitulo: z.string().optional().nullable(),
   resumo: z.string().min(10).optional(),
-  categoria_id: z.string().uuid().optional(),
-  cidade_id: z.string().uuid().optional().nullable(),
-  coluna_id: z.string().uuid().optional().nullable(),
+  categoria_id: z.string().min(1).optional(),
+  cidade_id: z.string().optional().nullable(),
+  coluna_id: z.string().optional().nullable(),
   imagem_url: z.string().optional().nullable(),
   imagem_credito: z.string().optional().nullable(),
   conteudo: z.any().optional().nullable(),
@@ -46,7 +46,7 @@ export async function PUT(
     // Verificar se a matéria existe e se o usuário é o autor ou admin
     const { data: materia, error: fetchError } = await supabase
       .from("materias")
-      .select("id, portal_id, autor_id, slug, status, publicado_em")
+      .select("id, portal_id, autor_id, slug, status, publicado_em, destaque, conteudo")
       .eq("id", id)
       .single();
 
@@ -137,8 +137,22 @@ export async function PUT(
       }
       updateData.categoria_id = catIdValida;
     }
-    if (data.cidade_id !== undefined) updateData.cidade_id = data.cidade_id;
-    if (data.coluna_id !== undefined) updateData.coluna_id = data.coluna_id;
+    if (data.cidade_id !== undefined) {
+      if (data.cidade_id && !data.cidade_id.startsWith("extra-")) {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.cidade_id);
+        updateData.cidade_id = isUuid ? data.cidade_id : null;
+      } else {
+        updateData.cidade_id = null;
+      }
+    }
+    if (data.coluna_id !== undefined) {
+      if (data.coluna_id) {
+        const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(data.coluna_id);
+        updateData.coluna_id = isUuid ? data.coluna_id : null;
+      } else {
+        updateData.coluna_id = null;
+      }
+    }
     if (data.imagem_url !== undefined) updateData.imagem_url = data.imagem_url;
     if (data.imagem_credito !== undefined) updateData.imagem_credito = data.imagem_credito;
     if (data.conteudo !== undefined) updateData.conteudo = data.conteudo;
@@ -169,6 +183,22 @@ export async function PUT(
       }
     }
 
+    const isDestaque = data.destaque !== undefined ? data.destaque : materia.destaque;
+    const finalTempoDestaque = isDestaque
+      ? data.tempo_destaque || (materia.conteudo as Record<string, unknown> | null)?.tempo_destaque || "sem_limite"
+      : "sem_limite";
+
+    const baseConteudo =
+      typeof (updateData.conteudo || data.conteudo) === "object" && (updateData.conteudo || data.conteudo) !== null
+        ? ((updateData.conteudo || data.conteudo) as Record<string, unknown>)
+        : ((materia.conteudo as Record<string, unknown> | null) || {});
+
+    updateData.conteudo = {
+      ...baseConteudo,
+      tempo_destaque: finalTempoDestaque,
+      destaque_expira_em: isDestaque ? calcularDataExpiracao(finalTempoDestaque as string) : null,
+    };
+
     if (data.urgente !== undefined) updateData.urgente = data.urgente;
     if (data.destaque !== undefined) updateData.destaque = data.destaque;
     if (data.tags !== undefined) updateData.tags = data.tags;
@@ -187,22 +217,23 @@ export async function PUT(
     }
 
     // Atualizar prazo do destaque se fornecido ou remover se desativado
-    if (data.destaque === true) {
-      definirExpiracaoDestaque(id, data.tempo_destaque || "sem_limite");
-    } else if (data.destaque === false) {
+    if (isDestaque) {
+      definirExpiracaoDestaque(id, (finalTempoDestaque as "6h" | "12h" | "24h" | "48h" | "7d" | "sem_limite") || "sem_limite");
+    } else {
       removerExpiracaoDestaque(id);
-    } else if (data.tempo_destaque) {
-      definirExpiracaoDestaque(id, data.tempo_destaque);
     }
 
-    // Revalidação de cache
-    revalidatePath("/");
-    revalidatePath("/painel/admin/materias");
-    revalidatePath("/painel/editor/materias");
-    revalidatePath("/painel/colunista/artigos");
-    revalidatePath(`/materia/${materia.slug}`);
-    if (updatedMateria.slug !== materia.slug) {
-      revalidatePath(`/materia/${updatedMateria.slug}`);
+    // Revalidação de cache rápida e segura
+    if (targetStatus === "publicado" || isDestaque || materia.destaque) {
+      try {
+        revalidatePath("/");
+        revalidatePath(`/materia/${materia.slug}`);
+        if (updatedMateria.slug !== materia.slug) {
+          revalidatePath(`/materia/${updatedMateria.slug}`);
+        }
+      } catch (e) {
+        console.warn("[revalidatePath] Falha na revalidação:", e);
+      }
     }
 
     return NextResponse.json({ success: true, materia: updatedMateria });

@@ -2,8 +2,9 @@ import Link from "next/link";
 import { formatarTempoRelativo } from "@/lib/utils/date-format";
 import { LabelEditoria } from "./LabelEditoria";
 import type { MateriaData } from "@/lib/portal/queries";
-import { Clock, Sparkles, MapPin } from "lucide-react";
+import { Clock, Sparkles, MapPin, Eye } from "lucide-react";
 import { ImageWithFallback } from "./ImageWithFallback";
+import { calcularVisualizacoesRealistas, formatarVisualizacoes } from "@/lib/portal/views-realistas";
 
 interface CardMateriaProps {
   materia: MateriaData;
@@ -24,6 +25,7 @@ export function CardMateria({
       : materia.autor?.nome || "Redatores da Empire Cidades";
 
   const contextoImagem = `${materia.categoria?.nome || ""} ${materia.titulo || ""}`;
+  const viewsCalculadas = calcularVisualizacoesRealistas(materia);
 
   // VARIAÇÃO 1: GRANDE (Destaque Principal)
   if (variacao === "grande") {
@@ -78,11 +80,15 @@ export function CardMateria({
             </p>
           )}
 
-          <div className="flex items-center gap-4 text-xs text-slate-400 pt-2 border-t border-white/10">
+          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 pt-2 border-t border-white/10">
             <span>Por <strong className="text-slate-200">{autorNome}</strong></span>
             <span>·</span>
             <span className="flex items-center gap-1">
               <Clock className="w-3.5 h-3.5" /> {dataFormatada}
+            </span>
+            <span>·</span>
+            <span className="flex items-center gap-1 text-slate-300 font-medium" suppressHydrationWarning>
+              <Eye className="w-3.5 h-3.5 text-amber-400" /> {formatarVisualizacoes(viewsCalculadas)}
             </span>
           </div>
         </div>
@@ -129,6 +135,10 @@ export function CardMateria({
             <span>{autorNome}</span>
             <span>·</span>
             <span>{dataFormatada}</span>
+            <span>·</span>
+            <span className="flex items-center gap-1 font-medium text-slate-600 dark:text-slate-400" suppressHydrationWarning>
+              <Eye className="w-3 h-3 text-amber-500" /> {formatarVisualizacoes(viewsCalculadas)}
+            </span>
           </div>
         </div>
       </article>
@@ -236,10 +246,16 @@ export function CardMateria({
         </div>
 
         <div className="pt-3 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
-          <span className="truncate max-w-[140px] font-medium text-slate-600 dark:text-slate-300">
+          <span className="truncate max-w-[130px] font-medium text-slate-600 dark:text-slate-300">
             {autorNome}
           </span>
-          <span className="shrink-0">{dataFormatada}</span>
+          <div className="flex items-center gap-2 shrink-0">
+            <span>{dataFormatada}</span>
+            <span>·</span>
+            <span className="flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300" suppressHydrationWarning>
+              <Eye className="w-3 h-3 text-amber-500" /> {formatarVisualizacoes(viewsCalculadas)}
+            </span>
+          </div>
         </div>
       </div>
     </article>

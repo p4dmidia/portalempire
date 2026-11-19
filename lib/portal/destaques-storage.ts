@@ -1,6 +1,9 @@
 import fs from "fs";
 import path from "path";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { calcularDataExpiracao } from "@/lib/utils/destaque-tempo";
+
+export { calcularDataExpiracao };
 
 export interface InfoDestaque {
   materia_id: string;
@@ -41,23 +44,6 @@ export function salvarDestaquesExpiracao(dados: Record<string, InfoDestaque>): v
   }
 }
 
-export function calcularDataExpiracao(tipo?: string | null): string | null {
-  if (!tipo || tipo === "sem_limite") return null;
-
-  const agora = Date.now();
-  const horasMap: Record<string, number> = {
-    "6h": 6,
-    "12h": 12,
-    "24h": 24,
-    "48h": 48,
-    "7d": 24 * 7,
-  };
-
-  const horas = horasMap[tipo];
-  if (!horas) return null;
-
-  return new Date(agora + horas * 3600 * 1000).toISOString();
-}
 
 /**
  * Registra ou remove o prazo de expiração de um destaque
@@ -98,9 +84,25 @@ export function removerExpiracaoDestaque(materiaId: string): void {
 /**
  * Valida se a matéria ainda está dentro do período de destaque ativo
  */
-export function verificarDestaqueAtivo(materiaId: string, destaqueDb: boolean): boolean {
+export function verificarDestaqueAtivo(
+  materiaId: string,
+  destaqueDb: boolean,
+  conteudo?: unknown
+): boolean {
   if (!destaqueDb) return false;
 
+  // 1. Tenta verificar diretamente no metadata persistido no banco (JSONB da matéria)
+  if (conteudo && typeof conteudo === "object") {
+    const meta = conteudo as Record<string, unknown>;
+    if (meta.destaque_expira_em && typeof meta.destaque_expira_em === "string") {
+      const expiraMs = new Date(meta.destaque_expira_em).getTime();
+      if (!isNaN(expiraMs) && Date.now() > expiraMs) {
+        return false;
+      }
+    }
+  }
+
+  // 2. Fallback no mapa local em disco
   const mapa = carregarDestaquesExpiracao();
   const info = mapa[materiaId];
 
@@ -135,23 +137,73 @@ export function verificarDestaqueAtivo(materiaId: string, destaqueDb: boolean): 
 }
 
 /**
+ * Retorna o tipo de destaque configurado para a matéria ("6h", "12h", "24h", "48h", "7d", "sem_limite")
+ */
+export function obterTempoDestaqueMateria(
+  materiaId?: string | null,
+  conteudo?: unknown
+): "sem_limite" | "6h" | "12h" | "24h" | "48h" | "7d" {
+  if (conteudo && typeof conteudo === "object") {
+    const meta = conteudo as Record<string, unknown>;
+    const t = meta.tempo_destaque as string;
+    if (t === "6h" || t === "12h" || t === "24h" || t === "48h" || t === "7d") {
+      return t;
+    }
+    if (t === "sem_limite") return "sem_limite";
+  }
+
+  if (materiaId) {
+    const mapa = carregarDestaquesExpiracao();
+    const info = mapa[materiaId];
+    if (info?.tipo && info.tipo !== "sem_limite") {
+      return info.tipo;
+    }
+  }
+
+  return "sem_limite";
+}
+
+/**
  * Retorna o texto amigável do status do destaque para a UI
  */
-export function obterRotuloDestaque(materiaId: string, destaqueDb: boolean): string | null {
+export function obterRotuloDestaque(
+  materiaId: string,
+  destaqueDb: boolean,
+  conteudo?: unknown
+): string | null {
   if (!destaqueDb) return null;
 
-  const mapa = carregarDestaquesExpiracao();
-  const info = mapa[materiaId];
+  let expiraEmStr: string | null = null;
+  let tipoDestaque = "sem_limite";
 
-  if (!info || !info.expira_em) {
+  if (conteudo && typeof conteudo === "object") {
+    const meta = conteudo as Record<string, unknown>;
+    if (meta.destaque_expira_em && typeof meta.destaque_expira_em === "string") {
+      expiraEmStr = meta.destaque_expira_em;
+    }
+    if (meta.tempo_destaque && typeof meta.tempo_destaque === "string") {
+      tipoDestaque = meta.tempo_destaque;
+    }
+  }
+
+  if (!expiraEmStr) {
+    const mapa = carregarDestaquesExpiracao();
+    const info = mapa[materiaId];
+    if (info) {
+      expiraEmStr = info.expira_em;
+      tipoDestaque = info.tipo;
+    }
+  }
+
+  if (!expiraEmStr || tipoDestaque === "sem_limite") {
     return "Destaque Fixo";
   }
 
-  const expiraEm = new Date(info.expira_em).getTime();
+  const expiraEm = new Date(expiraEmStr).getTime();
   const diffHoras = Math.round((expiraEm - Date.now()) / (3600 * 1000));
 
   if (diffHoras <= 0) {
-    return "Expirando";
+    return "Destaque (Expirando)";
   }
 
   if (diffHoras < 24) {

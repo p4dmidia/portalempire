@@ -193,6 +193,7 @@ export function TiptapEditor({
         heading: {
           levels: [2, 3],
         },
+        link: false,
       }),
       ImageExtension.configure({
         allowBase64: false,
