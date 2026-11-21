@@ -1,11 +1,10 @@
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { parseFeedUrl, isTituloValido } from "./parser";
 import { normalizarUrl, gerarHashUrl, limparResumo, extrairImagem } from "./normalizar";
 import { classificarMateria } from "./classificar";
 import { reescreverNoticiaCaptada } from "./reescritor";
-import { extrairDetalhesMateriaOriginal } from "./extrator-conteudo";
 
 import { CATEGORIAS_PADRAO_SISTEMA } from "@/lib/portal/queries";
 import { otimizarUrlImagem, obterImagemEditorialContextual } from "@/lib/portal/image-utils";
@@ -275,55 +274,43 @@ export async function executarCaptacao(
 
           // 1. Validação estrita do título: descarta títulos curtos, menus ou nomes de categoria
           if (!isTituloValido(rawTitulo)) {
-            console.log(`[Captacao] Descartando item com título inválido ou menu: "${rawTitulo}"`);
             continue;
           }
 
-          const rawResumo = decodificarEntidadesHtml(item.contentSnippet || item.summary || item.description || "");
+          // 2. Extração de resumo nativo do feed RSS (se ausente, utiliza o próprio título)
+          const rawResumo = decodificarEntidadesHtml(
+            item.contentSnippet || item.summary || item.description || item.content || ""
+          );
+          const resumoLimpo = limparResumo(rawResumo, 400);
+          let resumoFinal = resumoLimpo || rawTitulo;
+
+          // 3. Extração da imagem nativa do feed RSS
           let imagemFinal = extrairImagem(item);
-          let conteudoOriginalExtraido: string | null = null;
-
-          // 2. Extrair o conteúdo jornalístico integral e imagem editorial em alta resolução da página original
-          if (linkNormalizado) {
-            try {
-              const detalhes = await extrairDetalhesMateriaOriginal(linkNormalizado);
-              if (detalhes.conteudoHtml && detalhes.conteudoHtml.length > 200) {
-                conteudoOriginalExtraido = detalhes.conteudoHtml;
-              }
-              if (detalhes.imagemUrl) {
-                imagemFinal = detalhes.imagemUrl;
-              }
-            } catch (errExtracao) {
-              console.warn("[Captacao] Falha ao extrair texto/imagem da página original:", errExtracao);
-            }
-          }
-
-          // Se a raspagem falhou, usar o conteúdo bruto do feed RSS se for substancial
-          if (!conteudoOriginalExtraido && item.content && item.content.length > 250) {
-            conteudoOriginalExtraido = item.content;
-          }
-
-          // 3. Regra de Ouro: NÃO publicar matérias sem conteúdo real substancial
-          // Evita matérias rasas, sem corpo ou inventadas
-          if (!conteudoOriginalExtraido || conteudoOriginalExtraido.length < 200) {
-            console.log(`[Captacao] Descartando matéria sem corpo substantivo: "${rawTitulo}"`);
-            continue;
-          }
 
           // Classificar cidade e categoria
           const classificacao = classificarMateria({
             titulo: rawTitulo,
-            resumo: limparResumo(rawResumo, 400),
+            resumo: resumoFinal,
             cidades,
             categorias,
             categoriaPadraoId: fonte.categoria_padrao_id,
             cidadePadraoId: fonte.cidade_padrao_id,
           });
 
+          // Se o feed RSS não fornecer imagem, aplicar a imagem padrão contextual da editoria
+          if (!imagemFinal) {
+            const catEncontrada = categorias.find((c) => c.id === classificacao.categoria_id);
+            imagemFinal = obterImagemEditorialContextual(
+              `${catEncontrada?.nome || ""} ${rawTitulo}`
+            );
+          }
+
           let tituloFinal = rawTitulo;
           let subtituloFinal: string | null = null;
-          let resumoFinal = limparResumo(rawResumo, 400);
-          let conteudoHtmlFinal: string | null = conteudoOriginalExtraido;
+          let conteudoHtmlFinal: string =
+            item.content && item.content.length > 50
+              ? item.content
+              : (resumoFinal ? `<p>${resumoFinal}</p>` : `<p>${rawTitulo}</p>`);
 
           if (reescritaAtiva) {
             const cidadeEncontrada = cidades.find(
@@ -334,7 +321,7 @@ export async function executarCaptacao(
               const reescrito = await reescreverNoticiaCaptada({
                 titulo: rawTitulo,
                 resumoBruto: rawResumo,
-                conteudoBruto: conteudoOriginalExtraido,
+                conteudoBruto: conteudoHtmlFinal,
                 veiculo: fonte.veiculo,
                 cidadeNome: cidadeEncontrada?.nome,
                 apiKeyIa,
@@ -342,16 +329,11 @@ export async function executarCaptacao(
 
               tituloFinal = reescrito.titulo;
               subtituloFinal = reescrito.subtitulo || null;
-              resumoFinal = reescrito.resumo;
-              conteudoHtmlFinal = reescrito.conteudoHtml || conteudoOriginalExtraido;
+              resumoFinal = reescrito.resumo || resumoFinal;
+              conteudoHtmlFinal = reescrito.conteudoHtml || conteudoHtmlFinal;
             } catch (err) {
               console.warn("[Reescrita] Erro ao reescrever, mantendo original:", err);
             }
-          }
-
-          // Se após reescrita o conteúdo ficou vazio, não publicar
-          if (!conteudoHtmlFinal || conteudoHtmlFinal.length < 200) {
-            continue;
           }
 
           // Data de publicação inteligente:
@@ -549,11 +531,6 @@ export async function executarCaptacao(
 
       if (!rpcErr && rpcRes && typeof rpcRes.materias_excluidas === "number") {
         totalDeletadas = rpcRes.materias_excluidas;
-        if (totalDeletadas > 0) {
-          console.log(
-            `[Limpeza Automática RPC] ${totalDeletadas} matérias antigas (> ${diasRetencao} dias) foram excluídas com sucesso.`
-          );
-        }
       } else {
         // Fallback via query direta se a RPC ainda não tiver sido criada no Supabase
         const dataLimite = new Date();
@@ -569,9 +546,6 @@ export async function executarCaptacao(
 
         if (!errDelete && deletadas) {
           totalDeletadas = deletadas.length;
-          if (totalDeletadas > 0) {
-            console.log(`[Limpeza Automática] ${totalDeletadas} matérias com mais de ${diasRetencao} dias foram deletadas do banco.`);
-          }
         }
 
         await supabase
@@ -589,22 +563,13 @@ export async function executarCaptacao(
     try {
       const { data: materiasTruncadas } = await supabase
         .from("materias")
-        .select("id, titulo, url_original")
+        .select("id, titulo")
         .eq("imagem_url", "https://lncimg.lance.com.br/cdn-cgi/image/width=1200")
         .limit(10);
 
       if (materiasTruncadas && materiasTruncadas.length > 0) {
         for (const mat of materiasTruncadas) {
-          let novaImg: string | null = null;
-          if (mat.url_original) {
-            try {
-              const det = await extrairDetalhesMateriaOriginal(mat.url_original);
-              if (det.imagemUrl) novaImg = det.imagemUrl;
-            } catch {}
-          }
-          if (!novaImg) {
-            novaImg = obterImagemEditorialContextual(mat.titulo);
-          }
+          const novaImg = obterImagemEditorialContextual(mat.titulo);
           await supabase.from("materias").update({ imagem_url: novaImg }).eq("id", mat.id);
         }
       }
@@ -613,18 +578,17 @@ export async function executarCaptacao(
     }
   }
 
-  // 7. Revalidação de Cache das páginas afetadas
-  try {
-    revalidatePath("/");
-    revalidatePath("/rss.xml");
-    for (const catSlug of categoriasAfetadas) {
-      revalidatePath(`/categoria/${catSlug}`);
+  // 7. Revalidação de Cache ÚNICA ao final da execução (usando revalidateTag e caminhos principais)
+  if (detalhes.some((d) => d.itens_novos > 0) || totalDeletadas > 0) {
+    try {
+      revalidatePath("/");
+      revalidatePath("/rss.xml");
+      try {
+        revalidateTag("materias");
+      } catch {}
+    } catch (err) {
+      console.warn("Aviso ao revalidar caminhos de cache:", err);
     }
-    for (const cidSlug of cidadesAfetadas) {
-      revalidatePath(`/cidade/${cidSlug}`);
-    }
-  } catch (err) {
-    console.warn("Aviso ao revalidar caminhos de cache:", err);
   }
 
   const totalLidos = detalhes.reduce((acc, d) => acc + d.itens_lidos, 0);

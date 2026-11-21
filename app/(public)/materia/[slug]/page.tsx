@@ -27,7 +27,7 @@ import { calcularVisualizacoesRealistas, formatarVisualizacoes } from "@/lib/por
 import { limparEPadronizarTextoJornalistico } from "@/lib/portal/limpador-jornalistico";
 import { decodificarEntidadesHtml, obterSiteUrl } from "@/lib/portal/texto-utils";
 
-export const revalidate = 60;
+export const revalidate = 86400; // ISR: 1 dia (86.400s) para matérias publicadas
 
 interface MateriaPageProps {
   params: Promise<{ slug: string }>;
@@ -54,9 +54,18 @@ export async function generateMetadata({
     materia.seo_descricao || materia.subtitulo || materia.resumo || tituloLimpo
   );
 
+  // Notícias captadas com mais de 30 dias recebem noindex para proteger recursos e SEO
+  const trintaDiasMs = 30 * 24 * 60 * 60 * 1000;
+  const dataPub = new Date(materia.publicado_em || materia.created_at).getTime();
+  const ehCaptadaAntiga = materia.origem === "captacao" && (Date.now() - dataPub > trintaDiasMs);
+  const isArquivada = (materia.status as string) === "arquivada" || materia.status === "despublicado" || ehCaptadaAntiga;
+
   return {
     title,
     description,
+    robots: isArquivada
+      ? { index: false, follow: false, noarchive: true }
+      : { index: true, follow: true },
     alternates: {
       canonical: canonicalUrl,
     },

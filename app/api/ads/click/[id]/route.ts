@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
+export const maxDuration = 10;
+
 export async function GET(
   request: Request,
   props: { params: Promise<{ id: string }> }

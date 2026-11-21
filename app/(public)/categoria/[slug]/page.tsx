@@ -8,7 +8,7 @@ import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { AdSlot } from "@/components/portal/AdSlot";
 import { ClassificadosFaixaSection } from "@/components/portal/ClassificadosFaixaSection";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 interface CategoriaPageProps {
   params: Promise<{ slug: string }>;

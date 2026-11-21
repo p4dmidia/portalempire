@@ -8,7 +8,7 @@ import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { AdSlot } from "@/components/portal/AdSlot";
 import { User, Instagram, Facebook, Twitter, Youtube, Linkedin, Globe, ArrowLeft, BadgeCheck } from "lucide-react";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 interface AutorPageProps {
   params: Promise<{ slug: string }>;

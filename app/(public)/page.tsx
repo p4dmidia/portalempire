@@ -20,7 +20,7 @@ import { BlocoCidadesEstadosHome } from "@/components/portal/BlocoCidadesEstados
 import { AdSlot } from "@/components/portal/AdSlot";
 import { MapPin, Video, ChevronRight, MessageCircle } from "lucide-react";
 
-export const revalidate = 60; // ISR: 60 segundos de revalidação
+export const revalidate = 600; // ISR: 10 minutos (600s) de revalidação
 
 export async function generateMetadata(): Promise<Metadata> {
   const portal = await getPortalData();

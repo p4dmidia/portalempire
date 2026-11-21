@@ -16,7 +16,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 export async function generateMetadata(): Promise<Metadata> {
   const portal = await getPortalData();

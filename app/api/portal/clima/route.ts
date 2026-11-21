@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getClimaCidadesAleatorias, getClimaPorSlug, DadosClima } from "@/lib/portal/clima";
 
 export const revalidate = 1800; // 30 minutos
+export const maxDuration = 10;
 
 export async function GET(request: Request) {
   try {

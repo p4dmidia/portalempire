@@ -1,5 +1,4 @@
 import { createClient } from "@supabase/supabase-js";
-import { extrairDetalhesMateriaOriginal } from "../lib/captacao/extrator-conteudo";
 import { otimizarUrlImagem, obterImagemEditorialContextual } from "../lib/portal/image-utils";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -81,25 +80,8 @@ async function main() {
 
     for (const m of (materiasGenericas || [])) {
       const contexto = `${(m as any).categoria?.nome || ""} ${m.titulo || ""}`;
-      let novaImagem: string | null = null;
-
-      // Se tiver URL original e não for ponte do Google News, tenta extrair a foto real da reportagem
-      if (m.url_original && m.url_original.startsWith("http") && !m.url_original.includes("news.google.com")) {
-        try {
-          const detalhes = await extrairDetalhesMateriaOriginal(m.url_original);
-          if (detalhes.imagemUrl && !detalhes.imagemUrl.includes("photo-1504711434969")) {
-            novaImagem = detalhes.imagemUrl;
-            reextraidas++;
-          }
-        } catch {}
-      }
-
-      // Se não houver foto original válida, define foto editorial HD contextual com variedade
-      if (!novaImagem) {
-        novaImagem = obterImagemEditorialContextual(contexto);
-        contextuais++;
-      }
-
+      const novaImagem = obterImagemEditorialContextual(contexto);
+      contextuais++;
       await sb.from("materias").update({ imagem_url: novaImagem }).eq("id", m.id);
     }
     console.log(` -> Re-extraídas com foto real da página: ${reextraidas}`);
@@ -122,21 +104,7 @@ async function main() {
 
     for (const m of (materiasNulas || [])) {
       const contexto = `${(m as any).categoria?.nome || ""} ${m.titulo || ""}`;
-      let novaImagem: string | null = null;
-
-      if (m.url_original && m.url_original.startsWith("http") && !m.url_original.includes("news.google.com")) {
-        try {
-          const detalhes = await extrairDetalhesMateriaOriginal(m.url_original);
-          if (detalhes.imagemUrl) {
-            novaImagem = detalhes.imagemUrl;
-          }
-        } catch {}
-      }
-
-      if (!novaImagem) {
-        novaImagem = obterImagemEditorialContextual(contexto);
-      }
-
+      const novaImagem = obterImagemEditorialContextual(contexto);
       await sb.from("materias").update({ imagem_url: novaImagem }).eq("id", m.id);
       corrigidasNulas++;
     }

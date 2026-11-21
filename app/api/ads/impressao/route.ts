@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 
+export const maxDuration = 10;
+
 // Cache em memória simples para evitar abusos/flooding na mesma sessão/IP
 const recentImpressions = new Map<string, number>();
 

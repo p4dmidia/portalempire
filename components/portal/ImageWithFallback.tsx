@@ -35,6 +35,7 @@ export function ImageWithFallback({
       {...rest}
       src={imgSrc}
       alt={alt || "Imagem da matéria"}
+      unoptimized
       referrerPolicy="no-referrer"
       onError={() => {
         if (tentativas === 0) {

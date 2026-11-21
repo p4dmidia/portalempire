@@ -8,6 +8,8 @@ import { CATEGORIAS_PADRAO_SISTEMA } from "@/lib/portal/queries";
 import { definirExpiracaoDestaque, removerExpiracaoDestaque, calcularDataExpiracao } from "@/lib/portal/destaques-storage";
 import * as z from "zod";
 
+export const maxDuration = 10;
+
 const updateSchema = z.object({
   titulo: z.string().min(5).optional(),
   slug: z.string().min(3).optional(),
@@ -223,17 +225,17 @@ export async function PUT(
       removerExpiracaoDestaque(id);
     }
 
-    // Revalidação de cache rápida e segura
-    if (targetStatus === "publicado" || isDestaque || materia.destaque) {
-      try {
-        revalidatePath("/");
-        revalidatePath(`/materia/${materia.slug}`);
-        if (updatedMateria.slug !== materia.slug) {
-          revalidatePath(`/materia/${updatedMateria.slug}`);
-        }
-      } catch (e) {
-        console.warn("[revalidatePath] Falha na revalidação:", e);
+    // Revalidação estrita: revalida a página da própria matéria e a home apenas se for destaque
+    try {
+      revalidatePath(`/materia/${materia.slug}`);
+      if (updatedMateria.slug !== materia.slug) {
+        revalidatePath(`/materia/${updatedMateria.slug}`);
       }
+      if (isDestaque || materia.destaque) {
+        revalidatePath("/");
+      }
+    } catch (e) {
+      console.error("[revalidatePath] Falha na revalidação:", e);
     }
 
     return NextResponse.json({ success: true, materia: updatedMateria });

@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Megaphone, ChevronLeft, ChevronRight } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 interface AdSlotProps {
   posicao: "topo" | "lateral" | "meio_texto" | "rodape" | "home_entre_blocos";
@@ -127,12 +128,18 @@ export function AdSlot({
       sessionStorage.setItem(sessionKey, "1");
     }
 
-    // Disparar contagem de impressão no banco
-    fetch("/api/ads/impressao", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ anuncio_id: anuncioAtual.id }),
-    }).catch(() => {});
+    // Disparar contagem de impressão direto no Supabase (zero funções Vercel)
+    try {
+      const userAgent = navigator.userAgent || "";
+      const isBot = /bot|googlebot|crawler|spider|robot|crawling|lighthouse|headless/i.test(userAgent);
+      if (!isBot) {
+        const supabase = createClient();
+        void supabase.rpc("incrementar_metrica", {
+          p_anuncio_id: anuncioAtual.id,
+          p_tipo: "impressao",
+        });
+      }
+    } catch {}
   }, [isIntersecting, indiceAtual, anuncios, total]);
 
   // Suporte a swipe por toque no mobile
@@ -228,9 +235,18 @@ export function AdSlot({
                 className="w-full flex-shrink-0 flex items-center justify-center"
               >
                 <a
-                  href={`/api/ads/click/${anuncio.id}`}
+                  href={anuncio.link_destino || "#"}
                   target="_blank"
                   rel="noopener nofollow"
+                  onClick={() => {
+                    try {
+                      const supabase = createClient();
+                      void supabase.rpc("incrementar_metrica", {
+                        p_anuncio_id: anuncio.id,
+                        p_tipo: "clique",
+                      });
+                    } catch {}
+                  }}
                   className={`relative overflow-hidden rounded-2xl transition-transform hover:scale-[1.002] ${
                     isBillboard ? "block w-full" : "inline-block"
                   }`}

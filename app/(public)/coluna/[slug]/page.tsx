@@ -11,7 +11,7 @@ import { User, MapPin, Sparkles, ArrowLeft, BookOpen } from "lucide-react";
 import { LiveColunaViewsCounter } from "@/components/portal/LiveViewsCounter";
 import { calcularVisualizacoesColuna } from "@/lib/portal/views-realistas";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 interface ColunaPageProps {
   params: Promise<{ slug: string }>;

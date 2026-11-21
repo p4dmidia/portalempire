@@ -8,6 +8,8 @@ import { CATEGORIAS_PADRAO_SISTEMA } from "@/lib/portal/queries";
 import { definirExpiracaoDestaque, calcularDataExpiracao } from "@/lib/portal/destaques-storage";
 import * as z from "zod";
 
+export const maxDuration = 10;
+
 const materiaSchema = z.object({
   titulo: z.string().min(5, "O título deve ter no mínimo 5 caracteres"),
   slug: z.string().min(3),

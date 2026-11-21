@@ -10,7 +10,7 @@ import { AdSlot } from "@/components/portal/AdSlot";
 import { ClassificadosFaixaSection } from "@/components/portal/ClassificadosFaixaSection";
 import { MapPin, Thermometer } from "lucide-react";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 interface CidadePageProps {
   params: Promise<{ slug: string }>;

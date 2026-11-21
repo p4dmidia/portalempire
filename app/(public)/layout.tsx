@@ -5,7 +5,7 @@ import { Ticker } from "@/components/portal/Ticker";
 import { CookieBanner } from "@/components/portal/CookieBanner";
 import { EmpireMidiaPublica } from "@/components/portal/EmpireMidiaPublica";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 function hexToHsl(hex: string): string {
 

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getCidades, getPortalData } from "@/lib/portal/queries";
 import { MapPin, ChevronRight } from "lucide-react";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 export async function generateMetadata(): Promise<Metadata> {
   const portal = await getPortalData();

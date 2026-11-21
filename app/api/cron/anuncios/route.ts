@@ -3,6 +3,8 @@ import { revalidatePath } from "next/cache";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { enviarEmailAvisoVencimento } from "@/lib/email/servico";
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   const authHeader = request.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;

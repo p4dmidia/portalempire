@@ -198,7 +198,7 @@ export async function POST(request: Request) {
       }
 
       default:
-        console.log(`[Asaas Webhook] Evento não mapeado ignorado: ${event}`);
+        break;
     }
 
     return NextResponse.json({ received: true, event });

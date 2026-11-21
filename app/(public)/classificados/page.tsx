@@ -6,7 +6,7 @@ import { ClassificadosView } from "@/components/portal/ClassificadosView";
 import { CardMateria } from "@/components/portal/CardMateria";
 import { Newspaper, ChevronRight } from "lucide-react";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: "Classificados — Imóveis, Veículos, Negócios e Oportunidades | Empire Cidades",

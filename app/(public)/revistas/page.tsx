@@ -6,7 +6,7 @@ import { RevistasBuscaView } from "@/components/portal/revistas/RevistasBuscaVie
 import { CardMateria } from "@/components/portal/CardMateria";
 import { Newspaper, ChevronRight, BookOpen } from "lucide-react";
 
-export const revalidate = 60;
+export const revalidate = 600;
 
 export const metadata: Metadata = {
   title: "Revistas Empire Magazine — Edições Regionais e Especiais | Empire Cidades",

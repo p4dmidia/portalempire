@@ -23,7 +23,7 @@ import {
   MessageCircle,
 } from "lucide-react";
 
-export const revalidate = 60;
+export const revalidate = 86400;
 
 // Configuração Oficial do Canal Comercial Direto no WhatsApp
 const WHATSAPP_NUMERO = "553488676886";
