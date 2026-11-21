@@ -326,88 +326,98 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
               <span className="absolute bottom-0 left-1 right-1 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
             </button>
 
-            <div className="absolute top-full right-0 hidden group-hover:block bg-white text-slate-900 min-w-[260px] rounded-b-2xl shadow-2xl border border-slate-200/80 py-2.5 z-50 overflow-hidden">
-              {/* Destaques Especiais Empire: Talentos & Totens */}
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50/50 p-2.5 border-b border-amber-200/70 space-y-1 mb-1">
+            <div className="absolute top-full right-0 hidden group-hover:block bg-white text-slate-900 w-[380px] sm:w-[420px] max-h-[calc(100vh-90px)] overflow-y-auto overscroll-contain rounded-2xl shadow-2xl border border-slate-200/90 p-3 z-50 [scrollbar-width:thin] [scrollbar-color:#cbd5e1_transparent]">
+              {/* Destaques Especiais Empire: Talentos & Totens (Lado a Lado) */}
+              <div className="grid grid-cols-2 gap-2 p-1.5 bg-gradient-to-br from-amber-50 via-orange-50/40 to-amber-50/60 rounded-xl border border-amber-200/70 mb-2">
                 <Link
                   href="/talentos"
-                  className="flex items-center gap-2.5 p-2 rounded-xl text-[13px] font-black text-slate-950 hover:bg-amber-400/25 transition-colors"
+                  className="flex items-center gap-2 p-2 rounded-lg text-slate-950 hover:bg-white/80 hover:shadow-xs transition-all group/card"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-sm">
+                  <div className="w-7 h-7 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-xs group-hover/card:scale-105 transition-transform">
                     <Star className="w-3.5 h-3.5 fill-current" />
                   </div>
                   <div className="min-w-0">
-                    <span className="block leading-tight text-slate-900 font-extrabold">Talentos Empire</span>
-                    <span className="block text-[10.5px] font-medium text-slate-500">
-                      Celebridades & Influenciadores
+                    <span className="block leading-tight text-slate-900 font-extrabold text-[12px]">Talentos Empire</span>
+                    <span className="block text-[10px] font-medium text-slate-500 truncate">
+                      Celebridades & Shows
                     </span>
                   </div>
                 </Link>
 
                 <Link
                   href="/totens"
-                  className="flex items-center gap-2.5 p-2 rounded-xl text-[13px] font-black text-slate-950 hover:bg-amber-400/25 transition-colors"
+                  className="flex items-center gap-2 p-2 rounded-lg text-slate-950 hover:bg-white/80 hover:shadow-xs transition-all group/card"
                 >
-                  <div className="w-7 h-7 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center shrink-0 shadow-sm">
+                  <div className="w-7 h-7 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center shrink-0 shadow-xs group-hover/card:scale-105 transition-transform">
                     <Tv className="w-3.5 h-3.5" />
                   </div>
                   <div className="min-w-0">
-                    <span className="block leading-tight text-slate-900 font-extrabold">Empire Totens</span>
-                    <span className="block text-[10.5px] font-medium text-slate-500">
-                      Mídia Digital por Cidade
+                    <span className="block leading-tight text-slate-900 font-extrabold text-[12px]">Empire Totens</span>
+                    <span className="block text-[10px] font-medium text-slate-500 truncate">
+                      Mídia por Cidade
                     </span>
                   </div>
                 </Link>
               </div>
 
-              <Link
-                href="/colunas"
-                className="block px-4 py-2 text-[13px] font-bold text-amber-600 hover:text-amber-700 hover:bg-amber-50/50 transition-colors"
-              >
-                ★ Colunistas da Região
-              </Link>
-              <Link
-                href="/seja-colunista"
-                className="block px-4 py-2 text-[13px] font-extrabold text-[#c8102e] hover:bg-red-50/60 transition-colors border-b border-slate-100 mb-1"
-              >
-                ✦ Seja um Colunista
-              </Link>
-              {/* Categorias Gastronomia e Turismo integradas para telas < 2xl */}
-              <div className="2xl:hidden border-b border-slate-100 pb-1 mb-1">
+              {/* Colunistas (Lado a Lado) */}
+              <div className="grid grid-cols-2 gap-2 border-b border-slate-100 pb-2 mb-2 px-1">
                 <Link
-                  href="/categoria/gastronomia"
-                  className="block px-4 py-1.5 text-[13px] font-semibold text-slate-800 hover:text-[#c8102e] hover:bg-slate-50 transition-colors"
+                  href="/colunas"
+                  className="block px-2 py-1.5 rounded-lg text-[12px] font-bold text-amber-700 bg-amber-50/60 hover:bg-amber-100/70 transition-colors"
                 >
-                  Gastronomia
+                  ★ Colunistas da Região
                 </Link>
                 <Link
-                  href="/categoria/turismo"
-                  className="block px-4 py-1.5 text-[13px] font-semibold text-slate-800 hover:text-[#c8102e] hover:bg-slate-50 transition-colors"
+                  href="/seja-colunista"
+                  className="block px-2 py-1.5 rounded-lg text-[12px] font-extrabold text-[#c8102e] bg-red-50/60 hover:bg-red-100/70 transition-colors text-right"
                 >
-                  Turismo
+                  ✦ Seja um Colunista
                 </Link>
               </div>
-              {catMais.map((cat) => (
-                <Link
-                  key={cat.id}
-                  href={`/categoria/${cat.slug}`}
-                  className="block px-4 py-1.5 text-[13px] font-semibold text-slate-800 hover:text-[#c8102e] hover:bg-slate-50 transition-colors"
-                >
-                  {cat.nome}
-                </Link>
-              ))}
-              <div className="border-t border-slate-100 mt-1 pt-1.5 px-4 space-y-1">
+
+              {/* Categorias em Grid de 2 Colunas */}
+              <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 px-1 py-1">
+                {/* Categorias Gastronomia e Turismo para telas < 2xl */}
+                <div className="2xl:hidden contents">
+                  <Link
+                    href="/categoria/gastronomia"
+                    className="block px-2 py-1 rounded-lg text-[12.5px] font-semibold text-slate-800 hover:text-[#c8102e] hover:bg-slate-100/70 transition-colors"
+                  >
+                    Gastronomia
+                  </Link>
+                  <Link
+                    href="/categoria/turismo"
+                    className="block px-2 py-1 rounded-lg text-[12.5px] font-semibold text-slate-800 hover:text-[#c8102e] hover:bg-slate-100/70 transition-colors"
+                  >
+                    Turismo
+                  </Link>
+                </div>
+
+                {catMais.map((cat) => (
+                  <Link
+                    key={cat.id}
+                    href={`/categoria/${cat.slug}`}
+                    className="block px-2 py-1 rounded-lg text-[12.5px] font-semibold text-slate-800 hover:text-[#c8102e] hover:bg-slate-100/70 transition-colors truncate"
+                  >
+                    {cat.nome}
+                  </Link>
+                ))}
+              </div>
+
+              {/* Rodapé: Anuncie & Área do Redator */}
+              <div className="border-t border-slate-100 mt-2 pt-2 px-2 flex items-center justify-between text-[11.5px]">
                 <Link
                   href="/anuncie"
-                  className="block text-[12px] font-semibold text-slate-600 hover:text-[#c8102e]"
+                  className="font-semibold text-slate-600 hover:text-[#c8102e] hover:underline"
                 >
                   Anuncie Conosco
                 </Link>
                 <Link
                   href="/painel"
-                  className="block text-[12px] font-bold text-[#c8102e] hover:underline"
+                  className="font-bold text-[#c8102e] hover:underline"
                 >
-                  Área do Redator
+                  Área do Redator →
                 </Link>
               </div>
             </div>
