@@ -8,6 +8,8 @@ import { ColunistasCarrossel } from "@/components/portal/ColunistasCarrossel";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { AdSlot } from "@/components/portal/AdSlot";
 import { ClassificadosFaixaSection } from "@/components/portal/ClassificadosFaixaSection";
+import { TotensCidadeSection } from "@/components/portal/totens/TotensCidadeSection";
+import { getTotens } from "@/lib/totens/queries";
 import { MapPin, Thermometer } from "lucide-react";
 
 export const revalidate = 600;
@@ -43,12 +45,13 @@ export default async function CidadeDetalhePage({ params }: CidadePageProps) {
     notFound();
   }
 
-  const [materiasRaw, colunas, maisLidasRaw, clima, todosClassificados] = await Promise.all([
+  const [materiasRaw, colunas, maisLidasRaw, clima, todosClassificados, totensCidade] = await Promise.all([
     getMaterias({ cidadeSlug: slug, limit: 12 }),
     getColunasAtivas(slug),
     getMaterias({ cidadeSlug: slug, ordenarPor: "visualizacoes", limit: 5 }),
     getClimaPorSlug(slug),
     getClassificados(),
+    getTotens(cidade.nome),
   ]);
 
   // Garante identificação e badge local correto da cidade ({cidade.nome} - {cidade.uf})
@@ -201,6 +204,13 @@ export default async function CidadeDetalhePage({ params }: CidadePageProps) {
       <ClassificadosFaixaSection
         classificados={classificadosCidade}
         titulo={`Classificados & Oportunidades em ${cidade.nome} e Região`}
+      />
+
+      {/* 3. Seção de Totens Publicitários da Cidade */}
+      <TotensCidadeSection
+        totens={totensCidade}
+        cidadeNome={cidade.nome}
+        cidadeEstado={cidade.uf}
       />
     </div>
   );

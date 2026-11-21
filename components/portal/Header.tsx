@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import type { CategoriaData, CidadeData, PortalData } from "@/lib/portal/queries";
-import { Search, Menu, X, ChevronDown, Tag, ShoppingBag, BookOpen, Tv, Radio } from "lucide-react";
+import { Search, Menu, X, ChevronDown, Tag, ShoppingBag, BookOpen, Tv, Radio, Star } from "lucide-react";
 import { WidgetClimaHeader } from "@/components/portal/WidgetClimaHeader";
 
 const TEMAS_EDITORIAIS = [
@@ -93,17 +93,17 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           </Link>
 
         {/* 2. Navegação Desktop (Estilo Magazine Exato) */}
-        <nav className="hidden lg:flex items-center gap-1 xl:gap-2 h-full flex-nowrap shrink-0">
+        <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1.5 2xl:gap-2 h-full flex-nowrap shrink-0">
           {/* Início */}
           <Link
             href="/"
-            className={`relative flex items-center h-full px-2 xl:px-2.5 text-[12px] xl:text-[12.5px] 2xl:text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap group ${
+            className={`relative flex items-center h-full px-1.5 xl:px-2 2xl:px-2.5 text-[11.5px] xl:text-[12px] 2xl:text-[12.5px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap group ${
               pathname === "/" ? "text-white" : ""
             }`}
           >
             <span>Início</span>
             <span
-              className={`absolute bottom-0 left-2 right-2 h-[3px] bg-[#c8102e] transition-transform duration-200 ${
+              className={`absolute bottom-0 left-1 right-1 h-[3px] bg-[#c8102e] transition-transform duration-200 ${
                 pathname === "/" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
               }`}
             />
@@ -113,11 +113,11 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           <div className="relative h-full flex items-center group">
             <Link
               href="/categoria/noticias"
-              className="relative flex items-center gap-1 h-full px-2 xl:px-2.5 text-[12px] xl:text-[12.5px] 2xl:text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap"
+              className="relative flex items-center gap-0.5 h-full px-1.5 xl:px-2 2xl:px-2.5 text-[11.5px] xl:text-[12px] 2xl:text-[12.5px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap"
             >
               <span>Notícias</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
-              <span className="absolute bottom-0 left-2 right-2 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
+              <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
+              <span className="absolute bottom-0 left-1 right-1 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
             </Link>
 
             {/* Dropdown Notícias */}
@@ -147,11 +147,11 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           <div className="relative h-full flex items-center group">
             <Link
               href="/categoria/politica"
-              className="relative flex items-center gap-1 h-full px-2 xl:px-2.5 2xl:px-3 text-[12px] xl:text-[12.5px] 2xl:text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap"
+              className="relative flex items-center gap-0.5 h-full px-1.5 xl:px-2 2xl:px-2.5 text-[11.5px] xl:text-[12px] 2xl:text-[12.5px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap"
             >
               <span>Política</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
-              <span className="absolute bottom-0 left-2 right-2 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
+              <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
+              <span className="absolute bottom-0 left-1 right-1 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
             </Link>
 
             <div className="absolute top-full left-0 hidden group-hover:block bg-white text-slate-900 min-w-[200px] rounded-b-xl shadow-2xl border border-slate-100 py-2 z-50">
@@ -174,11 +174,11 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           <div className="relative h-full flex items-center group">
             <Link
               href="/categoria/economia"
-              className="relative flex items-center gap-1 h-full px-2 xl:px-2.5 2xl:px-3 text-[12px] xl:text-[12.5px] 2xl:text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap"
+              className="relative flex items-center gap-0.5 h-full px-1.5 xl:px-2 2xl:px-2.5 text-[11.5px] xl:text-[12px] 2xl:text-[12.5px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap"
             >
               <span>Economia</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
-              <span className="absolute bottom-0 left-2 right-2 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
+              <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
+              <span className="absolute bottom-0 left-1 right-1 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
             </Link>
 
             <div className="absolute top-full left-0 hidden group-hover:block bg-white text-slate-900 min-w-[210px] rounded-b-xl shadow-2xl border border-slate-100 py-2 z-50">
@@ -228,14 +228,14 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           </Link>
 
           {/* Beleza & Estética com Dropdown */}
-          <div className="relative h-full flex items-center group">
+          <div className="hidden xl:flex relative h-full items-center group">
             <Link
               href="/categoria/beleza"
-              className="relative flex items-center gap-1 h-full px-2 xl:px-2.5 2xl:px-3 text-[12px] xl:text-[12.5px] 2xl:text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap"
+              className="relative flex items-center gap-0.5 h-full px-1.5 xl:px-2 2xl:px-2.5 text-[11.5px] xl:text-[12px] 2xl:text-[12.5px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap"
             >
               <span>Beleza</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
-              <span className="absolute bottom-0 left-2 right-2 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
+              <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
+              <span className="absolute bottom-0 left-1 right-1 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
             </Link>
 
             <div className="absolute top-full left-0 hidden group-hover:block bg-white text-slate-900 min-w-[200px] rounded-b-xl shadow-2xl border border-slate-100 py-2 z-50">
@@ -258,11 +258,11 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           <div className="relative h-full flex items-center group">
             <Link
               href="/cidades"
-              className="relative flex items-center gap-1 h-full px-2 xl:px-2.5 2xl:px-3 text-[12px] xl:text-[12.5px] 2xl:text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap"
+              className="relative flex items-center gap-0.5 h-full px-1.5 xl:px-2 2xl:px-2.5 text-[11.5px] xl:text-[12px] 2xl:text-[12.5px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap"
             >
               <span>Cidades</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
-              <span className="absolute bottom-0 left-2 right-2 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
+              <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
+              <span className="absolute bottom-0 left-1 right-1 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
             </Link>
 
             <div className="absolute top-full left-0 hidden group-hover:block bg-white text-slate-900 min-w-[240px] rounded-b-xl shadow-2xl border border-slate-100 py-2.5 z-50">
@@ -292,18 +292,18 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           {/* Revistas */}
           <Link
             href="/revistas"
-            className={`relative flex items-center h-full px-2 xl:px-2.5 2xl:px-3 text-[12px] xl:text-[12.5px] 2xl:text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap group ${
+            className={`relative flex items-center h-full px-1.5 xl:px-2 2xl:px-2.5 text-[11.5px] xl:text-[12px] 2xl:text-[12.5px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap group ${
               pathname === "/revistas" ? "text-white" : ""
             }`}
           >
-            <span className="flex items-center gap-1.5">
+            <span className="flex items-center gap-1">
               <span>Revistas</span>
-              <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-[#c8102e] text-white leading-none">
+              <span className="text-[9px] font-black px-1 py-0.5 rounded bg-[#c8102e] text-white leading-none">
                 NOVO
               </span>
             </span>
             <span
-              className={`absolute bottom-0 left-2 right-2 h-[3px] bg-[#c8102e] transition-transform duration-200 ${
+              className={`absolute bottom-0 left-1 right-1 h-[3px] bg-[#c8102e] transition-transform duration-200 ${
                 pathname === "/revistas" ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
               }`}
             />
@@ -312,21 +312,54 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           {/* Esportes */}
           <Link
             href="/categoria/esportes"
-            className="relative flex items-center h-full px-2 xl:px-2.5 2xl:px-3 text-[12px] xl:text-[12.5px] 2xl:text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap group"
+            className="flex relative items-center h-full px-1.5 xl:px-2 2xl:px-2.5 text-[11.5px] xl:text-[12px] 2xl:text-[12.5px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors whitespace-nowrap group"
           >
             <span>Esportes</span>
-            <span className="absolute bottom-0 left-2 right-2 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
+            <span className="absolute bottom-0 left-1 right-1 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
           </Link>
 
           {/* + Mais Dropdown */}
           <div className="relative h-full flex items-center group">
-            <button className="relative flex items-center gap-1 h-full px-2 xl:px-2.5 2xl:px-3 text-[12px] xl:text-[12.5px] 2xl:text-[13px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors cursor-pointer whitespace-nowrap">
+            <button className="relative flex items-center gap-0.5 h-full px-1.5 xl:px-2 2xl:px-2.5 text-[11.5px] xl:text-[12px] 2xl:text-[12.5px] font-bold uppercase tracking-wider text-slate-100 hover:text-white transition-colors cursor-pointer whitespace-nowrap">
               <span>+ Mais</span>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
-              <span className="absolute bottom-0 left-2 right-2 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
+              <ChevronDown className="w-3 h-3 text-slate-400 group-hover:text-white group-hover:rotate-180 transition-transform duration-200" />
+              <span className="absolute bottom-0 left-1 right-1 h-[3px] bg-[#c8102e] scale-x-0 group-hover:scale-x-100 transition-transform duration-200" />
             </button>
 
-            <div className="absolute top-full right-0 hidden group-hover:block bg-white text-slate-900 min-w-[240px] rounded-b-xl shadow-2xl border border-slate-100 py-2.5 z-50">
+            <div className="absolute top-full right-0 hidden group-hover:block bg-white text-slate-900 min-w-[260px] rounded-b-2xl shadow-2xl border border-slate-200/80 py-2.5 z-50 overflow-hidden">
+              {/* Destaques Especiais Empire: Talentos & Totens */}
+              <div className="bg-gradient-to-r from-amber-50 to-orange-50/50 p-2.5 border-b border-amber-200/70 space-y-1 mb-1">
+                <Link
+                  href="/talentos"
+                  className="flex items-center gap-2.5 p-2 rounded-xl text-[13px] font-black text-slate-950 hover:bg-amber-400/25 transition-colors"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-sm">
+                    <Star className="w-3.5 h-3.5 fill-current" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="block leading-tight text-slate-900 font-extrabold">Talentos Empire</span>
+                    <span className="block text-[10.5px] font-medium text-slate-500">
+                      Celebridades & Influenciadores
+                    </span>
+                  </div>
+                </Link>
+
+                <Link
+                  href="/totens"
+                  className="flex items-center gap-2.5 p-2 rounded-xl text-[13px] font-black text-slate-950 hover:bg-amber-400/25 transition-colors"
+                >
+                  <div className="w-7 h-7 rounded-lg bg-slate-900 text-amber-400 flex items-center justify-center shrink-0 shadow-sm">
+                    <Tv className="w-3.5 h-3.5" />
+                  </div>
+                  <div className="min-w-0">
+                    <span className="block leading-tight text-slate-900 font-extrabold">Empire Totens</span>
+                    <span className="block text-[10.5px] font-medium text-slate-500">
+                      Mídia Digital por Cidade
+                    </span>
+                  </div>
+                </Link>
+              </div>
+
               <Link
                 href="/colunas"
                 className="block px-4 py-2 text-[13px] font-bold text-amber-600 hover:text-amber-700 hover:bg-amber-50/50 transition-colors"
@@ -381,20 +414,16 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
           </div>
         </nav>
 
-        {/* 3. Ações Direita (Botão Classificados Destaque + Busca + Menu Mobile) */}
+        {/* 3. Ações Direita (Classificados Destaque + Busca + Menu Mobile) */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 ml-auto pl-2">
           {/* Botão de Classificados em Destaque */}
           <Link
             href="/classificados"
-            className="inline-flex items-center gap-1 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 shadow-sm border border-amber-300/60 transition-all hover:scale-105 active:scale-95 shrink-0"
+            className="inline-flex items-center gap-1 px-2.5 py-1 xl:px-3 xl:py-1.5 rounded-full text-[10.5px] xl:text-[11px] font-black uppercase tracking-wider bg-gradient-to-r from-amber-400 via-amber-500 to-amber-600 hover:from-amber-300 hover:to-amber-500 text-slate-950 shadow-sm border border-amber-300/60 transition-all hover:scale-105 active:scale-95 shrink-0 whitespace-nowrap"
             title="Classificados — Vendas, Imóveis, Autos e Oportunidades"
           >
-            <Tag className="w-3.5 h-3.5 fill-current shrink-0" />
+            <Tag className="w-3 h-3 xl:w-3.5 xl:h-3.5 fill-current shrink-0" />
             <span>Classificados</span>
-            <span className="flex h-2 w-2 relative shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-600 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[#c8102e]"></span>
-            </span>
           </Link>
 
           {/* Botão de Busca Redondo */}
@@ -540,6 +569,26 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           </form>
 
+          {/* Destaque Especial Talentos Empire Mobile */}
+          <Link
+            href="/talentos"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-amber-500/30 via-yellow-500/20 to-transparent border border-amber-400/50 text-amber-300 font-bold shadow-md"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-400 to-yellow-500 text-slate-950 flex items-center justify-center font-black shadow">
+                <Star className="w-4 h-4 fill-current" />
+              </div>
+              <div>
+                <span className="block text-sm font-extrabold text-amber-200 uppercase tracking-wide">Talentos Empire</span>
+                <span className="block text-[11px] text-amber-300/80 font-medium">Apresentadores, Influenciadores & Shows</span>
+              </div>
+            </div>
+            <span className="text-[11px] font-black text-slate-950 bg-amber-400 px-2 py-0.5 rounded-full shadow">
+              Contratar →
+            </span>
+          </Link>
+
           {/* Destaque Especial Classificados Mobile */}
           <Link
             href="/classificados"
@@ -553,6 +602,26 @@ export function Header({ portal, categorias, cidades }: HeaderProps) {
               <div>
                 <span className="block text-sm font-extrabold text-amber-200 uppercase tracking-wide">Classificados</span>
                 <span className="block text-[11px] text-amber-300/80 font-medium">Imóveis, Veículos, Negócios & Serviços</span>
+              </div>
+            </div>
+            <span className="text-[11px] font-black text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-400/30">
+              Ver →
+            </span>
+          </Link>
+
+          {/* Destaque Especial Totens Empire Mobile */}
+          <Link
+            href="/totens"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-r from-slate-800 via-slate-800/80 to-transparent border border-white/10 text-white font-bold shadow-sm"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-amber-400 text-slate-950 flex items-center justify-center font-black">
+                <Tv className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="block text-sm font-extrabold text-white uppercase tracking-wide">Totens Empire</span>
+                <span className="block text-[11px] text-slate-400 font-medium">Mídia Digital & Painéis por Cidade</span>
               </div>
             </div>
             <span className="text-[11px] font-black text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-400/30">

@@ -27,6 +27,8 @@ import {
   CreditCard,
   Tag,
   BookOpen,
+  Star,
+  Tv,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -54,6 +56,8 @@ export function Sidebar({ profile }: SidebarProps) {
     { label: "Publicidade & Formatos", href: "/painel/admin/anuncios", icon: Megaphone },
     { label: "Classificados", href: "/painel/admin/classificados", icon: Tag },
     { label: "Revistas", href: "/painel/admin/revistas", icon: BookOpen },
+    { label: "Talentos & Celebridades", href: "/painel/admin/talentos", icon: Star },
+    { label: "Empire Totens", href: "/painel/admin/totens", icon: Tv },
     { label: "Financeiro Global", href: "/painel/admin/financeiro", icon: DollarSign },
     { label: "Saques PIX Afiliados", href: "/painel/admin/saques", icon: Banknote },
     { label: "Aparência do Portal", href: "/painel/admin/aparencia", icon: Palette },
