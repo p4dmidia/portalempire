@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const maxDuration = 60;
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     // 1. Buscar matérias agendadas cuja data já chegou
     const { data: agendadas, error: fetchError } = await supabaseAdmin
       .from("materias")
-      .select("id, slug")
+      .select("id, slug, coluna_id, coluna:colunas(slug)")
       .eq("status", "agendado")
       .lte("publicado_em", nowIso);
 
@@ -60,9 +60,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: updateError.message }, { status: 500 });
     }
 
-    // 3. Revalidar cache do portal
-    revalidatePath("/");
-    agendadas.forEach((m) => revalidatePath(`/materia/${m.slug}`));
+    // 3. Revalidar cache do portal, das matérias e das colunas afetadas
+    try {
+      revalidatePath("/");
+      agendadas.forEach((m) => {
+        revalidatePath(`/materia/${m.slug}`);
+        const colSlug = (m as any).coluna?.slug;
+        if (colSlug) {
+          revalidatePath(`/coluna/${colSlug}`);
+        }
+      });
+      try {
+        revalidateTag("materias");
+      } catch {}
+    } catch (e) {
+      console.error("[publicar-agendadas] Falha ao revalidar cache:", e);
+    }
 
     return NextResponse.json({
       success: true,

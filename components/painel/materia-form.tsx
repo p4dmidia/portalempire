@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
@@ -31,6 +31,7 @@ import {
   Calendar,
   Tag,
   Columns,
+  MapPin,
 } from "lucide-react";
 
 const materiaFormSchema = z.object({
@@ -138,6 +139,15 @@ export function MateriaForm({
   });
 
   const watchStatus = watch("status");
+  const watchColunaId = watch("coluna_id");
+  const colunaAtual = colunas.find((c) => c.id === watchColunaId) || (colunas.length > 0 ? colunas[0] : null);
+
+  // Se for colunista e a coluna tiver cidade vinculada, sincroniza cidade_id automaticamente
+  useEffect(() => {
+    if (userRole === "colunista" && colunaAtual?.cidade_id) {
+      setValue("cidade_id", colunaAtual.cidade_id);
+    }
+  }, [userRole, colunaAtual, setValue]);
 
   const handleTituloChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
@@ -232,10 +242,15 @@ export function MateriaForm({
             destaque_expira_em: data.destaque ? calcularDataExpiracao(finalTempoDestaque) : null,
           };
 
+    const finalCidadeId =
+      userRole === "colunista" && colunaAtual?.cidade_id
+        ? colunaAtual.cidade_id
+        : data.cidade_id || null;
+
     const payload = {
       ...data,
       tempo_destaque: finalTempoDestaque,
-      cidade_id: data.cidade_id || null,
+      cidade_id: finalCidadeId,
       coluna_id: data.coluna_id || null,
       imagem_url: imagemDestaque || null,
       conteudo: finalConteudo,
@@ -661,17 +676,32 @@ export function MateriaForm({
                   )}
                 </div>
 
-                <div>
-                  <Label htmlFor="cidade_id">Cidade (Opcional)</Label>
-                  <Select id="cidade_id" className="mt-1" {...register("cidade_id")}>
-                    <option value="">Geral / Sem cidade específica</option>
-                    {cidades.map((cid) => (
-                      <option key={cid.id} value={cid.id}>
-                        {cid.nome} - {cid.uf}
-                      </option>
-                    ))}
-                  </Select>
-                </div>
+                {userRole === "colunista" && colunaAtual?.cidade ? (
+                  <div>
+                    <Label className="flex items-center gap-1.5 text-xs font-semibold">
+                      <MapPin className="w-3.5 h-3.5 text-primary" /> Cidade do Artigo
+                    </Label>
+                    <div className="flex items-center gap-2 p-2.5 mt-1 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-xs">
+                      <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">
+                        {colunaAtual.cidade.nome} - {colunaAtual.cidade.uf}
+                      </span>
+                      <span className="text-[11px] text-slate-400 ml-auto">(Vinculada à sua coluna)</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <Label htmlFor="cidade_id">Cidade (Opcional)</Label>
+                    <Select id="cidade_id" className="mt-1" {...register("cidade_id")}>
+                      <option value="">Geral / Sem cidade específica</option>
+                      {cidades.map((cid) => (
+                        <option key={cid.id} value={cid.id}>
+                          {cid.nome} - {cid.uf}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
 
                 {/* Tags */}
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800">

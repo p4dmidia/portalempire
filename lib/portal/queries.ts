@@ -706,6 +706,26 @@ export async function getMateriaBySlug(slug: string): Promise<MateriaData | null
       return null;
     }
 
+    if (data) {
+      // Autocura para matérias agendadas cujo horário programado já foi atingido
+      if (data.status === "agendado") {
+        const pubMs = data.publicado_em ? new Date(data.publicado_em).getTime() : Infinity;
+        if (pubMs <= Date.now()) {
+          data.status = "publicado";
+          try {
+            const { getSupabaseAdmin } = await import("@/lib/supabase/admin");
+            void getSupabaseAdmin()
+              .from("materias")
+              .update({ status: "publicado" })
+              .eq("id", data.id);
+          } catch {}
+        } else {
+          // Publicação futura agendada não deve ser visível publicamente antes da hora
+          return null;
+        }
+      }
+    }
+
     return data as unknown as MateriaData | null;
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);

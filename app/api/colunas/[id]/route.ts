@@ -67,14 +67,14 @@ export async function PUT(
     // 1. Verificar propriedade da coluna (usando cliente autenticado com cookies do admin)
     let { data: colunaExistente } = await supabase
       .from("colunas")
-      .select("id, dono_id, slug, status, cidade:cidades(slug)")
+      .select("id, dono_id, slug, status, cidade_id, cidade:cidades(slug)")
       .eq("id", id)
       .maybeSingle();
 
     if (!colunaExistente) {
       const resAdmin = await supabaseAdmin
         .from("colunas")
-        .select("id, dono_id, slug, status, cidade:cidades(slug)")
+        .select("id, dono_id, slug, status, cidade_id, cidade:cidades(slug)")
         .eq("id", id)
         .maybeSingle();
       colunaExistente = resAdmin.data;
@@ -91,7 +91,23 @@ export async function PUT(
     const updates: Record<string, unknown> = {};
     if (dadosValidados.nome !== undefined) updates.nome = dadosValidados.nome;
     if (dadosValidados.slug !== undefined) updates.slug = dadosValidados.slug;
-    if (dadosValidados.cidade_id !== undefined) updates.cidade_id = dadosValidados.cidade_id;
+    if (dadosValidados.cidade_id !== undefined) {
+      // Bloqueia alteração de cidade por colunista que já possui cidade licenciada
+      if (
+        profile.role !== "admin" &&
+        colunaExistente.cidade_id &&
+        dadosValidados.cidade_id !== colunaExistente.cidade_id
+      ) {
+        return NextResponse.json(
+          {
+            error:
+              "A cidade da sua coluna está vinculada à sua licença oficial. Somente a administração do portal pode transferir a sua localidade.",
+          },
+          { status: 403 }
+        );
+      }
+      updates.cidade_id = dadosValidados.cidade_id;
+    }
     if (dadosValidados.descricao !== undefined) updates.descricao = dadosValidados.descricao;
     if (dadosValidados.capa_url !== undefined) updates.capa_url = dadosValidados.capa_url;
     if (dadosValidados.aceita_anuncios !== undefined) updates.aceita_anuncios = dadosValidados.aceita_anuncios;

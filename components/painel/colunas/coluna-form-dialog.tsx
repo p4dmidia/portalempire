@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Upload, ImageIcon, Columns } from "lucide-react";
+import { Loader2, Upload, ImageIcon, Columns, Lock, MapPin } from "lucide-react";
 import { slugify } from "@/lib/utils/slugify";
 import { createClient } from "@/lib/supabase/client";
 import type { CidadeData, ColunaData } from "@/lib/portal/queries";
@@ -203,20 +203,43 @@ export function ColunaFormDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="col_cidade">Cidade de Referência (Opcional)</Label>
-            <select
-              id="col_cidade"
-              value={cidadeId}
-              onChange={(e) => setCidadeId(e.target.value)}
-              className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
-            >
-              <option value="">Geral / Sem cidade específica</option>
-              {cidades.map((cid) => (
-                <option key={cid.id} value={cid.id}>
-                  {cid.nome} - {cid.uf}
-                </option>
-              ))}
-            </select>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="col_cidade">Cidade de Referência</Label>
+              {userRole !== "admin" && isEditing && cidadeId && (
+                <span className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold flex items-center gap-1">
+                  <Lock className="w-3 h-3" /> Cidade Licenciada
+                </span>
+              )}
+            </div>
+            {userRole !== "admin" && isEditing && cidadeId ? (
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 p-2.5 rounded-md border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 text-sm">
+                  <MapPin className="w-4 h-4 text-primary shrink-0" />
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">
+                    {cidades.find((c) => c.id === cidadeId)?.nome || "Cidade"} -{" "}
+                    {cidades.find((c) => c.id === cidadeId)?.uf || ""}
+                  </span>
+                  <span className="text-xs text-slate-400 ml-auto">(Fixada pela Licença)</span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  Sua coluna está vinculada à cidade oficial da sua licença. Para transferir para outra localidade, solicite à administração do portal.
+                </p>
+              </div>
+            ) : (
+              <select
+                id="col_cidade"
+                value={cidadeId}
+                onChange={(e) => setCidadeId(e.target.value)}
+                className="w-full h-10 px-3 rounded-md border border-input bg-background text-sm"
+              >
+                <option value="">Geral / Sem cidade específica</option>
+                {cidades.map((cid) => (
+                  <option key={cid.id} value={cid.id}>
+                    {cid.nome} - {cid.uf}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="space-y-1.5">
