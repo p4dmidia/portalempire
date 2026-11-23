@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, Suspense } from "react";
+import { useState, Suspense } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -285,23 +285,23 @@ function TalentoCadastroWizardContent() {
   const videoIdPreview = extrairYouTubeId(videoUrl);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 selection:bg-amber-400 selection:text-slate-950 pb-20">
-      {/* 1. Header do Portal / Banner de Boas-Vindas */}
-      <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+    <div className="min-h-screen bg-[#f8f9fa] text-slate-800 selection:bg-amber-400 selection:text-slate-950 pb-20">
+      {/* 1. Header do Portal / Barra Superior */}
+      <header className="border-b border-slate-200 bg-white/95 backdrop-blur-md sticky top-0 z-40 shadow-xs">
+        <div className="max-w-7xl mx-auto px-4 py-3.5 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link
               href="/talentos"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-bold transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-colors border border-slate-200"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>Voltar a Talentos</span>
             </Link>
 
             <div className="hidden sm:flex items-center gap-2">
-              <span className="text-xs text-slate-500 font-bold">/</span>
-              <span className="text-xs text-amber-400 font-bold uppercase tracking-wider flex items-center gap-1">
-                <Sparkles className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              <span className="text-xs text-slate-400 font-bold">/</span>
+              <span className="text-xs text-amber-700 font-bold uppercase tracking-wider flex items-center gap-1">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
                 <span>Cadastro Oficial de Elenco</span>
               </span>
             </div>
@@ -310,20 +310,20 @@ function TalentoCadastroWizardContent() {
           {/* Indicador de Etapas */}
           <div className="flex items-center gap-2 text-xs font-bold">
             <span
-              className={`px-3 py-1 rounded-full ${
+              className={`px-3 py-1 rounded-full transition-all ${
                 etapa === 1
-                  ? "bg-amber-500 text-slate-950"
-                  : "bg-slate-800 text-slate-400"
+                  ? "bg-amber-500 text-slate-950 shadow-xs"
+                  : "bg-slate-100 text-slate-500 border border-slate-200"
               }`}
             >
               1. Formulário & Fotos
             </span>
-            <span className="text-slate-600">→</span>
+            <span className="text-slate-300">→</span>
             <span
-              className={`px-3 py-1 rounded-full ${
+              className={`px-3 py-1 rounded-full transition-all ${
                 etapa === 2
-                  ? "bg-amber-500 text-slate-950"
-                  : "bg-slate-800 text-slate-400"
+                  ? "bg-amber-500 text-slate-950 shadow-xs"
+                  : "bg-slate-100 text-slate-500 border border-slate-200"
               }`}
             >
               2. Live Studio & Prévia
@@ -332,18 +332,18 @@ function TalentoCadastroWizardContent() {
         </div>
       </header>
 
-      {/* 2. Banner VIP de Convite (se ?convite=1) */}
+      {/* 2. Banner VIP de Convite (se ?convite=1) com fundo claro elegante */}
       {isConvite && etapa !== 3 && (
-        <section className="bg-gradient-to-r from-amber-500/20 via-yellow-500/15 to-orange-500/20 border-b border-amber-500/30 py-4 px-4">
+        <section className="bg-gradient-to-r from-amber-50 via-yellow-50 to-orange-50 border-b border-amber-200/80 py-4 px-4 shadow-2xs">
           <div className="max-w-4xl mx-auto flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-lg">
+            <div className="w-10 h-10 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center shrink-0 shadow-sm">
               <Star className="w-5 h-5 fill-slate-950" />
             </div>
             <div>
-              <div className="text-xs font-black uppercase tracking-wider text-amber-300">
+              <div className="text-xs font-black uppercase tracking-wider text-amber-900">
                 Convite Oficial Exclusivo
               </div>
-              <p className="text-xs sm:text-sm font-semibold text-slate-200">
+              <p className="text-xs sm:text-sm font-semibold text-slate-700">
                 Você foi convidado(a) com exclusividade para fazer parte do catálogo de apresentadores, celebridades e influenciadores do <strong>Grupo Empire Cidades</strong>!
               </p>
             </div>
@@ -353,8 +353,8 @@ function TalentoCadastroWizardContent() {
 
       <main className="max-w-5xl mx-auto px-4 pt-8">
         {erroMsg && (
-          <div className="mb-6 p-4 rounded-2xl bg-red-500/15 border border-red-500/30 text-red-200 text-sm font-semibold flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-400 shrink-0" />
+          <div className="mb-6 p-4 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-sm font-semibold flex items-center gap-3 shadow-xs">
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
             <span>{erroMsg}</span>
           </div>
         )}
@@ -365,29 +365,29 @@ function TalentoCadastroWizardContent() {
         {etapa === 1 && (
           <form onSubmit={handleAvancarParaPreview} className="space-y-8">
             <div className="text-center space-y-2 mb-8">
-              <h1 className="text-2xl sm:text-4xl font-black text-white font-serif">
-                Cadastre seu Perfil no <span className="text-amber-400">Empire Talentos</span>
+              <h1 className="text-2xl sm:text-4xl font-black text-slate-900 font-serif">
+                Cadastre seu Perfil no <span className="text-amber-600">Empire Talentos</span>
               </h1>
-              <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mx-auto">
+              <p className="text-xs sm:text-sm text-slate-600 max-w-2xl mx-auto">
                 Preencha suas informações profissionais e faça o upload das suas fotos. Na próxima etapa, você verá uma prévia idêntica a como sua página ficará no portal e poderá posicionar e arrastar sua imagem de capa!
               </p>
             </div>
 
             {/* Bloco de Imagens: Foto de Perfil & Capa Panorâmica */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Camera className="w-4 h-4 text-amber-400" />
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Camera className="w-4 h-4 text-amber-500" />
                 <span>Fotos do Seu Perfil</span>
               </h2>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* 1. Foto de Perfil */}
                 <div className="space-y-3">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
                     Foto de Perfil (Cards & Vitrine) *
                   </label>
                   <div className="flex items-center gap-4">
-                    <div className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-amber-400 bg-slate-800 shrink-0 shadow-md">
+                    <div className="relative w-24 h-24 rounded-2xl overflow-hidden border-2 border-amber-400 bg-slate-100 shrink-0 shadow-xs">
                       {fotoUrl ? (
                         <Image
                           src={fotoUrl}
@@ -397,14 +397,14 @@ function TalentoCadastroWizardContent() {
                           className="object-cover object-top"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs text-center p-2">
+                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs text-center p-2">
                           Sem foto
                         </div>
                       )}
                     </div>
 
                     <div className="space-y-2">
-                      <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs cursor-pointer transition-colors shadow">
+                      <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs cursor-pointer transition-colors shadow-xs">
                         <Upload className="w-4 h-4" />
                         <span>{fazendoUploadFoto ? "Enviando..." : "Upload Foto de Perfil"}</span>
                         <input
@@ -415,7 +415,7 @@ function TalentoCadastroWizardContent() {
                           className="hidden"
                         />
                       </label>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-slate-500">
                         Foto vertical ou quadrada com boa iluminação e rosto nítido.
                       </p>
                     </div>
@@ -424,11 +424,11 @@ function TalentoCadastroWizardContent() {
 
                 {/* 2. Capa Panorâmica */}
                 <div className="space-y-3">
-                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-300">
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
                     Imagem de Capa (Banner Panorâmico)
                   </label>
                   <div className="space-y-2">
-                    <div className="relative w-full h-24 rounded-2xl overflow-hidden border border-slate-700 bg-slate-800 shadow-md">
+                    <div className="relative w-full h-24 rounded-2xl overflow-hidden border border-slate-200 bg-slate-100 shadow-xs">
                       {fotoCapaUrl ? (
                         <Image
                           src={fotoCapaUrl}
@@ -439,14 +439,14 @@ function TalentoCadastroWizardContent() {
                           className="object-cover"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-slate-500 text-xs">
+                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs">
                           Nenhuma capa enviada (usará fundo padrão se não preencher)
                         </div>
                       )}
                     </div>
 
-                    <label className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs cursor-pointer border border-slate-600 transition-colors shadow">
-                      <Upload className="w-4 h-4 text-amber-400" />
+                    <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs cursor-pointer border border-slate-300 transition-colors shadow-xs">
+                      <Upload className="w-4 h-4 text-amber-500" />
                       <span>{fazendoUploadCapa ? "Enviando..." : "Upload Imagem de Capa"}</span>
                       <input
                         type="file"
@@ -456,7 +456,7 @@ function TalentoCadastroWizardContent() {
                         className="hidden"
                       />
                     </label>
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-slate-500">
                       Você poderá arrastar para cima ou baixo e ajustar o enquadramento na próxima etapa!
                     </p>
                   </div>
@@ -465,15 +465,15 @@ function TalentoCadastroWizardContent() {
             </div>
 
             {/* Bloco de Dados Principais */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Star className="w-4 h-4 text-amber-400" />
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Star className="w-4 h-4 text-amber-500" />
                 <span>Dados Profissionais</span>
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Nome Completo / Artístico *
                   </label>
                   <input
@@ -482,12 +482,12 @@ function TalentoCadastroWizardContent() {
                     onChange={(e) => setNome(e.target.value)}
                     required
                     placeholder="Ex: Cris Arcangeli, Sabrina Sato..."
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     WhatsApp para Contato & Notificação *
                   </label>
                   <input
@@ -496,15 +496,15 @@ function TalentoCadastroWizardContent() {
                     onChange={(e) => setWhatsapp(e.target.value)}
                     required
                     placeholder="(34) 99999-9999"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   />
-                  <p className="text-[10px] text-amber-400/90 mt-1">
+                  <p className="text-[10px] text-amber-700 font-semibold mt-1">
                     * É neste WhatsApp que enviaremos a mensagem de aprovação quando seu perfil for ao ar.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Título / Profissão Principal *
                   </label>
                   <input
@@ -513,18 +513,18 @@ function TalentoCadastroWizardContent() {
                     onChange={(e) => setTitulo(e.target.value)}
                     required
                     placeholder="Ex: Apresentadora, Empreendedora e Palestrante"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Categoria Principal *
                   </label>
                   <select
                     value={categoria}
                     onChange={(e) => setCategoria(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   >
                     {CATEGORIAS_TALENTOS.map((cat) => (
                       <option key={cat.id} value={cat.id}>
@@ -535,7 +535,7 @@ function TalentoCadastroWizardContent() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Cidade de Base
                   </label>
                   <input
@@ -543,12 +543,12 @@ function TalentoCadastroWizardContent() {
                     value={cidade}
                     onChange={(e) => setCidade(e.target.value)}
                     placeholder="Uberlândia, São Paulo..."
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Estado (UF)
                   </label>
                   <input
@@ -557,12 +557,12 @@ function TalentoCadastroWizardContent() {
                     onChange={(e) => setEstado(e.target.value)}
                     maxLength={2}
                     placeholder="MG, SP, RJ..."
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400 uppercase"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white uppercase transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Disponibilidade de Cidades
                   </label>
                   <input
@@ -570,12 +570,12 @@ function TalentoCadastroWizardContent() {
                     value={cidadesAtendidas}
                     onChange={(e) => setCidadesAtendidas(e.target.value)}
                     placeholder="Ex: Nacional e Internacional, ou Regional"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
                     Alcance Estimado / Seguidores
                   </label>
                   <input
@@ -583,13 +583,13 @@ function TalentoCadastroWizardContent() {
                     value={seguidores}
                     onChange={(e) => setSeguidores(e.target.value)}
                     placeholder="Ex: + 1,9 milhões de seguidores"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
                   Segmentos / Nichos de Atuação (separados por vírgula)
                 </label>
                 <input
@@ -597,12 +597,12 @@ function TalentoCadastroWizardContent() {
                   value={segmentos}
                   onChange={(e) => setSegmentos(e.target.value)}
                   placeholder="Ex: Comunicação, Negócios, Moda, Beleza, Gastronomia"
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
                   Apresentação Curta (Resumo de 2 a 3 linhas para os cards) *
                 </label>
                 <textarea
@@ -611,12 +611,12 @@ function TalentoCadastroWizardContent() {
                   onChange={(e) => setBioCurta(e.target.value)}
                   required
                   placeholder="Breve resumo destacando suas principais realizações, carreira e posicionamento..."
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">
+                <label className="block text-xs font-bold text-slate-700 mb-1">
                   Biografia Completa / Trajetória (Opcional)
                 </label>
                 <textarea
@@ -624,22 +624,22 @@ function TalentoCadastroWizardContent() {
                   value={bioCompleta}
                   onChange={(e) => setBioCompleta(e.target.value)}
                   placeholder="Conte sua história profissional, marcos de carreira, programas que apresentou, empresas que fundou..."
-                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                 />
               </div>
             </div>
 
             {/* Redes Sociais & Portfólio em Vídeo */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Globe className="w-4 h-4 text-amber-400" />
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-sm">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Globe className="w-4 h-4 text-amber-500" />
                 <span>Redes Sociais & Vídeo em Destaque</span>
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <Instagram className="w-3.5 h-3.5 text-pink-400" />
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                    <Instagram className="w-3.5 h-3.5 text-pink-600" />
                     <span>Instagram Oficial</span>
                   </label>
                   <input
@@ -647,13 +647,13 @@ function TalentoCadastroWizardContent() {
                     value={instagram}
                     onChange={(e) => setInstagram(e.target.value)}
                     placeholder="https://instagram.com/seu.perfil"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <Youtube className="w-3.5 h-3.5 text-red-500" />
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                    <Youtube className="w-3.5 h-3.5 text-red-600" />
                     <span>Canal no YouTube</span>
                   </label>
                   <input
@@ -661,13 +661,13 @@ function TalentoCadastroWizardContent() {
                     value={youtube}
                     onChange={(e) => setYoutube(e.target.value)}
                     placeholder="https://youtube.com/@seucanal"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <span className="text-cyan-400 font-black text-xs">TT</span>
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                    <span className="text-cyan-600 font-black text-xs">TT</span>
                     <span>TikTok</span>
                   </label>
                   <input
@@ -675,13 +675,13 @@ function TalentoCadastroWizardContent() {
                     value={tiktok}
                     onChange={(e) => setTiktok(e.target.value)}
                     placeholder="https://tiktok.com/@seu.perfil"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1 flex items-center gap-1.5">
-                    <Linkedin className="w-3.5 h-3.5 text-blue-400" />
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1.5">
+                    <Linkedin className="w-3.5 h-3.5 text-blue-600" />
                     <span>LinkedIn</span>
                   </label>
                   <input
@@ -689,15 +689,15 @@ function TalentoCadastroWizardContent() {
                     value={linkedin}
                     onChange={(e) => setLinkedin(e.target.value)}
                     placeholder="https://linkedin.com/in/seu-perfil"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   />
                 </div>
               </div>
 
               {/* Vídeo do YouTube */}
-              <div className="pt-4 border-t border-slate-800 space-y-3">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <Video className="w-3.5 h-3.5 text-amber-400" />
+              <div className="pt-4 border-t border-slate-100 space-y-3">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Video className="w-3.5 h-3.5 text-amber-500" />
                   <span>Vídeo de Apresentação / Portfólio (YouTube)</span>
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -706,22 +706,22 @@ function TalentoCadastroWizardContent() {
                     value={videoTitulo}
                     onChange={(e) => setVideoTitulo(e.target.value)}
                     placeholder="Título do vídeo (Ex: Como ser uma investidora anjo)"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   />
                   <input
                     type="text"
                     value={videoUrl}
                     onChange={(e) => setVideoUrl(e.target.value)}
                     placeholder="Link do YouTube (ex: https://youtube.com/watch?v=...)"
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-2 text-white text-sm focus:outline-none focus:border-amber-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   />
                 </div>
               </div>
 
               {/* Serviços Oferecidos */}
-              <div className="pt-4 border-t border-slate-800 space-y-3">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-1.5">
-                  <Award className="w-3.5 h-3.5 text-amber-400" />
+              <div className="pt-4 border-t border-slate-100 space-y-3">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                  <Award className="w-3.5 h-3.5 text-amber-500" />
                   <span>Serviços que você realiza para marcas e empresas</span>
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -734,13 +734,13 @@ function TalentoCadastroWizardContent() {
                         onClick={() => handleToggleServico(srv)}
                         className={`flex items-center gap-2 p-3 rounded-xl border text-left text-xs font-bold transition-all cursor-pointer ${
                           marcado
-                            ? "bg-amber-400/15 border-amber-400 text-amber-300"
-                            : "bg-slate-800/60 border-slate-700 text-slate-300 hover:border-slate-500"
+                            ? "bg-amber-50 border-amber-400 text-amber-950 shadow-2xs"
+                            : "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300"
                         }`}
                       >
                         <div
                           className={`w-4 h-4 rounded-md border flex items-center justify-center shrink-0 ${
-                            marcado ? "bg-amber-400 border-amber-400 text-slate-950" : "border-slate-600"
+                            marcado ? "bg-amber-500 border-amber-500 text-slate-950" : "border-slate-300 bg-white"
                           }`}
                         >
                           {marcado && <Check className="w-3 h-3 stroke-[3]" />}
@@ -757,7 +757,7 @@ function TalentoCadastroWizardContent() {
             <div className="flex items-center justify-end gap-4 pt-4">
               <button
                 type="submit"
-                className="inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+                className="inline-flex items-center gap-3 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-sm uppercase tracking-wider shadow-md transition-transform hover:scale-105 active:scale-95 cursor-pointer"
               >
                 <span>Avançar para Prévia & Ajustes</span>
                 <ArrowRight className="w-5 h-5" />
@@ -772,18 +772,18 @@ function TalentoCadastroWizardContent() {
         {etapa === 2 && (
           <div className="space-y-6">
             {/* Barra de Controle Superior da Prévia */}
-            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-slate-900 border border-slate-800 shadow-md">
+            <div className="flex flex-wrap items-center justify-between gap-4 p-4 rounded-2xl bg-white border border-slate-200 shadow-sm">
               <button
                 type="button"
                 onClick={() => setEtapa(1)}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer border border-slate-200"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Voltar e Editar Informações</span>
               </button>
 
-              <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
-                <Sparkles className="w-4 h-4" />
+              <div className="flex items-center gap-2 text-xs font-bold text-amber-700">
+                <Sparkles className="w-4 h-4 text-amber-500" />
                 <span>Prévia em Tempo Real: Arraste a capa abaixo para ajustar o enquadramento</span>
               </div>
 
@@ -791,7 +791,7 @@ function TalentoCadastroWizardContent() {
                 type="button"
                 onClick={handleSubmeterCandidatura}
                 disabled={enviandoCandidatura}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-md transition-transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
               >
                 {enviandoCandidatura ? (
                   <>
@@ -808,10 +808,10 @@ function TalentoCadastroWizardContent() {
             </div>
 
             {/* MOLDURA DO LIVE STUDIO: SIMULAÇÃO EXATA DA PÁGINA PÚBLICA */}
-            <div className="bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+            <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
               {/* 1. Capa Panorâmica com Arraste (Mouse & Touch) */}
               <div
-                className="relative w-full h-80 sm:h-[420px] lg:h-[480px] bg-slate-800 overflow-hidden cursor-grab active:cursor-grabbing select-none"
+                className="relative w-full h-80 sm:h-[420px] lg:h-[480px] bg-slate-100 overflow-hidden cursor-grab active:cursor-grabbing select-none"
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -831,54 +831,54 @@ function TalentoCadastroWizardContent() {
                     className="object-cover transition-none pointer-events-none"
                   />
                 ) : (
-                  <div className="w-full h-full bg-gradient-to-r from-slate-900 via-amber-950/20 to-slate-900 flex items-center justify-center text-slate-500 text-xs">
+                  <div className="w-full h-full bg-gradient-to-r from-amber-100/50 via-slate-100 to-amber-100/50 flex items-center justify-center text-slate-400 text-xs">
                     Sem Capa Personalizada (usando gradiente padrão)
                   </div>
                 )}
 
-                {/* Sombra suave de legibilidade */}
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-black/30 pointer-events-none" />
+                {/* Sombra suave de legibilidade na base */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
 
                 {/* Tooltip Central Flutuante Estilo Facebook */}
                 <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 pointer-events-none">
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-950/85 backdrop-blur-md border border-white/20 text-white text-xs font-bold shadow-2xl animate-pulse">
+                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900/90 backdrop-blur-md border border-white/20 text-white text-xs font-bold shadow-xl animate-pulse">
                     <MoveVertical className="w-4 h-4 text-amber-400" />
                     <span>Arraste para cima ou para baixo para reposicionar a imagem</span>
                   </div>
                 </div>
 
                 {/* Botões Rápidos de Enquadramento no Canto */}
-                <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2 bg-slate-950/85 backdrop-blur-md p-2 rounded-2xl border border-white/10 shadow-lg">
+                <div className="absolute bottom-4 right-4 z-20 flex items-center gap-2 bg-white/95 backdrop-blur-md p-2 rounded-2xl border border-slate-200 shadow-md">
                   <button
                     type="button"
                     onClick={() => setFotoCapaPosicaoY(15)}
-                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-white font-bold cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs text-slate-800 font-bold cursor-pointer"
                   >
                     Topo
                   </button>
                   <button
                     type="button"
                     onClick={() => setFotoCapaPosicaoY(50)}
-                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-white font-bold cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs text-slate-800 font-bold cursor-pointer"
                   >
                     Centro
                   </button>
                   <button
                     type="button"
                     onClick={() => setFotoCapaPosicaoY(85)}
-                    className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-white font-bold cursor-pointer"
+                    className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs text-slate-800 font-bold cursor-pointer"
                   >
                     Base
                   </button>
-                  <span className="text-[11px] text-amber-400 font-mono font-bold px-1">
+                  <span className="text-[11px] text-amber-700 font-mono font-bold px-1">
                     {fotoCapaPosicaoY}%
                   </span>
                 </div>
 
                 {/* Botão de Trocar Capa */}
                 <div className="absolute top-4 right-4 z-20">
-                  <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/85 hover:bg-slate-900 text-white text-xs font-bold border border-white/20 backdrop-blur-md shadow-lg cursor-pointer transition-colors">
-                    <Camera className="w-3.5 h-3.5 text-amber-400" />
+                  <label className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/95 hover:bg-white text-slate-800 text-xs font-bold border border-slate-200 backdrop-blur-md shadow-md cursor-pointer transition-colors">
+                    <Camera className="w-3.5 h-3.5 text-amber-600" />
                     <span>{fazendoUploadCapa ? "Enviando..." : "Trocar Imagem de Capa"}</span>
                     <input
                       type="file"
@@ -896,9 +896,9 @@ function TalentoCadastroWizardContent() {
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Coluna Esquerda: Dados do Perfil */}
                   <div className="lg:col-span-2 space-y-6">
-                    <div className="bg-slate-900/95 backdrop-blur-md rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-2xl">
+                    <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-md">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-                        <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-3xl overflow-hidden border-4 border-slate-900 shadow-2xl bg-slate-800 shrink-0">
+                        <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-slate-100 shrink-0">
                           {fotoUrl ? (
                             <Image
                               src={fotoUrl}
@@ -908,7 +908,7 @@ function TalentoCadastroWizardContent() {
                               className="object-cover object-top"
                             />
                           ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-500">
+                            <div className="w-full h-full flex items-center justify-center text-slate-400">
                               Sem foto
                             </div>
                           )}
@@ -916,17 +916,17 @@ function TalentoCadastroWizardContent() {
 
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-2">
-                            <h2 className="text-2xl sm:text-3xl font-black text-white font-serif">
+                            <h2 className="text-2xl sm:text-3xl font-black text-slate-900 font-serif">
                               {nome || "Seu Nome Completo"}
                             </h2>
-                            <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-xs font-bold shadow">
+                            <span className="w-5 h-5 rounded-full bg-amber-400 text-slate-950 flex items-center justify-center text-xs font-bold shadow-xs">
                               ★
                             </span>
                           </div>
-                          <p className="text-sm font-semibold text-amber-400">
+                          <p className="text-sm font-semibold text-amber-700">
                             {titulo || "Apresentador(a) & Influenciador(a)"}
                           </p>
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 pt-1 font-medium">
+                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 pt-1 font-medium">
                             <span className="flex items-center gap-1">
                               <MapPin className="w-3.5 h-3.5 text-slate-400" />
                               {cidade} - {estado}
@@ -946,14 +946,14 @@ function TalentoCadastroWizardContent() {
                       </div>
 
                       {/* Tags / Nichos */}
-                      <div className="flex flex-wrap gap-2 pt-5 border-t border-slate-800/80 mt-5">
+                      <div className="flex flex-wrap gap-2 pt-5 border-t border-slate-100 mt-5">
                         {segmentos.split(",").map((seg, idx) => {
                           const s = seg.trim();
                           if (!s) return null;
                           return (
                             <span
                               key={idx}
-                              className="px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-slate-300 text-xs font-semibold"
+                              className="px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-xs font-semibold"
                             >
                               {s}
                             </span>
@@ -963,16 +963,16 @@ function TalentoCadastroWizardContent() {
                     </div>
 
                     {/* Biografia & Trajetória */}
-                    <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-xl space-y-4">
-                      <h3 className="text-base font-bold text-white flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-amber-400" />
+                    <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
+                      <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-amber-500" />
                         <span>Trajetória & Apresentação</span>
                       </h3>
-                      <p className="text-sm text-slate-300 leading-relaxed whitespace-pre-line">
+                      <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
                         {bioCurta}
                       </p>
                       {bioCompleta && (
-                        <p className="text-sm text-slate-400 leading-relaxed whitespace-pre-line pt-2">
+                        <p className="text-sm text-slate-600 leading-relaxed whitespace-pre-line pt-2">
                           {bioCompleta}
                         </p>
                       )}
@@ -980,12 +980,12 @@ function TalentoCadastroWizardContent() {
 
                     {/* Portfólio em Vídeo */}
                     {videoIdPreview && (
-                      <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-800 shadow-xl space-y-4">
-                        <h3 className="text-base font-bold text-white flex items-center gap-2">
-                          <Video className="w-4 h-4 text-amber-400" />
+                      <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-4">
+                        <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                          <Video className="w-4 h-4 text-amber-500" />
                           <span>{videoTitulo || "Vídeo de Apresentação"}</span>
                         </h3>
-                        <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-800 bg-black">
+                        <div className="relative aspect-video rounded-2xl overflow-hidden border border-slate-200 bg-black shadow-inner">
                           <iframe
                             src={`https://www.youtube.com/embed/${videoIdPreview}`}
                             title={videoTitulo}
@@ -1001,36 +1001,36 @@ function TalentoCadastroWizardContent() {
 
                   {/* Coluna Direita: Bloco de Agenciamento Comercial Simulado */}
                   <div className="space-y-6">
-                    <div className="bg-slate-900 rounded-3xl p-6 border-2 border-amber-400/40 shadow-xl space-y-4">
-                      <div className="text-[11px] font-black uppercase tracking-wider text-amber-400">
+                    <div className="bg-amber-50/70 rounded-3xl p-6 border-2 border-amber-300 shadow-sm space-y-4">
+                      <div className="text-[11px] font-black uppercase tracking-wider text-amber-800">
                         Agenciamento Comercial
                       </div>
-                      <h3 className="text-lg font-black text-white">
-                        Contrate {nome}
+                      <h3 className="text-lg font-black text-slate-900">
+                        Contrate {nome || "o Talento"}
                       </h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">
+                      <p className="text-xs text-slate-600 leading-relaxed">
                         Atendimento oficial e gestão de contratos com segurança pelo Grupo Empire Cidades.
                       </p>
 
-                      <div className="space-y-2 pt-2 border-t border-slate-800 text-xs">
+                      <div className="space-y-2 pt-2 border-t border-amber-200 text-xs">
                         <div className="flex justify-between py-1">
-                          <span className="text-slate-400">Disponibilidade:</span>
-                          <span className="text-emerald-400 font-bold">Agenda Aberta</span>
+                          <span className="text-slate-500">Disponibilidade:</span>
+                          <span className="text-emerald-700 font-bold">Agenda Aberta</span>
                         </div>
                         <div className="flex justify-between py-1">
-                          <span className="text-slate-400">Modalidade:</span>
-                          <span className="text-white font-semibold">Presencial & Online</span>
+                          <span className="text-slate-500">Modalidade:</span>
+                          <span className="text-slate-900 font-semibold">Presencial & Online</span>
                         </div>
                         <div className="flex justify-between py-1">
-                          <span className="text-slate-400">Cidades:</span>
-                          <span className="text-white font-semibold">{cidadesAtendidas}</span>
+                          <span className="text-slate-500">Cidades:</span>
+                          <span className="text-slate-900 font-semibold">{cidadesAtendidas}</span>
                         </div>
                       </div>
 
                       <div className="pt-2">
                         <button
                           type="button"
-                          className="w-full py-3 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow cursor-default"
+                          className="w-full py-3 rounded-xl bg-amber-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xs cursor-default"
                         >
                           Solicitar Orçamento (Exemplo)
                         </button>
@@ -1038,15 +1038,15 @@ function TalentoCadastroWizardContent() {
                     </div>
 
                     {/* Serviços */}
-                    <div className="bg-slate-900 rounded-3xl p-6 border border-slate-800 shadow-xl space-y-3">
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">
+                    <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm space-y-3">
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700">
                         Formatos de Atuação
                       </h4>
                       <div className="flex flex-wrap gap-1.5">
                         {servicos.map((s) => (
                           <span
                             key={s}
-                            className="px-2.5 py-1 rounded-lg bg-slate-800 text-amber-300 text-xs font-semibold"
+                            className="px-2.5 py-1 rounded-lg bg-amber-50 border border-amber-200 text-amber-900 text-xs font-semibold"
                           >
                             {s}
                           </span>
@@ -1059,13 +1059,13 @@ function TalentoCadastroWizardContent() {
             </div>
 
             {/* Ação de Envio Final */}
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-amber-950/20 to-slate-900 border border-amber-500/30 shadow-2xl">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-6 rounded-3xl bg-white border border-slate-200 shadow-md">
               <div>
-                <h4 className="text-base font-black text-white flex items-center gap-2">
-                  <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                <h4 className="text-base font-black text-slate-900 flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-emerald-600" />
                   <span>Sua prévia está pronta para envio!</span>
                 </h4>
-                <p className="text-xs text-slate-400">
+                <p className="text-xs text-slate-500">
                   Ao confirmar, nossa equipe curatorial receberá seus dados e entrará em contato via WhatsApp.
                 </p>
               </div>
@@ -1074,7 +1074,7 @@ function TalentoCadastroWizardContent() {
                 <button
                   type="button"
                   onClick={() => setEtapa(1)}
-                  className="px-5 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-colors cursor-pointer"
+                  className="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer border border-slate-200"
                 >
                   Editar Informações
                 </button>
@@ -1082,7 +1082,7 @@ function TalentoCadastroWizardContent() {
                   type="button"
                   onClick={handleSubmeterCandidatura}
                   disabled={enviandoCandidatura}
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow-xl transition-transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider shadow-md transition-transform hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-50"
                 >
                   {enviandoCandidatura ? (
                     <>
@@ -1105,29 +1105,29 @@ function TalentoCadastroWizardContent() {
             ETAPA 3: TELA DE SUCESSO & CONFIRMAÇÃO
            ========================================================================= */}
         {etapa === 3 && (
-          <div className="max-w-2xl mx-auto text-center py-12 px-6 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl space-y-6">
-            <div className="w-20 h-20 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center mx-auto shadow-xl">
+          <div className="max-w-2xl mx-auto text-center py-12 px-6 bg-white border border-slate-200 rounded-3xl shadow-md space-y-6">
+            <div className="w-20 h-20 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 flex items-center justify-center mx-auto shadow-sm">
               <CheckCircle2 className="w-10 h-10" />
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-black uppercase tracking-wider text-amber-400">
+              <span className="text-xs font-black uppercase tracking-wider text-amber-700">
                 Cadastro Submetido com Sucesso
               </span>
-              <h1 className="text-3xl sm:text-4xl font-black text-white font-serif">
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 font-serif">
                 Parabéns, {nome}!
               </h1>
-              <p className="text-sm text-slate-300 leading-relaxed max-w-lg mx-auto">
+              <p className="text-sm text-slate-600 leading-relaxed max-w-lg mx-auto">
                 Recebemos sua candidatura para o elenco oficial do <strong>Empire Talentos & Celebridades</strong>.
               </p>
             </div>
 
-            <div className="p-4 rounded-2xl bg-slate-800/60 border border-slate-700/80 text-left space-y-2 text-xs text-slate-300">
-              <div className="font-bold text-white flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-emerald-400" />
+            <div className="p-5 rounded-2xl bg-slate-50 border border-slate-200 text-left space-y-2.5 text-xs text-slate-700">
+              <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                <Phone className="w-4 h-4 text-emerald-600" />
                 <span>Próximos Passos & Notificação:</span>
               </div>
-              <ul className="list-disc list-inside space-y-1 text-slate-400 pl-1">
+              <ul className="list-disc list-inside space-y-1.5 text-slate-600 pl-1">
                 <li>Nossa curadoria avaliará seu perfil e portfólio em breve.</li>
                 <li>
                   Assim que seu perfil for aprovado, você receberá automaticamente uma mensagem no seu WhatsApp (<strong>{whatsapp}</strong>) com o link oficial da sua página no portal.
@@ -1139,13 +1139,13 @@ function TalentoCadastroWizardContent() {
             <div className="pt-4 flex flex-wrap items-center justify-center gap-4">
               <Link
                 href="/talentos"
-                className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow transition-colors"
+                className="px-6 py-3 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-sm transition-colors"
               >
                 Ver Catálogo de Talentos
               </Link>
               <Link
                 href="/"
-                className="px-6 py-3 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors"
+                className="px-6 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs transition-colors border border-slate-200"
               >
                 Ir para a Página Inicial
               </Link>
