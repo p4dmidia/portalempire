@@ -123,6 +123,10 @@ export function TalentosGerenciador({
   };
   const [formCidade, setFormCidade] = useState("Uberlândia");
   const [formEstado, setFormEstado] = useState("MG");
+  const [formCep, setFormCep] = useState("");
+  const [formEndereco, setFormEndereco] = useState("");
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [cepStatus, setCepStatus] = useState<{ tipo: "sucesso" | "erro"; msg: string } | null>(null);
   const [formCidadesAtendidas, setFormCidadesAtendidas] = useState("Nacional e Internacional");
   const [formBioCurta, setFormBioCurta] = useState("");
   const [formBioCompleta, setFormBioCompleta] = useState("");
@@ -139,6 +143,63 @@ export function TalentosGerenciador({
   const [formOrdem, setFormOrdem] = useState(0);
   const [formStatus, setFormStatus] = useState<"ativo" | "inativo">("ativo");
   const [alternandoStatusId, setAlternandoStatusId] = useState<string | null>(null);
+
+  // Formatação e Consulta Automática de CEP via ViaCEP no Admin
+  const formatarCepAdmin = (valor: string) => {
+    const limpo = valor.replace(/\D/g, "").slice(0, 8);
+    if (limpo.length > 5) {
+      return `${limpo.slice(0, 5)}-${limpo.slice(5)}`;
+    }
+    return limpo;
+  };
+
+  const consultarCepAdmin = async (cepParaBuscar: string) => {
+    const limpo = cepParaBuscar.replace(/\D/g, "");
+    if (limpo.length !== 8) return;
+
+    try {
+      setBuscandoCep(true);
+      setCepStatus(null);
+      const res = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        setCepStatus({
+          tipo: "erro",
+          msg: "CEP não encontrado. Digite a cidade manualmente.",
+        });
+        return;
+      }
+
+      if (data.localidade) setFormCidade(data.localidade);
+      if (data.uf) setFormEstado(data.uf.toUpperCase());
+      const enderecoFormatado = [data.logradouro, data.bairro].filter(Boolean).join(" - ");
+      if (enderecoFormatado) {
+        setFormEndereco(enderecoFormatado);
+      }
+      const detalhes = [data.logradouro, data.bairro].filter(Boolean).join(", ");
+      setCepStatus({
+        tipo: "sucesso",
+        msg: `Endereço localizado: ${data.localidade} - ${data.uf}${detalhes ? ` (${detalhes})` : ""}`,
+      });
+    } catch {
+      setCepStatus({
+        tipo: "erro",
+        msg: "Erro ao consultar CEP. Digite a cidade manualmente.",
+      });
+    } finally {
+      setBuscandoCep(false);
+    }
+  };
+
+  const handleCepChangeAdmin = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatado = formatarCepAdmin(e.target.value);
+    setFormCep(formatado);
+    if (formatado.replace(/\D/g, "").length === 8) {
+      consultarCepAdmin(formatado);
+    } else {
+      setCepStatus(null);
+    }
+  };
 
   // Ativar / Desativar Talento com 1 Clique
   const handleToggleStatus = async (talento: Talento) => {
@@ -224,6 +285,9 @@ export function TalentosGerenciador({
     setFormFotoCapaPosicaoY(50);
     setFormCidade("Uberlândia");
     setFormEstado("MG");
+    setFormCep("");
+    setFormEndereco("");
+    setCepStatus(null);
     setFormCidadesAtendidas("Nacional e Internacional");
     setFormBioCurta("");
     setFormBioCompleta("");
@@ -262,6 +326,9 @@ export function TalentosGerenciador({
     );
     setFormCidade(t.cidade_nome || "Uberlândia");
     setFormEstado(t.estado || "MG");
+    setFormCep(t.redes_sociais?.cep || t.cep || "");
+    setFormEndereco(t.redes_sociais?.endereco || t.endereco || "");
+    setCepStatus(null);
     setFormCidadesAtendidas(t.cidades_atendidas || "Nacional e Internacional");
     setFormBioCurta(t.bio_curta);
     setFormBioCompleta(t.bio_completa || "");
@@ -291,24 +358,21 @@ export function TalentosGerenciador({
       setFazendoUpload(true);
       setMensagemErro(null);
 
-      const supabase = createClient();
-      const ext = file.name.split(".").pop();
-      const fileName = `talentos/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("pasta", "perfil");
 
-      let uploadRes = await supabase.storage.from("talentos").upload(fileName, file, { upsert: true });
-      let bucketUsado = "talentos";
+      const res = await fetch("/api/talentos/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-      if (uploadRes.error) {
-        uploadRes = await supabase.storage.from("materias").upload(fileName, file, { upsert: true });
-        bucketUsado = "materias";
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Erro no upload da foto.");
       }
 
-      if (uploadRes.error) {
-        throw new Error(`Erro ao enviar foto: ${uploadRes.error.message}`);
-      }
-
-      const { data: publicData } = supabase.storage.from(bucketUsado).getPublicUrl(fileName);
-      setFormFotoUrl(publicData.publicUrl);
+      setFormFotoUrl(data.url);
     } catch (err: unknown) {
       setMensagemErro(err instanceof Error ? err.message : "Erro no upload da imagem.");
     } finally {
@@ -316,7 +380,7 @@ export function TalentosGerenciador({
     }
   };
 
-  // Upload de Imagem de Capa (Banner)
+  // Upload de Imagem de Capa (Banner) via API Segura no Servidor
   const handleUploadFotoCapa = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -325,24 +389,21 @@ export function TalentosGerenciador({
       setFazendoUploadCapa(true);
       setMensagemErro(null);
 
-      const supabase = createClient();
-      const ext = file.name.split(".").pop();
-      const fileName = `talentos/capas/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("pasta", "capas");
 
-      let uploadRes = await supabase.storage.from("talentos").upload(fileName, file, { upsert: true });
-      let bucketUsado = "talentos";
+      const res = await fetch("/api/talentos/upload", {
+        method: "POST",
+        body: formData,
+      });
 
-      if (uploadRes.error) {
-        uploadRes = await supabase.storage.from("materias").upload(fileName, file, { upsert: true });
-        bucketUsado = "materias";
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Erro no upload da capa.");
       }
 
-      if (uploadRes.error) {
-        throw new Error(`Erro ao enviar capa: ${uploadRes.error.message}`);
-      }
-
-      const { data: publicData } = supabase.storage.from(bucketUsado).getPublicUrl(fileName);
-      setFormFotoCapaUrl(publicData.publicUrl);
+      setFormFotoCapaUrl(data.url);
     } catch (err: unknown) {
       setMensagemErro(err instanceof Error ? err.message : "Erro no upload da imagem de capa.");
     } finally {
@@ -391,6 +452,8 @@ export function TalentosGerenciador({
         seguidores_total: formSeguidores.trim(),
         redes_sociais: {
           whatsapp: formWhatsapp.trim() || undefined,
+          cep: formCep.trim() || undefined,
+          endereco: formEndereco.trim() || undefined,
           instagram: formInstagram.trim() || undefined,
           youtube: formYoutube.trim() || undefined,
           tiktok: formTiktok.trim() || undefined,
@@ -1293,16 +1356,32 @@ export function TalentosGerenciador({
                 </div>
 
                 <div>
-                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1">
-                    Seguidores / Alcance
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 flex items-center justify-between text-xs">
+                    <span>CEP (Busca Automática)</span>
+                    {buscandoCep && (
+                      <span className="text-[10px] text-amber-400 font-normal flex items-center gap-1">
+                        <Loader2 className="w-2.5 h-2.5 animate-spin" /> Buscando...
+                      </span>
+                    )}
                   </label>
                   <input
                     type="text"
-                    placeholder="Ex: + 2,5 milhões de seguidores"
-                    value={formSeguidores}
-                    onChange={(e) => setFormSeguidores(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white"
+                    placeholder="00000-000"
+                    maxLength={9}
+                    value={formCep}
+                    onChange={handleCepChangeAdmin}
+                    onBlur={() => consultarCepAdmin(formCep)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-mono text-sm"
                   />
+                  {cepStatus && (
+                    <span
+                      className={`text-[10px] mt-1 block font-semibold ${
+                        cepStatus.tipo === "sucesso" ? "text-emerald-400" : "text-amber-400"
+                      }`}
+                    >
+                      {cepStatus.msg}
+                    </span>
+                  )}
                 </div>
 
                 <div>
@@ -1317,6 +1396,34 @@ export function TalentosGerenciador({
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white"
                   />
                 </div>
+
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1">
+                    Seguidores / Alcance
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ex: + 2,5 milhões de seguidores"
+                    value={formSeguidores}
+                    onChange={(e) => setFormSeguidores(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Endereço Completo */}
+              <div>
+                <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 flex items-center justify-between text-xs">
+                  <span>Endereço (Rua, Número e Bairro)</span>
+                  <span className="text-[10px] text-slate-500 font-normal">Preenchido automaticamente pelo CEP</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Av. Rondon Pacheco, 1200 - Tibery"
+                  value={formEndereco}
+                  onChange={(e) => setFormEndereco(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white text-sm"
+                />
               </div>
 
               {/* WhatsApp do Talento & Regiões Atendidas */}

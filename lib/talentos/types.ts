@@ -1,4 +1,5 @@
 export type TalentoCategoria =
+  | "modelos"
   | "apresentadores"
   | "influenciadores"
   | "celebridades"
@@ -16,6 +17,8 @@ export interface RedesSociais {
   twitter?: string;
   website?: string;
   whatsapp?: string;
+  cep?: string;
+  endereco?: string;
 }
 
 export interface VideoItem {
@@ -36,6 +39,8 @@ export interface Talento {
   foto_url: string;
   foto_capa_url?: string | null;
   foto_capa_posicao_y?: number | null;
+  cep?: string;
+  endereco?: string;
   cidade_id?: string | null;
   cidade_nome?: string;
   cidade_base?: string;
@@ -95,6 +100,7 @@ export interface TalentoSolicitacao {
 
 export const CATEGORIAS_TALENTOS = [
   { id: "todos", label: "Todos os Talentos", icon: "Users" },
+  { id: "modelos", label: "Modelos & Fashion", icon: "Sparkles" },
   { id: "apresentadores", label: "Apresentadores", icon: "Mic" },
   { id: "influenciadores", label: "Influenciadores", icon: "Smartphone" },
   { id: "celebridades", label: "Celebridades", icon: "Star" },
@@ -115,4 +121,11 @@ export const SERVICOS_PADRAO = [
   "Ações com Influenciadores",
   "Debates e Mediações",
   "Divulgação de Marcas",
+  // Opções para Modelos & Moda
+  "Desfiles e Passarela",
+  "Ensaios Fotográficos & Editoriais",
+  "Catálogos & Lookbooks",
+  "Campanhas de Moda & Vestuário",
+  "Provador Fashion & Styling",
+  "Campanhas de Beleza & Cosméticos",
 ] as const;

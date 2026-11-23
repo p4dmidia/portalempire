@@ -13,6 +13,7 @@ import {
   Globe,
   Instagram,
   Linkedin,
+  Loader2,
   MapPin,
   MoveVertical,
   Phone,
@@ -80,6 +81,10 @@ export function TalentoLiveStudio({
   );
   const [cidade, setCidade] = useState(talento.cidade_nome || "Uberlândia");
   const [estado, setEstado] = useState(talento.estado || "MG");
+  const [cep, setCep] = useState(talento.redes_sociais?.cep || talento.cep || "");
+  const [endereco, setEndereco] = useState(talento.redes_sociais?.endereco || talento.endereco || "");
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [cepStatus, setCepStatus] = useState<{ tipo: "sucesso" | "erro"; msg: string } | null>(null);
   const [cidadesAtendidas, setCidadesAtendidas] = useState(talento.cidades_atendidas || "Nacional e Internacional");
   const [bioCurta, setBioCurta] = useState(talento.bio_curta);
   const [bioCompleta, setBioCompleta] = useState(talento.bio_completa || "");
@@ -144,7 +149,7 @@ export function TalentoLiveStudio({
     setIsDragging(false);
   };
 
-  // Upload de Foto de Perfil
+  // Upload de Foto de Perfil via API Segura no Servidor (Bypassa RLS)
   const handleUploadFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -152,20 +157,22 @@ export function TalentoLiveStudio({
     try {
       setFazendoUploadFoto(true);
       setErroMsg(null);
-      const supabase = createClient();
-      const ext = file.name.split(".").pop();
-      const fileName = `talentos/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
 
-      let uploadRes = await supabase.storage.from("talentos").upload(fileName, file, { upsert: true });
-      let bucketUsado = "talentos";
-      if (uploadRes.error) {
-        uploadRes = await supabase.storage.from("materias").upload(fileName, file, { upsert: true });
-        bucketUsado = "materias";
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("pasta", "perfil");
+
+      const res = await fetch("/api/talentos/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Erro no upload da foto.");
       }
-      if (uploadRes.error) throw new Error(`Erro ao enviar foto: ${uploadRes.error.message}`);
 
-      const { data: publicData } = supabase.storage.from(bucketUsado).getPublicUrl(fileName);
-      setFotoUrl(publicData.publicUrl);
+      setFotoUrl(data.url);
     } catch (err: unknown) {
       setErroMsg(err instanceof Error ? err.message : "Erro no upload da foto.");
     } finally {
@@ -173,7 +180,7 @@ export function TalentoLiveStudio({
     }
   };
 
-  // Upload de Imagem de Capa
+  // Upload de Imagem de Capa via API Segura no Servidor (Bypassa RLS)
   const handleUploadCapa = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -181,24 +188,83 @@ export function TalentoLiveStudio({
     try {
       setFazendoUploadCapa(true);
       setErroMsg(null);
-      const supabase = createClient();
-      const ext = file.name.split(".").pop();
-      const fileName = `talentos/capas/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
 
-      let uploadRes = await supabase.storage.from("talentos").upload(fileName, file, { upsert: true });
-      let bucketUsado = "talentos";
-      if (uploadRes.error) {
-        uploadRes = await supabase.storage.from("materias").upload(fileName, file, { upsert: true });
-        bucketUsado = "materias";
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("pasta", "capas");
+
+      const res = await fetch("/api/talentos/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Erro no upload da capa.");
       }
-      if (uploadRes.error) throw new Error(`Erro ao enviar capa: ${uploadRes.error.message}`);
 
-      const { data: publicData } = supabase.storage.from(bucketUsado).getPublicUrl(fileName);
-      setFotoCapaUrl(publicData.publicUrl);
+      setFotoCapaUrl(data.url);
     } catch (err: unknown) {
       setErroMsg(err instanceof Error ? err.message : "Erro no upload da capa.");
     } finally {
       setFazendoUploadCapa(false);
+    }
+  };
+
+  // Formatação e Consulta Automática de CEP via ViaCEP
+  const formatarCep = (valor: string) => {
+    const limpo = valor.replace(/\D/g, "").slice(0, 8);
+    if (limpo.length > 5) {
+      return `${limpo.slice(0, 5)}-${limpo.slice(5)}`;
+    }
+    return limpo;
+  };
+
+  const consultarCep = async (cepParaBuscar: string) => {
+    const limpo = cepParaBuscar.replace(/\D/g, "");
+    if (limpo.length !== 8) return;
+
+    try {
+      setBuscandoCep(true);
+      setCepStatus(null);
+      const res = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        setCepStatus({
+          tipo: "erro",
+          msg: "CEP não encontrado. Digite a cidade e estado manualmente.",
+        });
+        return;
+      }
+
+      if (data.localidade) setCidade(data.localidade);
+      if (data.uf) setEstado(data.uf.toUpperCase());
+      const enderecoFormatado = [data.logradouro, data.bairro].filter(Boolean).join(" - ");
+      if (enderecoFormatado) {
+        setEndereco(enderecoFormatado);
+      }
+      const detalhes = [data.logradouro, data.bairro].filter(Boolean).join(", ");
+      setCepStatus({
+        tipo: "sucesso",
+        msg: `Endereço localizado: ${data.localidade} - ${data.uf}${detalhes ? ` (${detalhes})` : ""}`,
+      });
+    } catch {
+      setCepStatus({
+        tipo: "erro",
+        msg: "Erro ao consultar CEP. Digite a cidade e estado manualmente.",
+      });
+    } finally {
+      setBuscandoCep(false);
+    }
+  };
+
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatado = formatarCep(e.target.value);
+    setCep(formatado);
+    if (formatado.replace(/\D/g, "").length === 8) {
+      consultarCep(formatado);
+    } else {
+      setCepStatus(null);
     }
   };
 
@@ -244,6 +310,8 @@ export function TalentoLiveStudio({
       seguidores_total: seguidores.trim(),
       redes_sociais: {
         whatsapp: whatsapp.trim() || undefined,
+        cep: cep.trim() || undefined,
+        endereco: endereco.trim() || undefined,
         instagram: instagram.trim() || undefined,
         youtube: youtube.trim() || undefined,
         tiktok: tiktok.trim() || undefined,
@@ -666,6 +734,35 @@ export function TalentoLiveStudio({
                   </div>
 
                   <div>
+                    <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 flex items-center justify-between text-xs">
+                      <span>CEP (Busca Automática)</span>
+                      {buscandoCep && (
+                        <span className="text-[10px] text-amber-400 font-normal flex items-center gap-1">
+                          <Loader2 className="w-2.5 h-2.5 animate-spin" /> Buscando...
+                        </span>
+                      )}
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="00000-000"
+                      maxLength={9}
+                      value={cep}
+                      onChange={handleCepChange}
+                      onBlur={() => consultarCep(cep)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-mono focus:border-amber-400 focus:outline-none text-sm"
+                    />
+                    {cepStatus && (
+                      <span
+                        className={`text-[10px] mt-1 block font-semibold ${
+                          cepStatus.tipo === "sucesso" ? "text-emerald-400" : "text-amber-400"
+                        }`}
+                      >
+                        {cepStatus.msg}
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
                     <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1">
                       Cidade de Base *
                     </label>
@@ -689,6 +786,21 @@ export function TalentoLiveStudio({
                       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white uppercase focus:border-amber-400 focus:outline-none"
                     />
                   </div>
+                </div>
+
+                {/* Endereço Completo */}
+                <div>
+                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1 flex items-center justify-between text-xs">
+                    <span>Endereço (Rua, Número e Bairro)</span>
+                    <span className="text-[10px] text-slate-500 font-normal">Preenchido automaticamente pelo CEP</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={endereco}
+                    onChange={(e) => setEndereco(e.target.value)}
+                    placeholder="Ex: Av. Rondon Pacheco, 1200 - Tibery"
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white focus:border-amber-400 focus:outline-none text-sm"
+                  />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

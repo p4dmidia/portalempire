@@ -65,7 +65,12 @@ export async function POST(request: Request) {
       bio_curta: bio_curta.trim(),
       bio_completa: bio_completa?.trim() || null,
       seguidores_total: seguidores_total?.trim() || "+ 100 mil seguidores",
-      redes_sociais: redes_sociais || { whatsapp: whatsapp.trim() },
+      redes_sociais: {
+        ...(redes_sociais || {}),
+        whatsapp: whatsapp.trim(),
+        cep: (body.cep || redes_sociais?.cep || "")?.trim() || undefined,
+        endereco: (body.endereco || redes_sociais?.endereco || "")?.trim() || undefined,
+      },
       servicos: Array.isArray(servicos) ? servicos : [],
       modalidades: ["Presencial", "Online/Remoto"],
       videos: Array.isArray(videos) ? videos : [],

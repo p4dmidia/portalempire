@@ -69,7 +69,11 @@ function TalentoCadastroWizardContent() {
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [titulo, setTitulo] = useState("");
-  const [categoria, setCategoria] = useState("influenciadores");
+  const [categoria, setCategoria] = useState("modelos");
+  const [cep, setCep] = useState("");
+  const [endereco, setEndereco] = useState("");
+  const [buscandoCep, setBuscandoCep] = useState(false);
+  const [cepStatus, setCepStatus] = useState<{ tipo: "sucesso" | "erro"; msg: string } | null>(null);
   const [cidade, setCidade] = useState("Uberlândia");
   const [estado, setEstado] = useState("MG");
   const [cidadesAtendidas, setCidadesAtendidas] = useState("Nacional e Internacional");
@@ -144,7 +148,7 @@ function TalentoCadastroWizardContent() {
     setIsDragging(false);
   };
 
-  // Upload Foto de Perfil
+  // Upload Foto de Perfil via API Segura no Servidor (Bypassa RLS)
   const handleUploadFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -152,20 +156,22 @@ function TalentoCadastroWizardContent() {
     try {
       setFazendoUploadFoto(true);
       setErroMsg(null);
-      const supabase = createClient();
-      const ext = file.name.split(".").pop();
-      const fileName = `talentos/candidatos/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
 
-      let uploadRes = await supabase.storage.from("talentos").upload(fileName, file, { upsert: true });
-      let bucketUsado = "talentos";
-      if (uploadRes.error) {
-        uploadRes = await supabase.storage.from("materias").upload(fileName, file, { upsert: true });
-        bucketUsado = "materias";
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("pasta", "candidatos");
+
+      const res = await fetch("/api/talentos/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Erro no upload da foto.");
       }
-      if (uploadRes.error) throw new Error(`Erro ao enviar foto: ${uploadRes.error.message}`);
 
-      const { data: publicData } = supabase.storage.from(bucketUsado).getPublicUrl(fileName);
-      setFotoUrl(publicData.publicUrl);
+      setFotoUrl(data.url);
     } catch (err: unknown) {
       setErroMsg(err instanceof Error ? err.message : "Erro no upload da foto.");
     } finally {
@@ -173,7 +179,7 @@ function TalentoCadastroWizardContent() {
     }
   };
 
-  // Upload Capa Panorâmica
+  // Upload Capa Panorâmica via API Segura no Servidor (Bypassa RLS)
   const handleUploadCapa = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -181,24 +187,83 @@ function TalentoCadastroWizardContent() {
     try {
       setFazendoUploadCapa(true);
       setErroMsg(null);
-      const supabase = createClient();
-      const ext = file.name.split(".").pop();
-      const fileName = `talentos/capas/candidatos/${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
 
-      let uploadRes = await supabase.storage.from("talentos").upload(fileName, file, { upsert: true });
-      let bucketUsado = "talentos";
-      if (uploadRes.error) {
-        uploadRes = await supabase.storage.from("materias").upload(fileName, file, { upsert: true });
-        bucketUsado = "materias";
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("pasta", "capas/candidatos");
+
+      const res = await fetch("/api/talentos/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.url) {
+        throw new Error(data.error || "Erro no upload da capa.");
       }
-      if (uploadRes.error) throw new Error(`Erro ao enviar capa: ${uploadRes.error.message}`);
 
-      const { data: publicData } = supabase.storage.from(bucketUsado).getPublicUrl(fileName);
-      setFotoCapaUrl(publicData.publicUrl);
+      setFotoCapaUrl(data.url);
     } catch (err: unknown) {
       setErroMsg(err instanceof Error ? err.message : "Erro no upload da capa.");
     } finally {
       setFazendoUploadCapa(false);
+    }
+  };
+
+  // Formatação e Consulta Automática de CEP via ViaCEP
+  const formatarCep = (valor: string) => {
+    const limpo = valor.replace(/\D/g, "").slice(0, 8);
+    if (limpo.length > 5) {
+      return `${limpo.slice(0, 5)}-${limpo.slice(5)}`;
+    }
+    return limpo;
+  };
+
+  const consultarCep = async (cepParaBuscar: string) => {
+    const limpo = cepParaBuscar.replace(/\D/g, "");
+    if (limpo.length !== 8) return;
+
+    try {
+      setBuscandoCep(true);
+      setCepStatus(null);
+      const res = await fetch(`https://viacep.com.br/ws/${limpo}/json/`);
+      const data = await res.json();
+      if (data.erro) {
+        setCepStatus({
+          tipo: "erro",
+          msg: "CEP não encontrado. Digite o endereço, cidade e estado manualmente.",
+        });
+        return;
+      }
+
+      if (data.localidade) setCidade(data.localidade);
+      if (data.uf) setEstado(data.uf.toUpperCase());
+      const enderecoFormatado = [data.logradouro, data.bairro].filter(Boolean).join(" - ");
+      if (enderecoFormatado) {
+        setEndereco(enderecoFormatado);
+      }
+      const detalhes = [data.logradouro, data.bairro].filter(Boolean).join(", ");
+      setCepStatus({
+        tipo: "sucesso",
+        msg: `Endereço localizado: ${data.localidade} - ${data.uf}${detalhes ? ` (${detalhes})` : ""}`,
+      });
+    } catch {
+      setCepStatus({
+        tipo: "erro",
+        msg: "Erro ao consultar CEP. Digite a cidade e estado manualmente.",
+      });
+    } finally {
+      setBuscandoCep(false);
+    }
+  };
+
+  const handleCepChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const formatado = formatarCep(e.target.value);
+    setCep(formatado);
+    if (formatado.replace(/\D/g, "").length === 8) {
+      consultarCep(formatado);
+    } else {
+      setCepStatus(null);
     }
   };
 
@@ -253,6 +318,8 @@ function TalentoCadastroWizardContent() {
         seguidores_total: seguidores.trim(),
         redes_sociais: {
           whatsapp: whatsapp.trim(),
+          cep: cep.trim() || undefined,
+          endereco: endereco.trim() || undefined,
           instagram: instagram.trim() || undefined,
           youtube: youtube.trim() || undefined,
           tiktok: tiktok.trim() || undefined,
@@ -526,12 +593,61 @@ function TalentoCadastroWizardContent() {
                     onChange={(e) => setCategoria(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
                   >
-                    {CATEGORIAS_TALENTOS.map((cat) => (
+                    {CATEGORIAS_TALENTOS.filter((cat) => cat.id !== "todos").map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.label}
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* CEP com Busca Automática de Endereço */}
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span className="flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-amber-500" />
+                      <span>CEP (Preenchimento Automático)</span>
+                    </span>
+                    {buscandoCep && (
+                      <span className="text-[11px] text-amber-600 font-semibold flex items-center gap-1">
+                        <Loader2 className="w-3 h-3 animate-spin" /> Buscando endereço...
+                      </span>
+                    )}
+                  </label>
+                  <input
+                    type="text"
+                    value={cep}
+                    onChange={handleCepChange}
+                    onBlur={() => consultarCep(cep)}
+                    placeholder="00000-000"
+                    maxLength={9}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors font-mono"
+                  />
+                  {cepStatus && (
+                    <p
+                      className={`text-[11px] mt-1.5 font-semibold flex items-center gap-1.5 ${
+                        cepStatus.tipo === "sucesso" ? "text-emerald-700" : "text-amber-700"
+                      }`}
+                    >
+                      {cepStatus.tipo === "sucesso" && <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" />}
+                      <span>{cepStatus.msg}</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Campo de Endereço Completo (Rua, Número e Bairro) */}
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center justify-between">
+                    <span>Endereço (Rua, Número e Bairro)</span>
+                    <span className="text-[11px] text-slate-400 font-normal">Preenchido automaticamente pelo CEP</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={endereco}
+                    onChange={(e) => setEndereco(e.target.value)}
+                    placeholder="Ex: Av. Rondon Pacheco, 1200 - Bairro Tibery"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white transition-colors"
+                  />
                 </div>
 
                 <div>
@@ -554,7 +670,7 @@ function TalentoCadastroWizardContent() {
                   <input
                     type="text"
                     value={estado}
-                    onChange={(e) => setEstado(e.target.value)}
+                    onChange={(e) => setEstado(e.target.value.toUpperCase())}
                     maxLength={2}
                     placeholder="MG, SP, RJ..."
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 text-sm focus:outline-none focus:border-amber-500 focus:bg-white uppercase transition-colors"

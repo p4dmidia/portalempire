@@ -30,6 +30,7 @@ interface TalentosVitrineClientProps {
 
 const CATEGORIAS_SIDEBAR = [
   { id: "todos", label: "Todos os Talentos", icon: Users },
+  { id: "modelos", label: "Modelos & Fashion", icon: Sparkles },
   { id: "apresentadores", label: "Apresentadores", icon: Mic },
   { id: "influenciadores", label: "Influenciadores", icon: Smartphone },
   { id: "celebridades", label: "Celebridades", icon: Star },
@@ -41,6 +42,8 @@ const CATEGORIAS_SIDEBAR = [
 
 const SERVICOS_DESTAQUE = [
   { nome: "Comerciais de TV", icon: Tv },
+  { nome: "Desfiles e Passarela", icon: Sparkles },
+  { nome: "Ensaios Fotográficos & Editoriais", icon: Camera },
   { nome: "Apresentações e Cerimoniais", icon: Mic },
   { nome: "Cobertura de Eventos", icon: Camera },
   { nome: "Palestras", icon: Presentation },
