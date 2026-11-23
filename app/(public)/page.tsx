@@ -17,7 +17,6 @@ import { BlocoEditoria } from "@/components/portal/BlocoEditoria";
 import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { ClassificadosHomeSection } from "@/components/portal/ClassificadosHomeSection";
 import { BlocoCidadesEstadosHome } from "@/components/portal/BlocoCidadesEstadosHome";
-import { TalentosFaixaHome } from "@/components/portal/talentos/TalentosFaixaHome";
 import { AdSlot } from "@/components/portal/AdSlot";
 import { MapPin, Video, ChevronRight, MessageCircle } from "lucide-react";
 
@@ -229,10 +228,7 @@ export default async function PortalHomePage() {
         </aside>
       </div>
 
-      {/* 6. Faixa Especial: Empire Talentos & Celebridades */}
-      <TalentosFaixaHome />
-
-      {/* 7. Vídeos Rápidos (Shorts) */}
+      {/* 6. Vídeos Rápidos (Shorts) */}
       {shorts.length > 0 && (
         <section className="my-10 bg-slate-100/60 dark:bg-slate-900/60 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
           <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2.5">

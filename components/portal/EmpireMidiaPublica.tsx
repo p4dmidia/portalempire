@@ -4,12 +4,16 @@ import { usePathname } from "next/navigation";
 import { BlocoTvAoVivoHome } from "@/components/portal/BlocoTvAoVivoHome";
 import { CardRadioAoVivo } from "@/components/portal/CardRadioAoVivo";
 import { CarrosselEmpireFlix } from "@/components/portal/CarrosselEmpireFlix";
+import { TalentosFaixaHome } from "@/components/portal/talentos/TalentosFaixaHome";
+import { TotensFaixaHome } from "@/components/portal/totens/TotensFaixaHome";
 
 /**
  * Seção multimídia unificada exibida no final de todas as telas públicas do portal:
  * 1. TV Empire Ao Vivo (Transmissão em vídeo com player oficial)
  * 2. Rádio Empire Ao Vivo (Player de streaming de áudio)
  * 3. Card dos Apresentadores da Empire Flix (Carrossel estilo Netflix com fotos e links)
+ * 4. Card dos Talentos & Influenciadores Empire
+ * 5. Card dos Totens de Mídia Digital Empire
  */
 export function EmpireMidiaPublica() {
   const pathname = usePathname();
@@ -29,7 +33,12 @@ export function EmpireMidiaPublica() {
 
       {/* 3. Carrossel dos Apresentadores EmpireFlix */}
       <CarrosselEmpireFlix />
+
+      {/* 4. Card dos Influenciadores & Celebridades (Logo abaixo da EmpireFlix) */}
+      <TalentosFaixaHome />
+
+      {/* 5. Card dos Totens de Mídia Exterior (Logo abaixo dos Talentos) */}
+      <TotensFaixaHome />
     </section>
   );
 }
-
