@@ -8,10 +8,17 @@ export interface MensagemWhatsAppOptions {
   mensagem: string;
 }
 
+export interface EnviarMensagemZApiResult {
+  sucesso: boolean;
+  mensagemId?: string;
+  erro?: string;
+  mock?: boolean;
+}
+
 export async function enviarMensagemZApi({
   telefone,
   mensagem,
-}: MensagemWhatsAppOptions): Promise<{ sucesso: boolean; mensagemId?: string; erro?: string }> {
+}: MensagemWhatsAppOptions): Promise<EnviarMensagemZApiResult> {
   const instanceId = process.env.ZAPI_INSTANCE_ID;
   const token = process.env.ZAPI_TOKEN;
   const clientToken = process.env.ZAPI_CLIENT_TOKEN;
@@ -22,12 +29,14 @@ export async function enviarMensagemZApi({
     phone = `55${phone}`;
   }
 
-  // 2. Se as credenciais ainda não estiverem preenchidas no .env.local, registra log simulado
+  // 2. Se as credenciais ainda não estiverem preenchidas no ambiente
   if (!instanceId || !token || instanceId.includes("dummy") || token.includes("dummy")) {
-    console.log(`[Z-API Mock / Simulação] Mensagem pronta para envio para ${phone}:`);
-    console.log(mensagem);
+    console.warn(`[Z-API Não Configurada] Falta ZAPI_INSTANCE_ID ou ZAPI_TOKEN no ambiente para enviar para ${phone}.`);
+    console.log(`[Mensagem pronta para envio]:\n${mensagem}`);
     return {
-      sucesso: true,
+      sucesso: false,
+      mock: true,
+      erro: "As variáveis de ambiente da Z-API (ZAPI_INSTANCE_ID e ZAPI_TOKEN) não estão configuradas na Vercel ou no .env.local.",
       mensagemId: `mock_zapi_${Date.now()}`,
     };
   }

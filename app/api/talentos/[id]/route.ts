@@ -120,6 +120,8 @@ export async function PUT(
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    let whatsappNotificacao: { sucesso: boolean; erro?: string; mock?: boolean } | null = null;
+
     // Disparo automático de WhatsApp via Z-API se aprovado (era pendente e agora está ativo)
     if (data?.status === "ativo" && (eraPendente || notificarWhatsapp)) {
       const telefoneDestino =
@@ -145,13 +147,29 @@ export async function PUT(
             `👉 *Acesse sua página pública no portal:*\n${linkPerfil}\n\n` +
             `Seja muito bem-vindo(a) ao Grupo Empire Cidades!`;
 
-          await enviarMensagemZApi({
+          const envioRes = await enviarMensagemZApi({
             telefone: String(telefoneDestino),
             mensagem: msgAprovacao,
           });
+
+          whatsappNotificacao = {
+            sucesso: envioRes.sucesso,
+            erro: envioRes.erro,
+            mock: envioRes.mock,
+          };
         } catch (errZApi) {
+          const errStr = errZApi instanceof Error ? errZApi.message : String(errZApi);
           console.warn("[Z-API Talentos] Erro ao disparar notificação de aprovação:", errZApi);
+          whatsappNotificacao = {
+            sucesso: false,
+            erro: errStr,
+          };
         }
+      } else {
+        whatsappNotificacao = {
+          sucesso: false,
+          erro: "Nenhum número de WhatsApp encontrado no perfil do talento.",
+        };
       }
     }
 
@@ -163,7 +181,11 @@ export async function PUT(
       revalidateTag("talentos");
     } catch {}
 
-    return NextResponse.json({ success: true, data });
+    return NextResponse.json({
+      success: true,
+      data,
+      whatsapp_notificacao: whatsappNotificacao,
+    });
   } catch (error: unknown) {
     const msg = error instanceof Error ? error.message : "Erro ao atualizar talento.";
     return NextResponse.json({ error: msg }, { status: 500 });
