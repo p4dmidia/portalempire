@@ -27,10 +27,14 @@ import {
   Tv,
   Film,
   Video,
+  MoveVertical,
+  Share2,
+  Copy,
 } from "lucide-react";
 import type { Talento, TalentoSolicitacao } from "@/lib/talentos/types";
 import { CATEGORIAS_TALENTOS, SERVICOS_PADRAO } from "@/lib/talentos/types";
 import { createClient } from "@/lib/supabase/client";
+import { TalentoLiveStudio } from "./TalentoLiveStudio";
 
 interface TalentosGerenciadorProps {
   initialTalentos: Talento[];
@@ -50,6 +54,12 @@ export function TalentosGerenciador({
   // Filtros
   const [busca, setBusca] = useState("");
   const [filtroCategoria, setFiltroCategoria] = useState("todos");
+  const [filtroStatus, setFiltroStatus] = useState<"todos" | "ativos" | "pendentes">("todos");
+
+  // Estado do Link Convite e Aprovações
+  const [modalConviteAberto, setModalConviteAberto] = useState(false);
+  const [copiadoConvite, setCopiadoConvite] = useState(false);
+  const [aprovandoId, setAprovandoId] = useState<string | null>(null);
 
   // Estado do Modal de Talento
   const [modalAberto, setModalAberto] = useState(false);
@@ -69,6 +79,48 @@ export function TalentosGerenciador({
   const [formSegmentos, setFormSegmentos] = useState("");
   const [formFotoUrl, setFormFotoUrl] = useState("");
   const [formFotoCapaUrl, setFormFotoCapaUrl] = useState("");
+  const [formFotoCapaPosicaoY, setFormFotoCapaPosicaoY] = useState<number>(50);
+  const [isDraggingCapa, setIsDraggingCapa] = useState(false);
+  const [dragStartY, setDragStartY] = useState(0);
+  const [dragStartPos, setDragStartPos] = useState(50);
+
+  const handleCapaMouseDown = (e: React.MouseEvent) => {
+    setIsDraggingCapa(true);
+    setDragStartY(e.clientY);
+    setDragStartPos(formFotoCapaPosicaoY);
+  };
+
+  const handleCapaMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingCapa) return;
+    const deltaY = e.clientY - dragStartY;
+    const sensibilidade = 0.35;
+    const novaPos = Math.min(100, Math.max(0, Math.round(dragStartPos - deltaY * sensibilidade)));
+    setFormFotoCapaPosicaoY(novaPos);
+  };
+
+  const handleCapaMouseUp = () => {
+    setIsDraggingCapa(false);
+  };
+
+  const handleCapaTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      setIsDraggingCapa(true);
+      setDragStartY(e.touches[0].clientY);
+      setDragStartPos(formFotoCapaPosicaoY);
+    }
+  };
+
+  const handleCapaTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingCapa || e.touches.length !== 1) return;
+    const deltaY = e.touches[0].clientY - dragStartY;
+    const sensibilidade = 0.35;
+    const novaPos = Math.min(100, Math.max(0, Math.round(dragStartPos - deltaY * sensibilidade)));
+    setFormFotoCapaPosicaoY(novaPos);
+  };
+
+  const handleCapaTouchEnd = () => {
+    setIsDraggingCapa(false);
+  };
   const [formCidade, setFormCidade] = useState("Uberlândia");
   const [formEstado, setFormEstado] = useState("MG");
   const [formCidadesAtendidas, setFormCidadesAtendidas] = useState("Nacional e Internacional");
@@ -118,6 +170,46 @@ export function TalentosGerenciador({
     }
   };
 
+  // Aprovar Candidatura / Ativar Talento e Notificar via WhatsApp (Z-API)
+  const handleAprovarTalento = async (talento: Talento) => {
+    try {
+      setAprovandoId(talento.id);
+      setMensagemErro(null);
+
+      const res = await fetch(`/api/talentos/${talento.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "ativo",
+          verificado: true,
+          notificar_whatsapp: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao aprovar talento.");
+
+      setTalentos((prev) =>
+        prev.map((item) =>
+          item.id === talento.id ? { ...item, status: "ativo", verificado: true } : item
+        )
+      );
+
+      const whats = talento.whatsapp || talento.redes_sociais?.whatsapp;
+      setMensagemSucesso(
+        `🎉 Talento "${talento.nome}" foi aprovado com sucesso! ${
+          whats ? `Notificação de aprovação enviada para o WhatsApp (${whats}).` : ""
+        }`
+      );
+      setTimeout(() => setMensagemSucesso(null), 5000);
+    } catch (err: unknown) {
+      setMensagemErro(err instanceof Error ? err.message : "Erro ao aprovar talento.");
+      setTimeout(() => setMensagemErro(null), 5000);
+    } finally {
+      setAprovandoId(null);
+    }
+  };
+
   // Abre Modal para Novo Talento
   const handleNovoTalento = () => {
     setTalentoEmEdicao(null);
@@ -129,6 +221,7 @@ export function TalentosGerenciador({
     setFormSegmentos("Comunicação, Negócios");
     setFormFotoUrl("");
     setFormFotoCapaUrl("");
+    setFormFotoCapaPosicaoY(50);
     setFormCidade("Uberlândia");
     setFormEstado("MG");
     setFormCidadesAtendidas("Nacional e Internacional");
@@ -162,6 +255,11 @@ export function TalentosGerenciador({
     setFormSegmentos(t.segmentos?.join(", ") || "");
     setFormFotoUrl(t.foto_url);
     setFormFotoCapaUrl(t.foto_capa_url || "");
+    setFormFotoCapaPosicaoY(
+      t.foto_capa_posicao_y !== undefined && t.foto_capa_posicao_y !== null
+        ? Number(t.foto_capa_posicao_y)
+        : 50
+    );
     setFormCidade(t.cidade_nome || "Uberlândia");
     setFormEstado(t.estado || "MG");
     setFormCidadesAtendidas(t.cidades_atendidas || "Nacional e Internacional");
@@ -284,6 +382,7 @@ export function TalentosGerenciador({
         segmentos: segmentosArr,
         foto_url: formFotoUrl.trim(),
         foto_capa_url: formFotoCapaUrl.trim() || null,
+        foto_capa_posicao_y: Number(formFotoCapaPosicaoY) >= 0 ? Number(formFotoCapaPosicaoY) : 50,
         cidade_nome: formCidade.trim(),
         estado: formEstado.trim(),
         cidades_atendidas: formCidadesAtendidas.trim(),
@@ -349,6 +448,38 @@ export function TalentosGerenciador({
     }
   };
 
+  // Salvar alterações via Live Studio (Edição Visual)
+  const handleSalvarLiveStudio = async (payload: any) => {
+    if (!talentoEmEdicao) return;
+    try {
+      setSalvando(true);
+      setMensagemErro(null);
+
+      const res = await fetch(`/api/talentos/${talentoEmEdicao.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Erro ao atualizar talento.");
+
+      const talentoAtualizado = (data.data as Talento) || { ...talentoEmEdicao, ...payload };
+
+      setTalentos((prev) =>
+        prev.map((t) => (t.id === talentoEmEdicao.id ? talentoAtualizado : t))
+      );
+      setMensagemSucesso(`Talento "${talentoAtualizado.nome}" atualizado com sucesso!`);
+      setModalAberto(false);
+      setTalentoEmEdicao(null);
+      setTimeout(() => setMensagemSucesso(null), 4000);
+    } catch (err: unknown) {
+      throw err;
+    } finally {
+      setSalvando(false);
+    }
+  };
+
   // Excluir Talento
   const handleExcluirTalento = async (id: string, nome: string) => {
     if (!window.confirm(`Tem certeza que deseja remover ${nome} do catálogo de talentos?`)) {
@@ -394,8 +525,30 @@ export function TalentosGerenciador({
     );
   };
 
+  // URL oficial para convite (mesmo em localhost, aponta para o domínio oficial para quem receber poder abrir)
+  const getUrlConvite = () => {
+    if (typeof window === "undefined") return "https://empirecidades.com.br/talentos/cadastro?convite=1";
+    if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+      return "https://empirecidades.com.br/talentos/cadastro?convite=1";
+    }
+    return `${window.location.origin}/talentos/cadastro?convite=1`;
+  };
+
+  const getTextoMensagemConvite = () => {
+    const url = getUrlConvite();
+    return `✨ *Convite Oficial — Empire Talentos & Celebridades*\n\n` +
+      `Olá! Você foi convidado(a) com exclusividade para integrar o catálogo oficial de apresentadores, influenciadores e celebridades do *Grupo Empire Cidades*.\n\n` +
+      `Sua imagem e portfólio serão apresentados para marcas, agências e contratantes em eventos, campanhas publicitárias e palestras em todo o Brasil.\n\n` +
+      `👉 *Cadastre seu perfil pelo link oficial abaixo:*\n${url}\n\n` +
+      `Ao acessar, você poderá personalizar sua capa e pré-visualizar sua página antes de submeter!`;
+  };
+  const totalPendentes = talentos.filter((t) => t.status === "pendente").length;
+  const totalAtivos = talentos.filter((t) => t.status === "ativo").length;
+
   // Talentos filtrados na listagem
   const talentosFiltrados = talentos.filter((t) => {
+    if (filtroStatus === "ativos" && t.status !== "ativo") return false;
+    if (filtroStatus === "pendentes" && t.status !== "pendente") return false;
     if (filtroCategoria !== "todos" && t.categoria !== filtroCategoria) return false;
     if (busca.trim()) {
       const termo = busca.toLowerCase();
@@ -425,7 +578,17 @@ export function TalentosGerenciador({
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setModalConviteAberto(true)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs transition-colors shadow-md cursor-pointer border border-emerald-500/50"
+            title="Copiar Link de Convite para Influenciadores no WhatsApp"
+          >
+            <Phone className="w-4 h-4" />
+            <span>Link Convite WhatsApp</span>
+          </button>
+
           <Link
             href="/talentos"
             target="_blank"
@@ -489,7 +652,68 @@ export function TalentosGerenciador({
       {/* ABA 1: GERENCIAR TALENTOS */}
       {abaAtiva === "talentos" && (
         <div className="space-y-4">
-          {/* Barra de Busca e Filtro */}
+          {/* Alerta de Candidaturas Pendentes */}
+          {totalPendentes > 0 && (
+            <div className="p-4 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex flex-wrap items-center justify-between gap-3 shadow-lg">
+              <div className="flex items-center gap-3">
+                <span className="w-3 h-3 rounded-full bg-amber-400 animate-ping shrink-0" />
+                <span className="text-xs sm:text-sm font-bold text-amber-200">
+                  Existem <strong>{totalPendentes} {totalPendentes === 1 ? "perfil" : "perfis"}</strong> de talentos aguardando sua aprovação!
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setFiltroStatus("pendentes")}
+                className="px-3.5 py-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs uppercase tracking-wider shadow cursor-pointer transition-colors"
+              >
+                Filtrar Aguardando Aprovação
+              </button>
+            </div>
+          )}
+
+          {/* Sub-Filtros de Status e Busca */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-900 border border-slate-800 p-3 rounded-2xl">
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setFiltroStatus("todos")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                  filtroStatus === "todos"
+                    ? "bg-slate-700 text-white shadow"
+                    : "bg-slate-800 text-slate-400 hover:text-white"
+                }`}
+              >
+                Todos ({talentos.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFiltroStatus("ativos")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                  filtroStatus === "ativos"
+                    ? "bg-emerald-500 text-slate-950 font-black shadow"
+                    : "bg-slate-800 text-emerald-400 hover:bg-slate-700"
+                }`}
+              >
+                Ativos ({totalAtivos})
+              </button>
+              <button
+                type="button"
+                onClick={() => setFiltroStatus("pendentes")}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  filtroStatus === "pendentes"
+                    ? "bg-amber-400 text-slate-950 font-black shadow"
+                    : "bg-slate-800 text-amber-300 hover:bg-slate-700"
+                }`}
+              >
+                <span>Aguardando Aprovação ({totalPendentes})</span>
+                {totalPendentes > 0 && (
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Barra de Busca e Categoria */}
           <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-col sm:flex-row items-center gap-3">
             <div className="relative flex-1 w-full">
               <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -522,7 +746,11 @@ export function TalentosGerenciador({
             {talentosFiltrados.map((t) => (
               <div
                 key={t.id}
-                className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between gap-4 shadow-lg hover:border-amber-500/40 transition-all"
+                className={`bg-slate-900 border rounded-2xl p-4 flex flex-col justify-between gap-4 shadow-lg transition-all ${
+                  t.status === "pendente"
+                    ? "border-amber-500/60 ring-1 ring-amber-500/30"
+                    : "border-slate-800 hover:border-amber-500/40"
+                }`}
               >
                 <div className="space-y-3">
                   <div className="flex items-center gap-3">
@@ -554,20 +782,28 @@ export function TalentosGerenciador({
                   </p>
 
                   <div className="flex items-center gap-2 text-[10.5px]">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleStatus(t)}
-                      disabled={alternandoStatusId === t.id}
-                      className={`px-2.5 py-1 rounded-full font-bold text-[10.5px] flex items-center gap-1.5 transition-all cursor-pointer ${
-                        t.status === "ativo"
-                          ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25"
-                          : "bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25"
-                      }`}
-                      title={t.status === "ativo" ? "Clique para desativar este talento" : "Clique para ativar este talento"}
-                    >
-                      <span className={`w-2 h-2 rounded-full ${t.status === "ativo" ? "bg-emerald-400" : "bg-red-400"}`} />
-                      <span>{alternandoStatusId === t.id ? "Alterando..." : t.status === "ativo" ? "Ativo" : "Inativo"}</span>
-                    </button>
+                    {t.status === "pendente" ? (
+                      <span className="px-2.5 py-1 rounded-full font-bold text-[10.5px] bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1.5 animate-pulse">
+                        <span className="w-2 h-2 rounded-full bg-amber-400" />
+                        <span>Aguardando Aprovação</span>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => handleToggleStatus(t)}
+                        disabled={alternandoStatusId === t.id}
+                        className={`px-2.5 py-1 rounded-full font-bold text-[10.5px] flex items-center gap-1.5 transition-all cursor-pointer ${
+                          t.status === "ativo"
+                            ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/25"
+                            : "bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25"
+                        }`}
+                        title={t.status === "ativo" ? "Clique para desativar este talento" : "Clique para ativar este talento"}
+                      >
+                        <span className={`w-2 h-2 rounded-full ${t.status === "ativo" ? "bg-emerald-400" : "bg-red-400"}`} />
+                        <span>{alternandoStatusId === t.id ? "Alterando..." : t.status === "ativo" ? "Ativo" : "Inativo"}</span>
+                      </button>
+                    )}
+
                     {t.destaque_home && (
                       <span className="px-2 py-0.5 rounded-full bg-amber-400/10 text-amber-300 border border-amber-400/30 font-bold">
                         ★ Destaque
@@ -587,13 +823,35 @@ export function TalentosGerenciador({
                   </Link>
 
                   <div className="flex items-center gap-1.5">
+                    {t.status === "pendente" && (
+                      <button
+                        type="button"
+                        onClick={() => handleAprovarTalento(t)}
+                        disabled={aprovandoId === t.id}
+                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow transition-colors cursor-pointer disabled:opacity-50"
+                        title="Aprovar Perfil e Enviar Mensagem no WhatsApp (Z-API)"
+                      >
+                        {aprovandoId === t.id ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        )}
+                        <span>Aprovar</span>
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => handleEditarTalento(t)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition-colors"
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg font-semibold text-xs transition-colors cursor-pointer ${
+                        t.status === "pendente"
+                          ? "bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40"
+                          : "bg-white/10 hover:bg-white/20 text-white"
+                      }`}
+                      title="Abrir no Live Studio"
                     >
                       <Edit className="w-3.5 h-3.5" />
-                      <span>Editar</span>
+                      <span>{t.status === "pendente" ? "Revisar no Studio" : "Editar"}</span>
                     </button>
 
                     <button
@@ -751,14 +1009,27 @@ export function TalentosGerenciador({
         </div>
       )}
 
-      {/* 3. MODAL DE CADASTRO / EDIÇÃO DE TALENTO */}
-      {modalAberto && (
+      {/* 3. LIVE STUDIO VISUAL (QUANDO EDITANDO UM TALENTO EXISTENTE) */}
+      {modalAberto && talentoEmEdicao && (
+        <TalentoLiveStudio
+          talento={talentoEmEdicao}
+          onFechar={() => {
+            setModalAberto(false);
+            setTalentoEmEdicao(null);
+          }}
+          onSalvar={handleSalvarLiveStudio}
+          salvando={salvando}
+        />
+      )}
+
+      {/* 4. MODAL RÁPIDO DE CADASTRO (QUANDO CRIANDO NOVO TALENTO) */}
+      {modalAberto && !talentoEmEdicao && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
           <div className="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-3xl shadow-2xl text-white overflow-hidden my-8">
             <div className="bg-slate-800 p-5 border-b border-slate-700 flex items-center justify-between">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
                 <Star className="w-4 h-4 text-amber-400" />
-                <span>{talentoEmEdicao ? "Editar Talento" : "Cadastrar Novo Talento"}</span>
+                <span>Cadastrar Novo Talento</span>
               </h3>
               <button
                 type="button"
@@ -823,28 +1094,21 @@ export function TalentosGerenciador({
                   </div>
                 </div>
 
-                {/* 2. Upload da Imagem de Capa (Banner do Perfil) */}
-                <div>
-                  <label className="block text-slate-300 font-bold uppercase tracking-wider mb-1.5">
-                    Imagem de Capa (Banner Superior do Perfil)
-                  </label>
-                  <div className="flex items-center gap-3">
-                    {formFotoCapaUrl ? (
-                      <div className="relative w-24 h-16 rounded-xl overflow-hidden border border-amber-400/80 shrink-0 bg-slate-800">
-                        <Image
-                          src={formFotoCapaUrl}
-                          alt="Preview Capa"
-                          fill
-                          unoptimized
-                          className="object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="w-24 h-16 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] text-slate-500 text-center p-1 shrink-0">
-                        Capa Padrão
-                      </div>
+                {/* 2. Upload e Posicionamento da Imagem de Capa (Estilo Fan Page Facebook) */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-slate-300 font-bold uppercase tracking-wider text-xs">
+                      Imagem de Capa (Banner Panorâmico)
+                    </label>
+                    {formFotoCapaUrl && (
+                      <span className="text-[11px] text-amber-300 font-semibold flex items-center gap-1">
+                        <MoveVertical className="w-3 h-3" />
+                        <span>Arraste a foto para enquadrar</span>
+                      </span>
                     )}
+                  </div>
 
+                  <div className="flex items-center gap-3">
                     <div className="flex-1 space-y-1.5 min-w-0">
                       <div className="flex items-center gap-2">
                         <label className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-white font-semibold cursor-pointer border border-slate-600 text-xs">
@@ -864,7 +1128,7 @@ export function TalentosGerenciador({
                             onClick={() => setFormFotoCapaUrl("")}
                             className="text-slate-400 hover:text-red-400 text-[10px] underline"
                           >
-                            Remover
+                            Remover Capa
                           </button>
                         )}
                       </div>
@@ -877,6 +1141,104 @@ export function TalentosGerenciador({
                       />
                     </div>
                   </div>
+
+                  {/* Pré-visualização Panorâmica com Arraste Interativo (Drag & Drop Vertical) */}
+                  {formFotoCapaUrl && (
+                    <div className="mt-2 p-2.5 rounded-xl bg-slate-950/80 border border-amber-500/40 space-y-2">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-bold text-amber-300 flex items-center gap-1">
+                          <MoveVertical className="w-3.5 h-3.5" />
+                          <span>Enquadramento Vertical (Arraste para cima/baixo)</span>
+                        </span>
+                        <span className="font-mono text-slate-400">
+                          Posição: <strong className="text-white">{formFotoCapaPosicaoY}%</strong>
+                        </span>
+                      </div>
+
+                      {/* Canvas de Arraste Estilo Facebook */}
+                      <div
+                        onMouseDown={handleCapaMouseDown}
+                        onMouseMove={handleCapaMouseMove}
+                        onMouseUp={handleCapaMouseUp}
+                        onMouseLeave={handleCapaMouseUp}
+                        onTouchStart={handleCapaTouchStart}
+                        onTouchMove={handleCapaTouchMove}
+                        onTouchEnd={handleCapaTouchEnd}
+                        className={`relative w-full h-36 sm:h-44 rounded-lg overflow-hidden border border-slate-700 bg-black select-none ${
+                          isDraggingCapa ? "cursor-grabbing ring-2 ring-amber-400" : "cursor-grab"
+                        }`}
+                        title="Clique e arraste verticalmente para ajustar o enquadramento da capa"
+                      >
+                        <Image
+                          src={formFotoCapaUrl}
+                          alt="Preview Capa"
+                          fill
+                          unoptimized
+                          draggable={false}
+                          className="object-cover pointer-events-none transition-none"
+                          style={{ objectPosition: `center ${formFotoCapaPosicaoY}%` }}
+                        />
+
+                        {/* Overlay com instrução */}
+                        <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-xs text-[10px] font-bold text-amber-200 border border-white/10 flex items-center gap-1 pointer-events-none shadow">
+                          <MoveVertical className="w-3 h-3 text-amber-400" />
+                          <span>↕ Clique e arraste para posicionar</span>
+                        </div>
+                      </div>
+
+                      {/* Slider e Botões de Atalho */}
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1">
+                        <div className="flex items-center gap-2 w-full sm:w-auto flex-1">
+                          <span className="text-[10px] text-slate-400 font-semibold">Topo</span>
+                          <input
+                            type="range"
+                            min="0"
+                            max="100"
+                            value={formFotoCapaPosicaoY}
+                            onChange={(e) => setFormFotoCapaPosicaoY(Number(e.target.value))}
+                            className="w-full accent-amber-400 cursor-pointer h-1.5 bg-slate-700 rounded-lg"
+                          />
+                          <span className="text-[10px] text-slate-400 font-semibold">Base</span>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => setFormFotoCapaPosicaoY(15)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-semibold border transition-colors ${
+                              formFotoCapaPosicaoY <= 25
+                                ? "bg-amber-400 text-slate-950 border-amber-400"
+                                : "bg-slate-800 text-slate-300 border-slate-700 hover:text-white"
+                            }`}
+                          >
+                            Topo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormFotoCapaPosicaoY(50)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-semibold border transition-colors ${
+                              formFotoCapaPosicaoY > 25 && formFotoCapaPosicaoY < 75
+                                ? "bg-amber-400 text-slate-950 border-amber-400"
+                                : "bg-slate-800 text-slate-300 border-slate-700 hover:text-white"
+                            }`}
+                          >
+                            Centro
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormFotoCapaPosicaoY(85)}
+                            className={`px-2 py-0.5 rounded text-[10px] font-semibold border transition-colors ${
+                              formFotoCapaPosicaoY >= 75
+                                ? "bg-amber-400 text-slate-950 border-amber-400"
+                                : "bg-slate-800 text-slate-300 border-slate-700 hover:text-white"
+                            }`}
+                          >
+                            Base
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1174,6 +1536,113 @@ export function TalentosGerenciador({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* 5. MODAL DE COMPARTILHAMENTO DE LINK CONVITE WHATSAPP */}
+      {modalConviteAberto && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-xl shadow-2xl text-white overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="bg-slate-800 p-5 border-b border-slate-700 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center border border-emerald-500/30">
+                  <Phone className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-white">
+                    Link Convite de Talentos & Celebridades
+                  </h3>
+                  <p className="text-[11px] text-slate-400">
+                    Envie para apresentadores, influenciadores e celebridades
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setModalConviteAberto(false)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5 text-xs">
+              <p className="text-slate-300 leading-relaxed">
+                Ao acessar este link, o talento verá uma página especial de convite VIP, onde ele mesmo poderá preencher suas informações, fazer upload das fotos e <strong>arrastar a imagem de capa em tempo real</strong> antes de enviar para análise.
+              </p>
+
+              {/* Campo do Link */}
+              <div className="space-y-1.5">
+                <label className="block text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                  Link da Página de Cadastro
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={getUrlConvite()}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-amber-300 font-mono select-all focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(getUrlConvite());
+                      setCopiadoConvite(true);
+                      setTimeout(() => setCopiadoConvite(false), 3000);
+                    }}
+                    className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs shrink-0 border border-slate-600 transition-colors cursor-pointer"
+                  >
+                    {copiadoConvite ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Prévia da Mensagem para WhatsApp */}
+              <div className="space-y-1.5">
+                <label className="block text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+                  Texto Formatado para o WhatsApp
+                </label>
+                <div className="bg-slate-950 border border-slate-800 rounded-2xl p-4 text-[11.5px] text-slate-300 font-sans space-y-2 whitespace-pre-line leading-relaxed">
+                  {getTextoMensagemConvite()}
+                </div>
+              </div>
+
+              {/* Botões de Ação */}
+              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(getTextoMensagemConvite());
+                    setCopiadoConvite(true);
+                    setTimeout(() => setCopiadoConvite(false), 3000);
+                  }}
+                  className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs border border-slate-600 transition-colors cursor-pointer"
+                >
+                  {copiadoConvite ? (
+                    <>
+                      <Check className="w-4 h-4 text-emerald-400" />
+                      <span className="text-emerald-400 font-bold">Mensagem Copiada!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-4 h-4 text-amber-400" />
+                      <span>Copiar Mensagem do WhatsApp</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(getTextoMensagemConvite())}`, "_blank");
+                  }}
+                  className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-lg transition-transform hover:scale-105 active:scale-95 cursor-pointer"
+                >
+                  <Phone className="w-4 h-4" />
+                  <span>Compartilhar no WhatsApp</span>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

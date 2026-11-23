@@ -719,7 +719,9 @@ export function AparenciaView() {
                       src={`https://www.youtube.com/embed/${s.youtube_id}`}
                       title={s.titulo}
                       className="w-full h-full"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                       allowFullScreen
+                      referrerPolicy="strict-origin-when-cross-origin"
                     />
                   </div>
                   <h4 className="font-bold text-xs text-slate-900 dark:text-white line-clamp-2">

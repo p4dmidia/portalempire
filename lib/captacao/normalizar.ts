@@ -139,6 +139,9 @@ function isUrlImagemValida(url?: string | null): boolean {
     u.includes("gravatar") ||
     u.includes("placeholder") ||
     u.includes("fallbackimage") ||
+    u.includes("ebc.png") ||
+    u.includes("ebc.gif") ||
+    u.includes("logo-agenciabrasil") ||
     u.endsWith(".svg")
   ) {
     return false;
@@ -155,6 +158,17 @@ function isUrlImagemValida(url?: string | null): boolean {
  * 4. Primeira tag <img> encontrada na description / content / contentEncoded (filtrando 'leia também')
  */
 export function extrairImagem(item: ParsedFeedItem): string | null {
+  // 0. Tags customizadas de imagem de destaque (ex: Agência Brasil <imagem-destaque>, WordPress featured_image)
+  const destaque =
+    item.imagemDestaque ||
+    (item as Record<string, unknown>)["imagem-destaque"] ||
+    item.featuredImage ||
+    item.image;
+
+  if (typeof destaque === "string" && isUrlImagemValida(destaque)) {
+    return otimizarUrlImagem(destaque);
+  }
+
   // 1. Enclosure
   if (item.enclosure?.url && isUrlImagemValida(item.enclosure.url)) {
     const url = item.enclosure.url;

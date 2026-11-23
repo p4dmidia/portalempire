@@ -481,6 +481,9 @@ export function otimizarUrlImagem(url?: string | null, contexto?: string): strin
     u.includes("tracking") ||
     u.includes("beacon") ||
     u.includes("gravatar") ||
+    u.includes("ebc.png") ||
+    u.includes("ebc.gif") ||
+    u.includes("logo-agenciabrasil") ||
     u.includes("photo-1504711434969") ||
     u.endsWith(".svg")
   ) {

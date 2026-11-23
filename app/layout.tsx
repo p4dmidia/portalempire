@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Empire Cidades — Portal de Notícias Regionais",
   description: "Portal de notícias de cidades, colunistas, cobertura regional e captação em tempo real.",
-  referrer: "no-referrer",
+  referrer: "strict-origin-when-cross-origin",
 };
 
 export default function RootLayout({

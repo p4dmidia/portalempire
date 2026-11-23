@@ -35,8 +35,10 @@ export interface Talento {
   segmentos: string[];
   foto_url: string;
   foto_capa_url?: string | null;
+  foto_capa_posicao_y?: number | null;
   cidade_id?: string | null;
   cidade_nome?: string;
+  cidade_base?: string;
   estado?: string;
   cidades_atendidas?: string;
   bio_curta: string;
@@ -50,8 +52,9 @@ export interface Talento {
   programas_tv: string[];
   verificado: boolean;
   destaque_home: boolean;
+  destaque?: boolean;
   ordem: number;
-  status: "ativo" | "inativo" | "rascunho";
+  status: "ativo" | "inativo" | "rascunho" | "pendente";
   created_at: string;
   updated_at: string;
 }

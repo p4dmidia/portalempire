@@ -71,6 +71,7 @@ export async function POST(request: Request) {
       segmentos,
       foto_url,
       foto_capa_url,
+      foto_capa_posicao_y,
       cidade_nome,
       estado,
       cidades_atendidas,
@@ -108,6 +109,7 @@ export async function POST(request: Request) {
       segmentos: segmentos || [],
       foto_url,
       foto_capa_url: foto_capa_url || null,
+      foto_capa_posicao_y: Number(foto_capa_posicao_y) >= 0 ? Number(foto_capa_posicao_y) : 50,
       cidade_nome: cidade_nome || "Uberlândia",
       estado: estado || "MG",
       cidades_atendidas: cidades_atendidas || "Nacional e Internacional",
@@ -133,18 +135,18 @@ export async function POST(request: Request) {
       .select()
       .single();
 
-    // Fallback se a coluna whatsapp ainda não foi criada no Postgres físico
-    if (error && (error.message?.includes("whatsapp") || error.code === "42703" || error.code === "PGRST204")) {
-      const { whatsapp: _w, ...talentoSemWhatsapp } = novoTalento;
-      if (whatsapp && talentoSemWhatsapp.redes_sociais) {
-        talentoSemWhatsapp.redes_sociais = {
-          ...talentoSemWhatsapp.redes_sociais,
+    // Fallback se a coluna whatsapp ou foto_capa_posicao_y ainda não foi criada no Postgres físico
+    if (error && (error.message?.includes("whatsapp") || error.message?.includes("foto_capa_posicao_y") || error.code === "42703" || error.code === "PGRST204")) {
+      const { whatsapp: _w, foto_capa_posicao_y: _pos, ...talentoSemColunasNovas } = novoTalento;
+      if (whatsapp && talentoSemColunasNovas.redes_sociais) {
+        talentoSemColunasNovas.redes_sociais = {
+          ...talentoSemColunasNovas.redes_sociais,
           whatsapp,
         };
       }
       const retry = await adminSupabase
         .from("talentos")
-        .insert(talentoSemWhatsapp)
+        .insert(talentoSemColunasNovas)
         .select()
         .single();
       data = retry.data;

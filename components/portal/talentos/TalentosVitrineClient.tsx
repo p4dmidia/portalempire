@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Search,
   Users,
@@ -165,6 +166,17 @@ export function TalentosVitrineClient({ talentosIniciais }: TalentosVitrineClien
 
           <div className="inline-block px-5 py-2 rounded-xl bg-amber-500/10 border border-amber-400/40 text-amber-900 dark:text-amber-200 font-extrabold text-sm sm:text-base shadow-sm">
             Contrate o talento ideal para a sua marca, evento ou campanha!
+          </div>
+
+          {/* Botão de Auto-Cadastro / Faça Parte */}
+          <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/talentos/cadastro"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 hover:from-amber-400 hover:to-amber-300 text-slate-950 font-black text-xs sm:text-sm shadow-md hover:shadow-amber-500/20 transition-all transform hover:-translate-y-0.5 cursor-pointer"
+            >
+              <Sparkles className="w-4 h-4 text-slate-950 fill-slate-950" />
+              <span>Quero Fazer Parte / Cadastrar Perfil de Talento</span>
+            </Link>
           </div>
 
           {/* 2. Barra Rápida de Serviços Oferecidos (Preenche a largura sem cortes) */}

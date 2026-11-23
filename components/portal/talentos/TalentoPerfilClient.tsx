@@ -20,12 +20,70 @@ import {
   CheckCircle2,
   Sparkles,
   Tv,
+  ExternalLink,
 } from "lucide-react";
 import type { Talento } from "@/lib/talentos/types";
 import { SolicitarOrcamentoModal } from "./SolicitarOrcamentoModal";
 
 interface TalentoPerfilClientProps {
   talento: Talento;
+}
+
+function extrairYouTubeId(urlOuId: string): string {
+  if (!urlOuId) return "";
+  const trimmed = urlOuId.trim();
+
+  // Se já for só o ID (11 caracteres alfanuméricos com traço ou underline)
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Links do tipo youtube.com/shorts/ID
+  if (trimmed.includes("youtube.com/shorts/")) {
+    const parts = trimmed.split("youtube.com/shorts/")[1];
+    return parts.split("?")[0].split("&")[0].split("/")[0];
+  }
+
+  // Links do tipo youtu.be/ID
+  if (trimmed.includes("youtu.be/")) {
+    const parts = trimmed.split("youtu.be/")[1];
+    return parts.split("?")[0].split("&")[0].split("/")[0];
+  }
+
+  // Links do tipo youtube.com/embed/ID
+  if (trimmed.includes("youtube.com/embed/")) {
+    const parts = trimmed.split("youtube.com/embed/")[1];
+    return parts.split("?")[0].split("&")[0].split("/")[0];
+  }
+
+  // Links do tipo youtube.com/live/ID
+  if (trimmed.includes("youtube.com/live/")) {
+    const parts = trimmed.split("youtube.com/live/")[1];
+    return parts.split("?")[0].split("&")[0].split("/")[0];
+  }
+
+  // Links do tipo youtube.com/watch?v=ID
+  if (trimmed.includes("v=")) {
+    try {
+      const match = trimmed.match(/[?&]v=([^&]+)/);
+      if (match && match[1]) {
+        return match[1];
+      }
+    } catch {
+      // fallback
+    }
+  }
+
+  // Fallback genérico para parâmetros ou última barra
+  try {
+    const url = new URL(trimmed.startsWith("http") ? trimmed : `https://${trimmed}`);
+    const vParam = url.searchParams.get("v");
+    if (vParam) return vParam;
+  } catch {
+    // ignora
+  }
+
+  return trimmed.split("/").pop()?.split("?")[0]?.split("&")[0] || "";
 }
 
 export function TalentoPerfilClient({ talento }: TalentoPerfilClientProps) {
@@ -86,24 +144,25 @@ export function TalentoPerfilClient({ talento }: TalentoPerfilClientProps) {
         </div>
       </div>
 
-      {/* 2. Capa Panorâmica */}
-      <div className="relative w-full h-56 sm:h-72 lg:h-80 bg-slate-200 dark:bg-slate-900 overflow-hidden">
+      {/* 2. Capa Panorâmica com Posicionamento Personalizado */}
+      <div className="relative w-full h-80 sm:h-[420px] lg:h-[480px] xl:h-[520px] bg-slate-200 dark:bg-slate-900 overflow-hidden shadow-inner">
         {talento.foto_capa_url ? (
           <Image
             src={talento.foto_capa_url}
             alt={talento.nome}
             fill
             unoptimized
-            className="object-cover"
+            className="object-cover transition-all duration-300"
+            style={{ objectPosition: `center ${talento.foto_capa_posicao_y ?? 50}%` }}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-r from-slate-200 via-amber-100/40 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-50 dark:from-[#090a0f] via-black/20 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-50 dark:from-[#090a0f] via-black/15 to-transparent pointer-events-none" />
       </div>
 
-      {/* 3. Container Principal */}
-      <div className="max-w-[1440px] mx-auto px-4 -mt-24 sm:-mt-32 relative z-10">
+      {/* 3. Container Principal (Sobreposição Suave para Não Cortar a Capa) */}
+      <div className="max-w-[1440px] mx-auto px-4 -mt-10 sm:-mt-14 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Coluna Esquerda: Conteúdo do Perfil */}
           <div className="lg:col-span-8 space-y-8">
@@ -268,25 +327,58 @@ export function TalentoPerfilClient({ talento }: TalentoPerfilClientProps) {
                   <span>Portfólio em Vídeo & Campanhas Anteriores</span>
                 </h2>
 
-                <div className="space-y-4">
-                  {talento.videos.map((vid, idx) => (
-                    <div key={idx} className="space-y-2">
-                      <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200">{vid.titulo}</h4>
-                      <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-slate-200 dark:border-slate-800 shadow">
-                        <iframe
-                          src={`https://www.youtube-nocookie.com/embed/${
-                            vid.url.includes("v=")
-                              ? vid.url.split("v=")[1].split("&")[0]
-                              : vid.url.split("/").pop()
-                          }`}
-                          title={vid.titulo}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="w-full h-full"
-                        />
+                <div className="space-y-6">
+                  {talento.videos.map((vid, idx) => {
+                    const videoId = extrairYouTubeId(vid.url);
+                    const linkDireto = vid.url.startsWith("http")
+                      ? vid.url
+                      : `https://www.youtube.com/watch?v=${videoId}`;
+
+                    return (
+                      <div key={idx} className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 line-clamp-1">
+                            {vid.titulo}
+                          </h4>
+                          <a
+                            href={linkDireto}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 dark:text-amber-400 hover:underline shrink-0"
+                          >
+                            <span>Assistir no YouTube</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        </div>
+
+                        <div className="aspect-video w-full rounded-2xl overflow-hidden bg-black border border-slate-200 dark:border-slate-800 shadow">
+                          {videoId ? (
+                            <iframe
+                              src={`https://www.youtube.com/embed/${videoId}?rel=0&modestbranding=1`}
+                              title={vid.titulo}
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                              allowFullScreen
+                              referrerPolicy="strict-origin-when-cross-origin"
+                              className="w-full h-full"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 p-4 text-center">
+                              <Video className="w-8 h-8 mb-2 text-slate-600" />
+                              <p className="text-xs">Não foi possível carregar a prévia do vídeo.</p>
+                              <a
+                                href={linkDireto}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-amber-400 underline mt-1"
+                              >
+                                Ver no YouTube
+                              </a>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             )}

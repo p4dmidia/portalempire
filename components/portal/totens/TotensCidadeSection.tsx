@@ -84,7 +84,7 @@ export function TotensCidadeSection({
                   <div className="space-y-3">
                     <div className="relative aspect-video w-full rounded-xl overflow-hidden bg-slate-200">
                       <Image
-                        src={totem.foto_url}
+                        src={totem.foto_url || "/images/totem-padrao.jpg"}
                         alt={totem.nome}
                         fill
                         unoptimized

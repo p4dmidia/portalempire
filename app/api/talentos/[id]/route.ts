@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { getProfile } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
+import { enviarMensagemZApi } from "@/lib/whatsapp/zapi";
 
 export const maxDuration = 10;
 
@@ -48,11 +49,22 @@ export async function PUT(
     const body = await request.json();
     const adminSupabase = getSupabaseAdmin();
 
+    // Consulta estado prévio para checar se era 'pendente'
+    const { data: talentoAnterior } = await adminSupabase
+      .from("talentos")
+      .select("status, whatsapp, nome, slug, redes_sociais")
+      .eq("id", id)
+      .maybeSingle();
+
+    const eraPendente = talentoAnterior?.status === "pendente";
+
     // Sanitiza payload: remove campos de controle e metadados
     const updatePayload: Record<string, any> = { ...body };
     delete updatePayload.id;
     delete updatePayload.created_at;
     delete updatePayload.updated_at;
+    const notificarWhatsapp = updatePayload.notificar_whatsapp === true;
+    delete updatePayload.notificar_whatsapp;
 
     // Tenta atualizar
     let { data, error } = await adminSupabase
@@ -62,15 +74,15 @@ export async function PUT(
       .select()
       .single();
 
-    // Fallback 1: se o banco ainda não tiver a coluna 'whatsapp' no schema físico
-    if (error && (error.message?.includes("whatsapp") || error.code === "42703" || error.code === "PGRST204")) {
-      const { whatsapp, ...payloadSemWhatsapp } = updatePayload;
-      if (whatsapp && payloadSemWhatsapp.redes_sociais) {
-        payloadSemWhatsapp.redes_sociais.whatsapp = whatsapp;
+    // Fallback 1: se o banco ainda não tiver as colunas 'whatsapp' ou 'foto_capa_posicao_y' no schema físico
+    if (error && (error.message?.includes("whatsapp") || error.message?.includes("foto_capa_posicao_y") || error.code === "42703" || error.code === "PGRST204")) {
+      const { whatsapp, foto_capa_posicao_y: _pos, ...payloadSemNovasColunas } = updatePayload;
+      if (whatsapp && payloadSemNovasColunas.redes_sociais) {
+        payloadSemNovasColunas.redes_sociais.whatsapp = whatsapp;
       }
       const retry = await adminSupabase
         .from("talentos")
-        .update(payloadSemWhatsapp)
+        .update(payloadSemNovasColunas)
         .eq("id", id)
         .select()
         .single();
@@ -106,6 +118,41 @@ export async function PUT(
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    // Disparo automático de WhatsApp via Z-API se aprovado (era pendente e agora está ativo)
+    if (data?.status === "ativo" && (eraPendente || notificarWhatsapp)) {
+      const telefoneDestino =
+        data.whatsapp ||
+        data.redes_sociais?.whatsapp ||
+        talentoAnterior?.whatsapp ||
+        talentoAnterior?.redes_sociais?.whatsapp;
+
+      if (telefoneDestino) {
+        try {
+          const rawHost =
+            request.headers.get("x-forwarded-host") ||
+            request.headers.get("host") ||
+            "empirecidades.com.br";
+          // Se estiver no localhost, usa o domínio público oficial para o influenciador conseguir abrir no celular
+          const baseUrl = rawHost.includes("localhost")
+            ? (process.env.NEXT_PUBLIC_SITE_URL || "https://empirecidades.com.br")
+            : `https://${rawHost}`;
+          const linkPerfil = `${baseUrl.replace(/\/$/, "")}/talentos/${data.slug}`;
+
+          const msgAprovacao = `🎉 *Parabéns, ${data.nome}! Seu perfil no Talentos Empire foi aprovado!*\n\n` +
+            `Seu perfil oficial já está publicado no portal para agenciamento de marcas, comerciais, campanhas e eventos corporativos.\n\n` +
+            `👉 *Acesse sua página pública no portal:*\n${linkPerfil}\n\n` +
+            `Seja muito bem-vindo(a) ao Grupo Empire Cidades!`;
+
+          await enviarMensagemZApi({
+            telefone: String(telefoneDestino),
+            mensagem: msgAprovacao,
+          });
+        } catch (errZApi) {
+          console.warn("[Z-API Talentos] Erro ao disparar notificação de aprovação:", errZApi);
+        }
+      }
     }
 
     try {

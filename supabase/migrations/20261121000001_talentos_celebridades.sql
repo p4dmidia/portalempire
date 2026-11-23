@@ -14,6 +14,7 @@ create table if not exists public.talentos (
   segmentos text[] default '{}',
   foto_url text not null,
   foto_capa_url text,
+  foto_capa_posicao_y integer default 50,
   cidade_id uuid references public.cidades(id) on delete set null,
   cidade_nome text default 'Uberlândia',
   estado text default 'MG',

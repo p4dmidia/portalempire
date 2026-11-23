@@ -25,6 +25,9 @@ export interface ParsedFeedItem {
       url?: string;
     };
   };
+  imagemDestaque?: string;
+  image?: string;
+  featuredImage?: string;
 }
 
 export interface ParsedFeed {
@@ -48,6 +51,9 @@ const parser = new Parser<Record<string, unknown>, ParsedFeedItem>({
       ["media:thumbnail", "media:thumbnail"],
       ["content:encoded", "contentEncoded"],
       ["dc:creator", "creator"],
+      ["imagem-destaque", "imagemDestaque"],
+      ["image", "image"],
+      ["featured_image", "featuredImage"],
     ],
   },
 });

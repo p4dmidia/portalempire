@@ -9,8 +9,10 @@ import { SidebarMaisLidas } from "@/components/portal/SidebarMaisLidas";
 import { AdSlot } from "@/components/portal/AdSlot";
 import { ClassificadosFaixaSection } from "@/components/portal/ClassificadosFaixaSection";
 import { TotensCidadeSection } from "@/components/portal/totens/TotensCidadeSection";
+import { TalentosCidadeSection } from "@/components/portal/talentos/TalentosCidadeSection";
 import { getTotens } from "@/lib/totens/queries";
-import { MapPin, Thermometer } from "lucide-react";
+import { getTalentos } from "@/lib/talentos/queries";
+import { MapPin, Thermometer, Tv, Star, Tag, Newspaper } from "lucide-react";
 
 export const revalidate = 600;
 
@@ -45,13 +47,22 @@ export default async function CidadeDetalhePage({ params }: CidadePageProps) {
     notFound();
   }
 
-  const [materiasRaw, colunas, maisLidasRaw, clima, todosClassificados, totensCidade] = await Promise.all([
+  const [
+    materiasRaw,
+    colunas,
+    maisLidasRaw,
+    clima,
+    todosClassificados,
+    todosTotens,
+    todosTalentos,
+  ] = await Promise.all([
     getMaterias({ cidadeSlug: slug, limit: 12 }),
     getColunasAtivas(slug),
     getMaterias({ cidadeSlug: slug, ordenarPor: "visualizacoes", limit: 5 }),
     getClimaPorSlug(slug),
     getClassificados(),
-    getTotens(cidade.nome),
+    getTotens(),
+    getTalentos(),
   ]);
 
   // Garante identificação e badge local correto da cidade ({cidade.nome} - {cidade.uf})
@@ -132,36 +143,128 @@ export default async function CidadeDetalhePage({ params }: CidadePageProps) {
     );
   }).slice(0, 4);
 
+  // FILTRO DE TOTENS DA CIDADE
+  const totensCidade = todosTotens.filter((t) => {
+    const tCid = (t.cidade_nome || "").toLowerCase().trim();
+    const tBairro = (t.bairro || "").toLowerCase().trim();
+    const tEst = (t.estado || "").toUpperCase().trim();
+
+    if (tEst && ufCidade && tEst !== ufCidade) return false;
+
+    if (slugCidade === "alphaville") {
+      return (
+        tCid.includes("alphaville") ||
+        tBairro.includes("alphaville") ||
+        tCid.includes("barueri") ||
+        tCid.includes("santana de parnaiba") ||
+        tCid.includes("santana de parnaíba")
+      );
+    }
+
+    return (
+      tCid === nomeCidadeLower ||
+      tCid.includes(nomeCidadeLower) ||
+      tBairro.includes(nomeCidadeLower)
+    );
+  });
+
+  // FILTRO DE TALENTOS DA CIDADE / REGIÃO PARA CONTRATAÇÃO
+  const talentosCidade = todosTalentos.filter((tal) => {
+    const tCid = (tal.cidade_nome || tal.cidade_base || "").toLowerCase().trim();
+
+    if (slugCidade === "alphaville") {
+      return (
+        tCid.includes("alphaville") ||
+        tCid.includes("barueri") ||
+        tCid.includes("são paulo") ||
+        tCid.includes("sao paulo") ||
+        tCid.includes("sp")
+      );
+    }
+
+    return (
+      tCid === nomeCidadeLower ||
+      tCid.includes(nomeCidadeLower)
+    );
+  });
+
+  // Se a cidade ainda não tiver talentos locais cadastrados, exibe os talentos oficiais do Grupo Empire
+  const talentosParaExibir =
+    talentosCidade.length > 0
+      ? talentosCidade
+      : todosTalentos.filter((t) => t.destaque_home || t.destaque).slice(0, 4);
+
   return (
     <div className="space-y-10">
-      {/* Cabeçalho da Cidade */}
-      <div className="border-b-2 border-slate-200 dark:border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">
-            <MapPin className="w-4 h-4 text-primary" />
-            <span>Cobertura Local</span>
+      {/* Cabeçalho da Cidade com Barra de Acesso Rápido */}
+      <div className="border-b-2 border-slate-200 dark:border-slate-800 pb-4 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-400">
+              <MapPin className="w-4 h-4 text-primary" />
+              <span>Cobertura Local</span>
+            </div>
+            <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
+              {cidade.nome} - {cidade.uf}
+            </h1>
           </div>
-          <h1 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight mt-1">
-            {cidade.nome} - {cidade.uf}
-          </h1>
+
+          <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+            {clima && (
+              <div className="inline-flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-100 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 px-3.5 py-1.5 rounded-full shadow-sm">
+                <span className="text-amber-500 font-extrabold text-sm">{clima.temperatura}°C</span>
+                <span className="text-slate-400 dark:text-slate-500">•</span>
+                <span>{clima.descricao}</span>
+                <span className="text-slate-400 dark:text-slate-500">•</span>
+                <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                  {clima.tempMin}° / {clima.tempMax}°
+                </span>
+              </div>
+            )}
+
+            <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full">
+              {materias.length} notícias registradas
+            </span>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
-          {clima && (
-            <div className="inline-flex items-center gap-2 text-xs font-bold text-slate-800 dark:text-slate-100 bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 px-3.5 py-1.5 rounded-full shadow-sm">
-              <span className="text-amber-500 font-extrabold text-sm">{clima.temperatura}°C</span>
-              <span className="text-slate-400 dark:text-slate-500">•</span>
-              <span>{clima.descricao}</span>
-              <span className="text-slate-400 dark:text-slate-500">•</span>
-              <span className="text-slate-500 dark:text-slate-400 text-[11px]">
-                {clima.tempMin}° / {clima.tempMax}°
-              </span>
-            </div>
+        {/* Barra de Módulos Locais na Cidade */}
+        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100 dark:border-slate-850">
+          <a
+            href="#noticias"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 text-xs font-bold text-slate-700 dark:text-slate-200 transition-colors"
+          >
+            <Newspaper className="w-3.5 h-3.5 text-slate-500" />
+            <span>Notícias ({materias.length})</span>
+          </a>
+
+          {classificadosCidade.length > 0 && (
+            <a
+              href="#classificados"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 dark:bg-amber-950/40 border border-amber-300/60 text-xs font-bold text-amber-900 dark:text-amber-200 transition-colors"
+            >
+              <Tag className="w-3.5 h-3.5 text-amber-600" />
+              <span>Classificados ({classificadosCidade.length})</span>
+            </a>
           )}
 
-          <span className="text-xs font-medium text-slate-500 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-full">
-            {materias.length} notícias registradas
-          </span>
+          {talentosParaExibir.length > 0 && (
+            <a
+              href="#talentos"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-400/20 to-orange-400/20 hover:from-amber-400/30 hover:to-orange-400/30 border border-amber-400/50 text-xs font-bold text-amber-900 dark:text-amber-200 transition-colors"
+            >
+              <Star className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+              <span>Talentos Empire ({talentosParaExibir.length})</span>
+            </a>
+          )}
+
+          <a
+            href="#totens"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 text-xs font-bold transition-colors shadow-sm"
+          >
+            <Tv className="w-3.5 h-3.5" />
+            <span>Totens Publicitários {totensCidade.length > 0 ? `(${totensCidade.length})` : ""}</span>
+          </a>
         </div>
       </div>
 
@@ -171,7 +274,7 @@ export default async function CidadeDetalhePage({ params }: CidadePageProps) {
       {colunasCidade.length > 0 && <ColunistasCarrossel colunas={colunasCidade} />}
 
       {/* 1. Bloco Principal de Notícias da Cidade + Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      <div id="noticias" className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start scroll-mt-24">
         <div className="lg:col-span-8 space-y-6">
           <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">
@@ -201,17 +304,30 @@ export default async function CidadeDetalhePage({ params }: CidadePageProps) {
       </div>
 
       {/* 2. Bloco de Classificados da Cidade (Exibido após as notícias) */}
-      <ClassificadosFaixaSection
-        classificados={classificadosCidade}
-        titulo={`Classificados & Oportunidades em ${cidade.nome} e Região`}
-      />
+      <div id="classificados" className="scroll-mt-24">
+        <ClassificadosFaixaSection
+          classificados={classificadosCidade}
+          titulo={`Classificados & Oportunidades em ${cidade.nome} e Região`}
+        />
+      </div>
 
-      {/* 3. Seção de Totens Publicitários da Cidade */}
-      <TotensCidadeSection
-        totens={totensCidade}
-        cidadeNome={cidade.nome}
-        cidadeEstado={cidade.uf}
-      />
+      {/* 3. Seção de Talentos da Cidade (Apresentadores, Influenciadores, Celebridades) */}
+      <div id="talentos" className="scroll-mt-24">
+        <TalentosCidadeSection
+          talentos={talentosParaExibir}
+          cidadeNome={cidade.nome}
+          cidadeEstado={cidade.uf}
+        />
+      </div>
+
+      {/* 4. Seção de Totens Publicitários da Cidade (Empire Totens) */}
+      <div id="totens" className="scroll-mt-24">
+        <TotensCidadeSection
+          totens={totensCidade}
+          cidadeNome={cidade.nome}
+          cidadeEstado={cidade.uf}
+        />
+      </div>
     </div>
   );
 }
