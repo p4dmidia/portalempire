@@ -22,7 +22,7 @@ import {
   Eye,
   Columns,
 } from "lucide-react";
-import { otimizarUrlImagem } from "@/lib/portal/image-utils";
+import { otimizarUrlImagem, obterImagemEditorialContextual } from "@/lib/portal/image-utils";
 import { calcularVisualizacoesRealistas, formatarVisualizacoes } from "@/lib/portal/views-realistas";
 import { limparEPadronizarTextoJornalistico } from "@/lib/portal/limpador-jornalistico";
 import { decodificarEntidadesHtml, obterSiteUrl } from "@/lib/portal/texto-utils";
@@ -60,6 +60,29 @@ export async function generateMetadata({
   const ehCaptadaAntiga = materia.origem === "captacao" && (Date.now() - dataPub > trintaDiasMs);
   const isArquivada = (materia.status as string) === "arquivada" || materia.status === "despublicado" || ehCaptadaAntiga;
 
+  // Tratamento robusto da imagem de destaque para OpenGraph (WhatsApp, Facebook, Twitter, LinkedIn)
+  const rawImagem = materia.imagem_url ? otimizarUrlImagem(materia.imagem_url, materia.titulo) : null;
+  let imagemFinalUrl = rawImagem || obterImagemEditorialContextual(materia.titulo);
+
+  // Garante URL absoluta (WhatsApp crawler descarta URLs relativas)
+  if (imagemFinalUrl.startsWith("/")) {
+    imagemFinalUrl = `${siteUrl}${imagemFinalUrl}`;
+  }
+
+  // Garante protocolo HTTPS para crawlers de redes sociais
+  if (imagemFinalUrl.startsWith("http://") && !imagemFinalUrl.startsWith("http://localhost")) {
+    imagemFinalUrl = imagemFinalUrl.replace(/^http:\/\//i, "https://");
+  }
+
+  // Determina mime-type (WhatsApp prioriza image/jpeg e image/png)
+  let mimeType = "image/jpeg";
+  const urlLower = imagemFinalUrl.toLowerCase();
+  if (urlLower.includes(".png")) {
+    mimeType = "image/png";
+  } else if (urlLower.includes(".webp")) {
+    mimeType = "image/webp";
+  }
+
   return {
     title,
     description,
@@ -73,15 +96,40 @@ export async function generateMetadata({
       title,
       description,
       url: canonicalUrl,
+      siteName: portal?.nome || "Empire Cidades",
+      locale: "pt_BR",
       type: "article",
       publishedTime: materia.publicado_em || materia.created_at,
-      images: materia.imagem_url ? [{ url: otimizarUrlImagem(materia.imagem_url) }] : [],
+      modifiedTime: materia.publicado_em || materia.created_at,
+      section: materia.categoria?.nome || "Notícias",
+      authors: [
+        materia.origem === "captacao"
+          ? "Redação Empire Cidades"
+          : materia.autor?.nome || portal?.nome || "Redação Empire Cidades",
+      ],
+      images: [
+        {
+          url: imagemFinalUrl,
+          secureUrl: imagemFinalUrl,
+          width: 1200,
+          height: 630,
+          type: mimeType,
+          alt: tituloLimpo,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: materia.imagem_url ? [otimizarUrlImagem(materia.imagem_url)] : [],
+      images: [
+        {
+          url: imagemFinalUrl,
+          width: 1200,
+          height: 630,
+          alt: tituloLimpo,
+        },
+      ],
     },
   };
 }

@@ -90,6 +90,7 @@ export interface MateriaData {
   seo_titulo: string | null;
   seo_descricao: string | null;
   created_at: string;
+  updated_at?: string;
   autor?: {
     id: string;
     nome: string;
@@ -129,6 +130,7 @@ export interface ColunaData {
   status: "pendente" | "ativa" | "suspensa";
   aceita_anuncios: boolean;
   created_at: string;
+  updated_at?: string;
   dono?: {
     id: string;
     nome: string;

@@ -5,6 +5,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://www.empirecidades.com.br"),
   title: "Empire Cidades — Portal de Notícias Regionais",
   description: "Portal de notícias de cidades, colunistas, cobertura regional e captação em tempo real.",
   referrer: "strict-origin-when-cross-origin",

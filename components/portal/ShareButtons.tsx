@@ -28,6 +28,7 @@ export function ShareButtons({ url, titulo }: ShareButtonsProps) {
   const cleanTitle = decodificarEntidadesHtml(titulo);
   const encodedUrl = encodeURIComponent(shareUrl);
   const encodedTitle = encodeURIComponent(cleanTitle);
+  const textoWhatsApp = encodeURIComponent(`*${cleanTitle}*\n\nLeia a matéria completa no Portal Empire Cidades:\n${shareUrl}`);
 
   const handleCopy = () => {
     navigator.clipboard.writeText(shareUrl);
@@ -42,10 +43,10 @@ export function ShareButtons({ url, titulo }: ShareButtonsProps) {
       </span>
 
       <a
-        href={`https://api.whatsapp.com/send?text=${encodedTitle}%20${encodedUrl}`}
+        href={`https://api.whatsapp.com/send?text=${textoWhatsApp}`}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors"
+        className="inline-flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold px-3 py-1.5 rounded-full transition-colors shadow-xs"
       >
         <MessageCircle className="w-3.5 h-3.5" />
         <span>WhatsApp</span>

@@ -81,7 +81,7 @@ export function decodificarEntidadesHtml(str?: string | null): string {
   return res.replace(/\s+/g, " ").trim();
 }
 
-export const DOMINIO_OFICIAL_PADRAO = "https://www.empirecidades.com.br";
+export const DOMINIO_OFICIAL_PADRAO = (process.env.NEXT_PUBLIC_SITE_URL || "https://www.empirecidades.com.br").replace(/\/+$/, "");
 
 /**
  * Obtém a URL base canônica do site, substituindo quaisquer referências antigas a portalempire.
@@ -107,17 +107,18 @@ export function obterSiteUrl(portalDominio?: string | null): string {
 
 /**
  * Normaliza uma URL para compartilhamento nas redes sociais (WhatsApp, X, Facebook).
- * Substitui qualquer resquício de portalempire pelo domínio oficial www.empirecidades.com.br.
+ * Substitui qualquer resquício de portalempire ou localhost pelo domínio oficial público.
  */
 export function normalizarUrlCompartilhamento(rawUrl: string): string {
   if (!rawUrl) return DOMINIO_OFICIAL_PADRAO;
 
   let limpa = rawUrl.trim();
 
-  // Substitui domínio antigo pelo oficial
+  // Substitui domínio antigo ou localhost pelo oficial
   limpa = limpa
     .replace(/https?:\/\/(?:www\.)?portalempire\.com\.br/gi, DOMINIO_OFICIAL_PADRAO)
-    .replace(/http:\/\/localhost:3000/gi, DOMINIO_OFICIAL_PADRAO);
+    .replace(/http:\/\/localhost:3000/gi, DOMINIO_OFICIAL_PADRAO)
+    .replace(/http:\/\/127\.0\.0\.1:3000/gi, DOMINIO_OFICIAL_PADRAO);
 
   return limpa;
 }
