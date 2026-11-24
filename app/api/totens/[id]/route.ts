@@ -60,11 +60,11 @@ export async function PUT(
       .select()
       .single();
 
-    if (error && (error.message?.includes("cep") || error.code === "42703")) {
-      const { cep: _c, ...payloadSemCep } = updatePayload;
+    if (error && (error.message?.includes("cep") || error.message?.includes("tipo_modelo") || error.code === "42703")) {
+      const { cep: _c, tipo_modelo: _tm, preco_mensal: _pm, ...payloadSemExtras } = updatePayload;
       const retry = await adminSupabase
         .from("totens")
-        .update(payloadSemCep)
+        .update(payloadSemExtras)
         .eq("id", id)
         .select()
         .single();

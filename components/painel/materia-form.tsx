@@ -48,7 +48,7 @@ const materiaFormSchema = z.object({
   publicado_em: z.string().optional(),
   urgente: z.boolean().default(false),
   destaque: z.boolean().default(false),
-  tempo_destaque: z.enum(["sem_limite", "6h", "12h", "24h", "48h", "7d"]).optional().default("sem_limite"),
+  tempo_destaque: z.enum(["sem_limite", "4h", "6h", "12h", "24h", "48h", "7d"]).optional().default("sem_limite"),
   seo_titulo: z.string().optional(),
   seo_descricao: z.string().optional(),
 });
@@ -128,8 +128,8 @@ export function MateriaForm({
       tempo_destaque: (() => {
         const meta = (initialMateria?.conteudo as Record<string, unknown> | null) || null;
         const t = meta?.tempo_destaque as string;
-        if (t && ["6h", "12h", "24h", "48h", "7d", "sem_limite"].includes(t)) {
-          return t as "sem_limite" | "6h" | "12h" | "24h" | "48h" | "7d";
+        if (t && ["4h", "6h", "12h", "24h", "48h", "7d", "sem_limite"].includes(t)) {
+          return t as "sem_limite" | "4h" | "6h" | "12h" | "24h" | "48h" | "7d";
         }
         return "sem_limite";
       })(),
@@ -226,20 +226,35 @@ export function MateriaForm({
       finalTags.push("sem_capa_topo");
     }
 
-    const finalTempoDestaque = data.destaque ? data.tempo_destaque || "sem_limite" : "sem_limite";
+    const isColunista = userRole === "colunista" || userRole !== "admin";
+    const isPublicando = data.status === "publicado";
+
+    let finalDestaque = data.destaque;
+    let finalTempoDestaque = data.destaque ? data.tempo_destaque || "sem_limite" : "sem_limite";
+
+    if (isColunista) {
+      if (isPublicando) {
+        finalDestaque = true;
+        finalTempoDestaque = "4h";
+      } else {
+        finalDestaque = false;
+        finalTempoDestaque = "sem_limite";
+      }
+    }
+
     const finalConteudo =
       typeof conteudoJson === "object" && conteudoJson !== null
         ? {
             ...(conteudoJson as Record<string, unknown>),
             exibir_capa_artigo: exibirCapaArtigo,
             tempo_destaque: finalTempoDestaque,
-            destaque_expira_em: data.destaque ? calcularDataExpiracao(finalTempoDestaque) : null,
+            destaque_expira_em: finalDestaque ? calcularDataExpiracao(finalTempoDestaque) : null,
           }
         : {
             type: "doc",
             exibir_capa_artigo: exibirCapaArtigo,
             tempo_destaque: finalTempoDestaque,
-            destaque_expira_em: data.destaque ? calcularDataExpiracao(finalTempoDestaque) : null,
+            destaque_expira_em: finalDestaque ? calcularDataExpiracao(finalTempoDestaque) : null,
           };
 
     const finalCidadeId =
@@ -249,6 +264,7 @@ export function MateriaForm({
 
     const payload = {
       ...data,
+      destaque: finalDestaque,
       tempo_destaque: finalTempoDestaque,
       cidade_id: finalCidadeId,
       coluna_id: data.coluna_id || null,
@@ -486,38 +502,51 @@ export function MateriaForm({
                 )}
 
                 <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                  <div>
-                    <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
-                        {...register("destaque")}
-                      />
-                      <span>Marcar como Destaque Principal</span>
-                    </label>
+                  {userRole === "admin" ? (
+                    <div>
+                      <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                        <input
+                          type="checkbox"
+                          className="rounded border-slate-300 text-primary focus:ring-primary h-4 w-4"
+                          {...register("destaque")}
+                        />
+                        <span>Marcar como Destaque Principal</span>
+                      </label>
 
-                    {watch("destaque") && (
-                      <div className="pl-6 space-y-1.5 pt-2">
-                        <Label className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
-                          Tempo de Destaque no Topo
-                        </Label>
-                        <Select
-                          className="text-xs h-8"
-                          {...register("tempo_destaque")}
-                        >
-                          <option value="sem_limite">Sem prazo de expiração (Fixo manual)</option>
-                          <option value="6h">6 horas</option>
-                          <option value="12h">12 horas</option>
-                          <option value="24h">24 horas (Recomendado)</option>
-                          <option value="48h">48 horas (2 dias)</option>
-                          <option value="7d">7 dias (1 semana)</option>
-                        </Select>
-                        <p className="text-[11px] text-slate-400 leading-snug">
-                          Após expirar, a matéria volta automaticamente para a ordem normal da pilha.
-                        </p>
+                      {watch("destaque") && (
+                        <div className="pl-6 space-y-1.5 pt-2">
+                          <Label className="text-xs text-slate-600 dark:text-slate-300 font-semibold">
+                            Tempo de Destaque no Topo
+                          </Label>
+                          <Select
+                            className="text-xs h-8"
+                            {...register("tempo_destaque")}
+                          >
+                            <option value="sem_limite">Sem prazo de expiração (Fixo manual)</option>
+                            <option value="4h">4 horas (Padrão de Colunistas)</option>
+                            <option value="6h">6 horas</option>
+                            <option value="12h">12 horas</option>
+                            <option value="24h">24 horas (Recomendado)</option>
+                            <option value="48h">48 horas (2 dias)</option>
+                            <option value="7d">7 dias (1 semana)</option>
+                          </Select>
+                          <p className="text-[11px] text-slate-400 leading-snug">
+                            Após expirar, a matéria volta automaticamente para a ordem normal da pilha.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300/80 dark:border-amber-800 rounded-xl space-y-1">
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900 dark:text-amber-300">
+                        <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+                        <span>Destaque Automático de 4 Horas na Capa</span>
                       </div>
-                    )}
-                  </div>
+                      <p className="text-[11px] text-slate-600 dark:text-slate-300 leading-relaxed">
+                        Regra padrão do portal: Toda matéria publicada entra automaticamente no topo de <strong>Destaques da Home por 4 horas</strong>. Após esse tempo, ela entra na pilha normal para que novas matérias sobreponham suavemente.
+                      </p>
+                    </div>
+                  )}
 
                   <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
                     <input

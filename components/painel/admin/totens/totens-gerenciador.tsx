@@ -21,9 +21,10 @@ import {
   MessageSquare,
   Sparkles,
   Eye,
+  BatteryCharging,
 } from "lucide-react";
-import type { Totem, TotemSolicitacao } from "@/lib/totens/types";
-import { TIPOS_ESTABELECIMENTO, RECURSOS_PADRAO } from "@/lib/totens/types";
+import type { Totem, TotemSolicitacao, TipoModeloTotem } from "@/lib/totens/types";
+import { TIPOS_ESTABELECIMENTO, RECURSOS_PADRAO, obterModeloTotem, MODELOS_TOTENS_EMPIRE } from "@/lib/totens/types";
 import { createClient } from "@/lib/supabase/client";
 
 interface TotensGerenciadorProps {
@@ -54,6 +55,8 @@ export function TotensGerenciador({
   const [alternandoStatusId, setAlternandoStatusId] = useState<string | null>(null);
 
   // Campos do Formulário
+  const [formTipoModelo, setFormTipoModelo] = useState<TipoModeloTotem>("totem_carregador");
+  const [formPrecoMensal, setFormPrecoMensal] = useState<number>(250);
   const [formNome, setFormNome] = useState("");
   const [formSlug, setFormSlug] = useState("");
   const [formEstabelecimento, setFormEstabelecimento] = useState("");
@@ -83,9 +86,31 @@ export function TotensGerenciador({
   const [formStatus, setFormStatus] = useState<"ativo" | "inativo">("ativo");
   const [formOrdem, setFormOrdem] = useState(0);
 
+  // Alternar modelo de totem com valores padrões do flyer oficial (R$ 250 e R$ 350)
+  const handleMudarModelo = (novoModelo: TipoModeloTotem) => {
+    setFormTipoModelo(novoModelo);
+    if (novoModelo === "totem_carregador") {
+      setFormPrecoMensal(250);
+      setFormModelo("Totem com Carregador de Celular");
+      setFormTamanhoTela("Tela Superior de Exibição");
+      if (!formRecursos.some((r) => r.toLowerCase().includes("carregador"))) {
+        setFormRecursos([...formRecursos, "Com carregador de celular"]);
+      }
+    } else if (novoModelo === "totem_interativo_maior") {
+      setFormPrecoMensal(350);
+      setFormModelo("Totem Interativo Maior Indoor 43\" Touch");
+      setFormTamanhoTela("Tela 43\" Touch (Full HD 1920x1080)");
+      if (!formRecursos.some((r) => r.toLowerCase().includes("touch"))) {
+        setFormRecursos([...formRecursos, "Tela touch interativa"]);
+      }
+    }
+  };
+
   // Abre Modal para Novo Totem
   const handleNovoTotem = () => {
     setTotemEmEdicao(null);
+    setFormTipoModelo("totem_carregador");
+    setFormPrecoMensal(250);
     setFormNome("");
     setFormSlug("");
     setFormEstabelecimento("");
@@ -99,13 +124,13 @@ export function TotensGerenciador({
     setFormDescricaoPonto("");
     setFormCirculacao("25.000 pessoas/mês");
     setFormPerfilPublico("Consumidores, Famílias, Profissionais");
-    setFormModelo("Totem Digital Vertical 55 polegadas");
-    setFormTamanhoTela("55 polegadas 4K Ultra HD");
+    setFormModelo("Totem com Carregador de Celular");
+    setFormTamanhoTela("Tela Superior de Exibição");
     setFormFormato("20 slots de 15 segundos");
     setFormSlotsTotal(20);
     setFormSlotsLivres(5);
     setFormRecursos(["Com carregador de celular"]);
-    setFormFotoUrl("/images/totem-padrao.jpg");
+    setFormFotoUrl("/images/totem-carregador.jpg");
     setFormGoogleMapsUrl("");
     setFormFranqueadoNome("Marcelo Olivers");
     setFormFranqueadoWhatsapp("34988676886");
@@ -121,6 +146,9 @@ export function TotensGerenciador({
   // Abre Modal para Edição
   const handleEditarTotem = (t: Totem) => {
     setTotemEmEdicao(t);
+    const mod = obterModeloTotem(t);
+    setFormTipoModelo(t.tipo_modelo || mod.id);
+    setFormPrecoMensal(t.preco_mensal || mod.preco_mensal);
     setFormNome(t.nome);
     setFormSlug(t.slug);
     setFormEstabelecimento(t.estabelecimento_nome);
@@ -134,8 +162,8 @@ export function TotensGerenciador({
     setFormDescricaoPonto(t.descricao_ponto);
     setFormCirculacao(t.circulacao_estimada);
     setFormPerfilPublico(t.perfil_publico?.join(", ") || "");
-    setFormModelo(t.modelo_equipamento || "");
-    setFormTamanhoTela(t.tamanho_tela || "");
+    setFormModelo(t.modelo_equipamento || mod.nome);
+    setFormTamanhoTela(t.tamanho_tela || mod.tela);
     setFormFormato(t.formato_publicidade || "");
     setFormSlotsTotal(t.slots_total || 20);
     setFormSlotsLivres(t.slots_disponiveis || 5);
@@ -330,6 +358,8 @@ export function TotensGerenciador({
         descricao_ponto: formDescricaoPonto.trim() || "Ponto de grande circulação.",
         circulacao_estimada: formCirculacao.trim() || "25.000 pessoas/mês",
         perfil_publico: perfisArr,
+        tipo_modelo: formTipoModelo,
+        preco_mensal: Number(formPrecoMensal) || (formTipoModelo === "totem_interativo_maior" ? 350 : 250),
         modelo_equipamento: formModelo.trim(),
         tamanho_tela: formTamanhoTela.trim(),
         formato_publicidade: formFormato.trim(),
@@ -858,6 +888,79 @@ export function TotensGerenciador({
                       onChange={(e) => setFormFotoUrl(e.target.value)}
                       className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-xs mt-1"
                     />
+                  </div>
+                </div>
+              </div>
+
+              {/* Modelo Oficial do Totem & Preço do Anúncio (Flyer Oficial R$ 250 e R$ 350) */}
+              <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-amber-400 font-bold uppercase tracking-wider text-xs flex items-center gap-1.5">
+                    <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Modelo de Totem & Plano de Anúncio (Oficial Empire)</span>
+                  </label>
+                  <span className="text-[11px] text-amber-300 font-semibold">Tabela Comercial</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Opção 1: Totem com Carregador */}
+                  <button
+                    type="button"
+                    onClick={() => handleMudarModelo("totem_carregador")}
+                    className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      formTipoModelo === "totem_carregador"
+                        ? "bg-slate-900 border-amber-400 ring-2 ring-amber-400/50 shadow-md text-white"
+                        : "bg-slate-800/80 border-slate-700 text-slate-300 hover:border-slate-500"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 uppercase">
+                        <BatteryCharging className="w-3.5 h-3.5" /> Com Carregador
+                      </span>
+                      <span className="text-sm font-black text-amber-400">R$ 250,00<span className="text-[10px] font-normal text-slate-400">/mês</span></span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-snug">
+                      Pedestal com estação de recarga para celulares e tela superior em loop de 15s.
+                    </p>
+                  </button>
+
+                  {/* Opção 2: Totem Interativo Maior */}
+                  <button
+                    type="button"
+                    onClick={() => handleMudarModelo("totem_interativo_maior")}
+                    className={`p-3.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      formTipoModelo === "totem_interativo_maior"
+                        ? "bg-slate-900 border-amber-400 ring-2 ring-amber-400/50 shadow-md text-white"
+                        : "bg-slate-800/80 border-slate-700 text-slate-300 hover:border-slate-500"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-400 uppercase">
+                        <Tv className="w-3.5 h-3.5" /> Interativo Maior (43&quot; Touch)
+                      </span>
+                      <span className="text-sm font-black text-amber-400">R$ 350,00<span className="text-[10px] font-normal text-slate-400">/mês</span></span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 leading-snug">
+                      Display gigante monólito 43&quot; Touch Full HD, Android 11 e máxima imponência.
+                    </p>
+                  </button>
+                </div>
+
+                {/* Preço Mensal Customizável */}
+                <div className="pt-2 border-t border-amber-500/20 flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-xs text-slate-300">
+                    Valor Mensal Cobrado do Anunciante:
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs font-bold text-amber-400">R$</span>
+                    <input
+                      type="number"
+                      step="1"
+                      value={formPrecoMensal}
+                      onChange={(e) => setFormPrecoMensal(Number(e.target.value))}
+                      className="w-28 bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-white text-xs font-bold"
+                    />
+                    <span className="text-[11px] text-slate-400">/ mês</span>
                   </div>
                 </div>
               </div>

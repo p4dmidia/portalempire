@@ -66,9 +66,14 @@ export interface MateriaParaViews {
   urgente?: boolean | null;
   destaque?: boolean | null;
   categoria?: { slug?: string } | null;
+  categoria_id?: string | null;
   publicado_em?: string | null;
   created_at?: string | null;
   visualizacoes?: number | null;
+  coluna_id?: string | null;
+  coluna?: { slug?: string } | null;
+  autor_id?: string | null;
+  origem?: string | null;
 }
 
 export interface ColunaParaViews {
@@ -80,7 +85,7 @@ export interface ColunaParaViews {
 }
 
 /**
- * Calcula a quantidade de visualizações de forma contínua, realista e determinística por segundo.
+ * Calcula a quantidade de visualizações de forma contínua, realista, altamente diversificada e determinística por segundo.
  */
 export function calcularVisualizacoesRealistas(
   materia: MateriaParaViews,
@@ -90,68 +95,119 @@ export function calcularVisualizacoesRealistas(
   const seed = hashString(seedString);
 
   const categoriaSlug = (materia.categoria?.slug || "").toLowerCase();
-  const ehUrgente = Boolean(materia.urgente || materia.destaque);
+  const ehUrgente = Boolean(materia.urgente || materia.destaque || categoriaSlug === "urgente");
+  const ehArtigoColuna = Boolean(
+    materia.coluna_id ||
+    materia.coluna ||
+    categoriaSlug === "colunistas" ||
+    categoriaSlug === "opiniao" ||
+    categoriaSlug === "cronicas" ||
+    materia.origem === "autoral"
+  );
+  const ehCidades = categoriaSlug === "cidades" || categoriaSlug.startsWith("cidade-");
+  const ehNicho = TEMAS_NICHO_BUSCA.has(categoriaSlug);
+  const ehAltaBusca = TEMAS_ALTA_BUSCA.has(categoriaSlug);
 
-  // 1. Definição do Piso Inicial Condizente com o Ecossistema de 30 Milhões/Mês
-  let pisoInicial = 125000; // Notícias gerais (Tecnologia, Saúde, Educação, Agronegócio, etc.)
-  let variacaoPiso = seed % 35000; // 125.000 a 160.000
-  let taxaBasePorSegundo = 0.2831 + ((seed % 2500) / 10000); // ~0.28 a 0.53 views/segundo (~170 a 320 views a cada 10 min)
-
-  if (ehUrgente || TEMAS_ALTA_BUSCA.has(categoriaSlug)) {
-    // Matérias de altíssima tração (Política, Economia, Urgente, Destaque)
-    pisoInicial = 195000;
-    variacaoPiso = seed % 55000; // 195.000 a 250.000
-    taxaBasePorSegundo = 0.4217 + ((seed % 3500) / 10000); // ~0.42 a 0.77 views/segundo (~250 a 460 views a cada 10 min)
-  } else if (TEMAS_NICHO_BUSCA.has(categoriaSlug)) {
-    // Matérias de nicho e reflexão
-    pisoInicial = 85000;
-    variacaoPiso = seed % 28000; // 85.000 a 113.000
-    taxaBasePorSegundo = 0.1843 + ((seed % 2000) / 10000); // ~0.18 a 0.38 views/segundo (~110 a 230 views a cada 10 min)
+  // 1. Fator de Repercussão / Viralidade Orgânica com Ampla Distribuição
+  // Evita que os números fiquem todos parecidos, criando uma curva realista
+  const tierVariacao = seed % 100;
+  let multiplicadorTier = 1.0;
+  if (tierVariacao < 6) {
+    // 6% Viral / Mega Destaque
+    multiplicadorTier = 2.4 + ((seed % 1200) / 1000); // 2.4x a 3.6x
+  } else if (tierVariacao < 25) {
+    // 19% Alta repercussão
+    multiplicadorTier = 1.4 + ((seed % 600) / 1000); // 1.4x a 2.0x
+  } else if (tierVariacao < 72) {
+    // 47% Média / Padrão estável
+    multiplicadorTier = 0.75 + ((seed % 450) / 1000); // 0.75x a 1.2x
+  } else {
+    // 28% Leitura de nicho / alcance concentrado
+    multiplicadorTier = 0.35 + ((seed % 300) / 1000); // 0.35x a 0.65x
   }
 
-  const baseInicial = pisoInicial + variacaoPiso;
+  // 2. Definição da base de audiência conforme a categoria e formato
+  let basePiso = 45000;
+  let amplitude = 40000;
+  let taxaBasePorSegundo = 0.08 + ((seed % 1000) / 10000);
 
-  // 2. Tempo decorrido em segundos desde a publicação
+  if (ehArtigoColuna) {
+    // Artigos Autorais de Colunistas: Faixa crível e atrativa (3.200 a 48.000+)
+    basePiso = 6500;
+    amplitude = 18000;
+    taxaBasePorSegundo = 0.015 + ((seed % 300) / 10000);
+  } else if (ehUrgente) {
+    // Urgência e Manchetes de Destaque Nacional
+    basePiso = 140000;
+    amplitude = 220000;
+    taxaBasePorSegundo = 0.25 + ((seed % 2000) / 10000);
+  } else if (ehAltaBusca) {
+    // Política, Economia, Esportes, Negócios
+    basePiso = 68000;
+    amplitude = 95000;
+    taxaBasePorSegundo = 0.12 + ((seed % 1500) / 10000);
+  } else if (ehCidades) {
+    // Notícias Regionais e Municipais
+    basePiso = 18000;
+    amplitude = 42000;
+    taxaBasePorSegundo = 0.04 + ((seed % 600) / 10000);
+  } else if (ehNicho) {
+    // Cultura, Gastronomia, Moda, Beleza, Meio Ambiente
+    basePiso = 12000;
+    amplitude = 26000;
+    taxaBasePorSegundo = 0.025 + ((seed % 400) / 10000);
+  }
+
+  // Jitter orgânico (garante dígitos finais naturais e não redondos)
+  const jitter = (seed % 797) + ((seed * 13) % 199);
+  const baseCalculada = Math.round((basePiso + (seed % amplitude) + jitter) * multiplicadorTier);
+
+  // 3. Tempo decorrido desde a publicação
   const dataPublicacaoStr = materia.publicado_em || materia.created_at;
   const dataPublicacao = dataPublicacaoStr
     ? new Date(dataPublicacaoStr)
-    : new Date("2026-10-01T00:00:00Z"); // data fixa de referência do portal se não informada
+    : new Date("2026-10-01T00:00:00Z");
 
   const diffMs = Math.max(0, dataReferencia.getTime() - dataPublicacao.getTime());
   const segundosDecorridos = Math.floor(diffMs / 1000);
 
-  // 3. Crescimento contínuo e estritamente monotônico por segundo
-  const SEGUNDOS_48H = 172800; // 48 horas
+  const viewsDoBanco = Number(materia.visualizacoes) || 0;
+
+  // 4. Curva de maturação temporal realista e estritamente monotônica
+  const SEGUNDOS_24H = 86400;
+  const SEGUNDOS_72H = 259200;
   let ganhoTempo = 0;
 
-  if (segundosDecorridos <= SEGUNDOS_48H) {
-    // Primeiras 48 horas: pico de consumo contínuo segundo a segundo
-    ganhoTempo = Math.floor(segundosDecorridos * taxaBasePorSegundo);
+  if (segundosDecorridos < SEGUNDOS_24H) {
+    // Matérias muito recentes (< 24h): iniciam com fração proporcional e crescem hora a hora
+    const fatorTempo = Math.pow(segundosDecorridos / SEGUNDOS_24H, 0.7);
+    const baseInicial = Math.round(baseCalculada * (0.35 + 0.65 * fatorTempo));
+    const ganhoContinuo = Math.floor(segundosDecorridos * taxaBasePorSegundo);
+    return Math.max(viewsDoBanco, baseInicial + ganhoContinuo);
+  } else if (segundosDecorridos < SEGUNDOS_72H) {
+    // 24h a 72h: consolidação com ritmo constante
+    const ganho24h = Math.floor(SEGUNDOS_24H * taxaBasePorSegundo);
+    const segundosExtras = segundosDecorridos - SEGUNDOS_24H;
+    ganhoTempo = ganho24h + Math.floor(segundosExtras * (taxaBasePorSegundo * 0.65));
   } else {
-    // Matéria consolidada (> 48h): ganho das primeiras 48h + taxa contínua amortecida
-    const ganho48h = Math.floor(SEGUNDOS_48H * taxaBasePorSegundo);
-    const segundosApos48h = segundosDecorridos - SEGUNDOS_48H;
-    const taxaAmortecida = taxaBasePorSegundo * 0.18; // busca orgânica contínua
-    
-    // Curva logarítmica para matérias com dias/semanas de histórico
+    // Acima de 72h: crescimento contínuo de cauda longa (buscas, compartilhamentos)
+    const ganho72h = Math.floor(SEGUNDOS_72H * taxaBasePorSegundo * 0.75);
+    const segundosApos72h = segundosDecorridos - SEGUNDOS_72H;
     const diasDecorridos = segundosDecorridos / 86400;
-    const fatorEscala = Math.min(2.8, 1 + Math.log10(1 + diasDecorridos / 7));
-    
-    ganhoTempo = Math.floor((ganho48h + (segundosApos48h * taxaAmortecida)) * fatorEscala);
+    const fatorEscala = Math.min(2.2, 1 + Math.log10(1 + diasDecorridos / 10));
+    ganhoTempo = Math.floor((ganho72h + segundosApos72h * (taxaBasePorSegundo * 0.12)) * fatorEscala);
   }
 
-  let totalCalculado = baseInicial + ganhoTempo;
+  let totalCalculado = baseCalculada + ganhoTempo;
   totalCalculado = Math.min(TETO_MAXIMO_VIEWS_MATERIA, totalCalculado);
 
-  // Se o banco tiver um valor maior já registrado, preserva
-  const viewsDoBanco = Number(materia.visualizacoes) || 0;
   const finalViews = Math.max(viewsDoBanco, totalCalculado);
-
   return Math.min(TETO_MAXIMO_VIEWS_MATERIA, finalViews);
 }
 
 /**
  * Calcula a quantidade de visualizações acumuladas para uma coluna em tempo real.
+ * Proporcional ao número de artigos publicados pelo colunista e tráfego da coluna.
  */
 export function calcularVisualizacoesColuna(
   coluna: ColunaParaViews,
@@ -161,23 +217,27 @@ export function calcularVisualizacoesColuna(
   const seedString = coluna.slug || coluna.id || coluna.nome || "coluna-empire";
   const seed = hashString(seedString);
 
-  // Piso inicial robusto para colunista oficial
-  const basePiso = 480000 + (seed % 280000); // 480.000 a 760.000
-  const bonusPorArtigo = Math.min(totalArtigos, 50) * 42000; // valorização da produção do colunista
+  // Audiência da coluna coerente com os artigos publicados
+  // Coluna com 1 artigo: ~12.000 a 35.000
+  // Coluna com 5 artigos: ~45.000 a 110.000
+  // Coluna com 15+ artigos: ~120.000 a 320.000
+  const artigosEfetivos = Math.max(1, totalArtigos);
+  const basePiso = 9500 + (seed % 14000); // 9.500 a 23.500 de base da coluna
+  const ganhoPorArtigo = Math.min(artigosEfetivos, 50) * (4200 + (seed % 3800)); // ~4.2k a 8k por artigo
 
   const dataCriacaoStr = coluna.created_at;
   const dataCriacao = dataCriacaoStr
     ? new Date(dataCriacaoStr)
-    : new Date("2026-10-01T00:00:00Z"); // data fixa de referência do portal se não informada
+    : new Date("2026-10-01T00:00:00Z");
 
   const diffMs = Math.max(0, dataReferencia.getTime() - dataCriacao.getTime());
   const segundosDecorridos = Math.floor(diffMs / 1000);
 
-  // Taxa contínua de visualizações da coluna (~0.52 a 0.88 views por segundo)
-  const taxaPorSegundo = 0.5213 + ((seed % 3600) / 10000);
-  const ganhoTempo = Math.floor(segundosDecorridos * taxaPorSegundo * 0.45);
+  // Taxa de crescimento contínuo da coluna
+  const taxaPorSegundo = 0.04 + ((seed % 500) / 10000);
+  const ganhoTempo = Math.floor(segundosDecorridos * taxaPorSegundo * 0.25);
 
-  let total = basePiso + bonusPorArtigo + ganhoTempo;
+  let total = basePiso + ganhoPorArtigo + ganhoTempo;
   return Math.min(TETO_MAXIMO_VIEWS_COLUNA, total);
 }
 

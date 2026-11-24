@@ -19,6 +19,7 @@ export interface RedesSociais {
   whatsapp?: string;
   cep?: string;
   endereco?: string;
+  foto_posicao_y?: number | null;
 }
 
 export interface VideoItem {
@@ -37,6 +38,7 @@ export interface Talento {
   categoria: TalentoCategoria | string;
   segmentos: string[];
   foto_url: string;
+  foto_posicao_y?: number | null;
   foto_capa_url?: string | null;
   foto_capa_posicao_y?: number | null;
   cep?: string;

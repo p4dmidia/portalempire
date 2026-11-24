@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
+import { calcularVisualizacoesRealistas } from "@/lib/portal/views-realistas";
 import {
   Columns,
   FileText,
@@ -62,7 +63,10 @@ export default async function ColunistaDashboardPage() {
     console.error("[ColunistaDashboard] Erro ao carregar métricas:", err);
   }
 
-  const totalVisualizacoes = artigos.reduce((acc, a) => acc + (a.visualizacoes || 0), 0);
+  const totalVisualizacoes = artigos.reduce(
+    (acc, a) => acc + calcularVisualizacoesRealistas(a),
+    0
+  );
 
   return (
     <div className="space-y-6">
@@ -155,7 +159,7 @@ export default async function ColunistaDashboardPage() {
           </div>
           <div>
             <div className="text-2xl font-black text-slate-900 dark:text-white">
-              {totalVisualizacoes}
+              {totalVisualizacoes.toLocaleString("pt-BR")}
             </div>
             <div className="text-xs text-slate-500">Visualizações Totais</div>
           </div>
@@ -287,7 +291,7 @@ export default async function ColunistaDashboardPage() {
 
                 <div className="flex items-center gap-3 shrink-0">
                   <span className="text-slate-500 font-mono text-[11px] flex items-center gap-1">
-                    <Eye className="w-3 h-3 text-slate-400" /> {art.visualizacoes || 0}
+                    <Eye className="w-3 h-3 text-slate-400" /> {calcularVisualizacoesRealistas(art).toLocaleString("pt-BR")}
                   </span>
                 </div>
               </div>

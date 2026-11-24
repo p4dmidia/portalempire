@@ -74,11 +74,12 @@ export async function PUT(
       .select()
       .single();
 
-    // Fallback 1: se o banco ainda não tiver as colunas 'whatsapp' ou 'foto_capa_posicao_y' no schema físico
-    if (error && (error.message?.includes("whatsapp") || error.message?.includes("foto_capa_posicao_y") || error.code === "42703" || error.code === "PGRST204")) {
-      const { whatsapp, foto_capa_posicao_y: _pos, ...payloadSemNovasColunas } = updatePayload;
-      if (whatsapp && payloadSemNovasColunas.redes_sociais) {
-        payloadSemNovasColunas.redes_sociais.whatsapp = whatsapp;
+    // Fallback 1: se o banco ainda não tiver as colunas 'whatsapp', 'foto_capa_posicao_y' ou 'foto_posicao_y' no schema físico
+    if (error && (error.message?.includes("whatsapp") || error.message?.includes("foto_capa_posicao_y") || error.message?.includes("foto_posicao_y") || error.code === "42703" || error.code === "PGRST204")) {
+      const { whatsapp, foto_capa_posicao_y: _pos, foto_posicao_y: _posFoto, ...payloadSemNovasColunas } = updatePayload;
+      if (payloadSemNovasColunas.redes_sociais) {
+        if (whatsapp) payloadSemNovasColunas.redes_sociais.whatsapp = whatsapp;
+        if (_posFoto !== undefined) payloadSemNovasColunas.redes_sociais.foto_posicao_y = _posFoto;
       }
       const retry = await adminSupabase
         .from("talentos")

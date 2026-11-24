@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -14,11 +14,13 @@ import {
   Compass,
   Filter,
   CheckCircle2,
+  BatteryCharging,
   X,
 } from "lucide-react";
-import type { Totem, CidadeComTotens } from "@/lib/totens/types";
-import { TIPOS_ESTABELECIMENTO } from "@/lib/totens/types";
+import type { Totem, CidadeComTotens, TipoModeloTotem } from "@/lib/totens/types";
+import { TIPOS_ESTABELECIMENTO, obterModeloTotem } from "@/lib/totens/types";
 import { TotemCard } from "./TotemCard";
+import { TotensModelosShowcase } from "./TotensModelosShowcase";
 import { SolicitarAnuncioModal } from "./SolicitarAnuncioModal";
 
 interface TotensVitrineClientProps {
@@ -37,8 +39,12 @@ export function TotensVitrineClient({
     cidadePreSelecionada || "todas"
   );
   const [tipoSelecionado, setTipoSelecionado] = useState<string>("todos");
+  const [modeloSelecionado, setModeloSelecionado] = useState<TipoModeloTotem | "todos">("todos");
   const [buscaTexto, setBuscaTexto] = useState<string>("");
   const [apenasComCarregador, setApenasComCarregador] = useState(false);
+
+  // Referência para rolar até o catálogo
+  const catalogoRef = useRef<HTMLDivElement>(null);
 
   // Modal de Solicitação
   const [totemSelecionadoModal, setTotemSelecionadoModal] = useState<Totem | null>(null);
@@ -68,6 +74,12 @@ export function TotensVitrineClient({
         return false;
       }
 
+      // Filtro de Modelo de Totem
+      if (modeloSelecionado !== "todos") {
+        const mod = obterModeloTotem(t);
+        if (mod.id !== modeloSelecionado) return false;
+      }
+
       // Filtro de Carregador
       if (apenasComCarregador) {
         const tem = t.recursos_extras?.some((r) => r.toLowerCase().includes("carregador"));
@@ -87,7 +99,14 @@ export function TotensVitrineClient({
 
       return true;
     });
-  }, [totens, cidadeSelecionada, tipoSelecionado, apenasComCarregador, buscaTexto]);
+  }, [totens, cidadeSelecionada, tipoSelecionado, modeloSelecionado, apenasComCarregador, buscaTexto]);
+
+  const handleFiltrarModelo = (modelo: TipoModeloTotem | "todos") => {
+    setModeloSelecionado(modelo);
+    if (catalogoRef.current) {
+      catalogoRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
 
   const handleOpenSolicitar = (t: Totem) => {
     setTotemSelecionadoModal(t);
@@ -166,9 +185,16 @@ export function TotensVitrineClient({
         </div>
       </section>
 
-      {/* 2. CARROSSEL / SELEÇÃO DE CIDADES ("Escolha a Cidade") - Só exibe quando existirem cidades reais cadastradas */}
-      {listaCidades.length > 0 && (
-        <section className="max-w-[1440px] mx-auto px-4 py-8">
+      {/* 2. SHOWCASE COMPARATIVO DOS MODELOS DE TOTENS (Do Flyer Oficial: R$ 250 e R$ 350) */}
+      <TotensModelosShowcase
+        modeloAtivo={modeloSelecionado}
+        onFiltrarModelo={handleFiltrarModelo}
+      />
+
+      {/* 3. CATÁLOGO / SELEÇÃO DE CIDADES */}
+      <div ref={catalogoRef}>
+        {listaCidades.length > 0 && (
+          <section className="max-w-[1440px] mx-auto px-4 py-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 flex items-center gap-2">
@@ -301,12 +327,13 @@ export function TotensVitrineClient({
                 <span>Com Carregador</span>
               </label>
 
-              {(buscaTexto || tipoSelecionado !== "todos" || apenasComCarregador) && (
+              {(buscaTexto || tipoSelecionado !== "todos" || modeloSelecionado !== "todos" || apenasComCarregador) && (
                 <button
                   type="button"
                   onClick={() => {
                     setBuscaTexto("");
                     setTipoSelecionado("todos");
+                    setModeloSelecionado("todos");
                     setApenasComCarregador(false);
                   }}
                   className="text-xs text-slate-500 hover:text-red-600 font-semibold underline"
@@ -315,6 +342,61 @@ export function TotensVitrineClient({
                 </button>
               )}
             </div>
+          </div>
+
+          {/* Seletor Visual Rápido de Modelos (Flyer Oficial R$ 250 e R$ 350) */}
+          <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">
+              Modelo de Totem:
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setModeloSelecionado("todos")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                modeloSelecionado === "todos"
+                  ? "bg-slate-900 text-white shadow-sm"
+                  : "bg-slate-100 hover:bg-slate-200 text-slate-700"
+              }`}
+            >
+              Todos os Modelos
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setModeloSelecionado("totem_carregador")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                modeloSelecionado === "totem_carregador"
+                  ? "bg-amber-400 text-slate-950 font-black shadow-sm ring-2 ring-amber-400/50"
+                  : "bg-slate-100 hover:bg-amber-100 text-slate-700"
+              }`}
+            >
+              <BatteryCharging className="w-3.5 h-3.5 text-amber-600" />
+              <span>Totem com Carregador (R$ 250/mês)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setModeloSelecionado("totem_interativo_maior")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                modeloSelecionado === "totem_interativo_maior"
+                  ? "bg-amber-400 text-slate-950 font-black shadow-sm ring-2 ring-amber-400/50"
+                  : "bg-slate-100 hover:bg-amber-100 text-slate-700"
+              }`}
+            >
+              <Tv className="w-3.5 h-3.5 text-amber-600" />
+              <span>Totem Interativo Maior 43&quot; (R$ 350/mês)</span>
+            </button>
+
+            {modeloSelecionado !== "todos" && (
+              <button
+                type="button"
+                onClick={() => setModeloSelecionado("todos")}
+                className="text-xs text-slate-400 hover:text-red-500 ml-auto underline cursor-pointer"
+              >
+                Limpar filtro de modelo
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -382,6 +464,7 @@ export function TotensVitrineClient({
           </div>
         )}
       </section>
+      </div>
 
       {/* 6. MODAL DE SOLICITAÇÃO */}
       <SolicitarAnuncioModal

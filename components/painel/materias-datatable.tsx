@@ -28,6 +28,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import { formatarDataCurta } from "@/lib/utils/date-format";
+import { calcularVisualizacoesRealistas } from "@/lib/portal/views-realistas";
 
 interface MateriasDataTableProps {
   initialMaterias: MateriaData[];
@@ -620,7 +621,7 @@ export function MateriasDataTable({
                       </td>
 
                       <td className="px-4 py-4 text-center font-mono text-xs text-slate-600 dark:text-slate-300">
-                        {mat.visualizacoes || 0}
+                        {calcularVisualizacoesRealistas(mat).toLocaleString("pt-BR")}
                       </td>
 
                       <td className="px-6 py-4 text-right">
@@ -640,26 +641,35 @@ export function MateriasDataTable({
                               </a>
                             )}
 
-                            <button
-                              type="button"
-                              onClick={() => handleToggleDestaque(mat)}
-                              className={`p-1.5 rounded-lg transition-colors ${
-                                mat.destaque
-                                  ? "text-amber-500 hover:text-amber-600 bg-amber-50 dark:bg-amber-950/40"
-                                  : "text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-                              }`}
-                              title={
-                                mat.destaque
-                                  ? "Remover do Destaque da Capa"
-                                  : "Colocar em Destaque no Topo da Capa (24h)"
-                              }
-                            >
-                              <Star
-                                className={`w-4 h-4 ${
-                                  mat.destaque ? "fill-amber-400 text-amber-500" : ""
+                            {userRole === "admin" ? (
+                              <button
+                                type="button"
+                                onClick={() => handleToggleDestaque(mat)}
+                                className={`p-1.5 rounded-lg transition-colors ${
+                                  mat.destaque
+                                    ? "text-amber-500 hover:text-amber-600 bg-amber-50 dark:bg-amber-950/40"
+                                    : "text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800"
                                 }`}
-                              />
-                            </button>
+                                title={
+                                  mat.destaque
+                                    ? "Remover do Destaque da Capa"
+                                    : "Colocar em Destaque no Topo da Capa (24h)"
+                                }
+                              >
+                                <Star
+                                  className={`w-4 h-4 ${
+                                    mat.destaque ? "fill-amber-400 text-amber-500" : ""
+                                  }`}
+                                />
+                              </button>
+                            ) : mat.destaque ? (
+                              <span
+                                className="p-1.5 rounded-lg text-amber-500 bg-amber-50 dark:bg-amber-950/40 inline-flex items-center cursor-help"
+                                title="Em Destaque Ativo na Capa (Padrão de 4 horas)"
+                              >
+                                <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                              </span>
+                            ) : null}
 
                             <Link
                               href={`/painel/editor/materias/${mat.id}`}

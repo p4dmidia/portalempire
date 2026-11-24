@@ -3,13 +3,14 @@
  * para cálculo e formatação de prazos de expiração de matérias em destaque.
  */
 
-export type TipoDestaqueTempo = "sem_limite" | "6h" | "12h" | "24h" | "48h" | "7d";
+export type TipoDestaqueTempo = "sem_limite" | "4h" | "6h" | "12h" | "24h" | "48h" | "7d";
 
 export function calcularDataExpiracao(tipo?: string | null): string | null {
   if (!tipo || tipo === "sem_limite") return null;
 
   const agora = Date.now();
   const horasMap: Record<string, number> = {
+    "4h": 4,
     "6h": 6,
     "12h": 12,
     "24h": 24,

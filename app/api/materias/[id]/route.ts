@@ -26,7 +26,7 @@ const updateSchema = z.object({
   publicado_em: z.string().optional().nullable(),
   urgente: z.boolean().optional(),
   destaque: z.boolean().optional(),
-  tempo_destaque: z.enum(["sem_limite", "6h", "12h", "24h", "48h", "7d"]).optional(),
+  tempo_destaque: z.enum(["sem_limite", "4h", "6h", "12h", "24h", "48h", "7d"]).optional(),
   tags: z.array(z.string()).optional(),
   seo_titulo: z.string().optional().nullable(),
   seo_descricao: z.string().optional().nullable(),
@@ -185,10 +185,27 @@ export async function PUT(
       }
     }
 
-    const isDestaque = data.destaque !== undefined ? data.destaque : materia.destaque;
-    const finalTempoDestaque = isDestaque
+    // REGRA PADRÃO PARA COLUNISTAS:
+    // Toda matéria publicada entra na home como destaque por 4 horas e depois entra na pilha normal.
+    // O colunista não tem opção de escolher tempo de destaque (todas seguem 4h). Apenas o admin tem a opção de customizar.
+    const isColunista = profile.role === "colunista" || profile.role !== "admin";
+    const statusAtual = data.status !== undefined ? data.status : materia.status;
+    const isPublicado = statusAtual === "publicado";
+
+    let isDestaque = data.destaque !== undefined ? data.destaque : materia.destaque;
+    let finalTempoDestaque = isDestaque
       ? data.tempo_destaque || (materia.conteudo as Record<string, unknown> | null)?.tempo_destaque || "sem_limite"
       : "sem_limite";
+
+    if (isColunista) {
+      if (isPublicado) {
+        isDestaque = true;
+        finalTempoDestaque = "4h";
+      } else {
+        isDestaque = false;
+        finalTempoDestaque = "sem_limite";
+      }
+    }
 
     const baseConteudo =
       typeof (updateData.conteudo || data.conteudo) === "object" && (updateData.conteudo || data.conteudo) !== null
@@ -202,7 +219,7 @@ export async function PUT(
     };
 
     if (data.urgente !== undefined) updateData.urgente = data.urgente;
-    if (data.destaque !== undefined) updateData.destaque = data.destaque;
+    updateData.destaque = isDestaque;
     if (data.tags !== undefined) updateData.tags = data.tags;
     if (data.seo_titulo !== undefined) updateData.seo_titulo = data.seo_titulo;
     if (data.seo_descricao !== undefined) updateData.seo_descricao = data.seo_descricao;

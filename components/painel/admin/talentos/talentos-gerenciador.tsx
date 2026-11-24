@@ -86,6 +86,7 @@ export function TalentosGerenciador({
   const [formCategoria, setFormCategoria] = useState("apresentadores");
   const [formSegmentos, setFormSegmentos] = useState("");
   const [formFotoUrl, setFormFotoUrl] = useState("");
+  const [formFotoPosicaoY, setFormFotoPosicaoY] = useState<number>(50);
   const [formFotoCapaUrl, setFormFotoCapaUrl] = useState("");
   const [formFotoCapaPosicaoY, setFormFotoCapaPosicaoY] = useState<number>(50);
   const [isDraggingCapa, setIsDraggingCapa] = useState(false);
@@ -356,6 +357,11 @@ export function TalentosGerenciador({
     setFormCategoria(t.categoria);
     setFormSegmentos(t.segmentos?.join(", ") || "");
     setFormFotoUrl(t.foto_url);
+    setFormFotoPosicaoY(
+      t.foto_posicao_y !== undefined && t.foto_posicao_y !== null
+        ? Number(t.foto_posicao_y)
+        : Number(t.redes_sociais?.foto_posicao_y) || 50
+    );
     setFormFotoCapaUrl(t.foto_capa_url || "");
     setFormFotoCapaPosicaoY(
       t.foto_capa_posicao_y !== undefined && t.foto_capa_posicao_y !== null
@@ -480,6 +486,7 @@ export function TalentosGerenciador({
         categoria: formCategoria,
         segmentos: segmentosArr,
         foto_url: formFotoUrl.trim(),
+        foto_posicao_y: Number(formFotoPosicaoY) >= 0 ? Number(formFotoPosicaoY) : 50,
         foto_capa_url: formFotoCapaUrl.trim() || null,
         foto_capa_posicao_y: Number(formFotoCapaPosicaoY) >= 0 ? Number(formFotoCapaPosicaoY) : 50,
         cidade_nome: formCidade.trim(),
@@ -490,6 +497,7 @@ export function TalentosGerenciador({
         seguidores_total: formSeguidores.trim(),
         redes_sociais: {
           whatsapp: formWhatsapp.trim() || undefined,
+          foto_posicao_y: Number(formFotoPosicaoY) >= 0 ? Number(formFotoPosicaoY) : 50,
           cep: formCep.trim() || undefined,
           endereco: formEndereco.trim() || undefined,
           instagram: formInstagram.trim() || undefined,
@@ -864,7 +872,14 @@ export function TalentosGerenciador({
                         alt={t.nome}
                         fill
                         unoptimized
-                        className="object-cover object-top"
+                        className="object-cover"
+                        style={{
+                          objectPosition: `center ${
+                            t.foto_posicao_y !== undefined && t.foto_posicao_y !== null
+                              ? t.foto_posicao_y
+                              : t.redes_sociais?.foto_posicao_y ?? 50
+                          }%`,
+                        }}
                       />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -1196,7 +1211,8 @@ export function TalentosGerenciador({
                           alt="Preview Perfil"
                           fill
                           unoptimized
-                          className="object-cover object-top"
+                          className="object-cover"
+                          style={{ objectPosition: `center ${formFotoPosicaoY}%` }}
                         />
                       </div>
                     ) : (
@@ -1224,6 +1240,42 @@ export function TalentosGerenciador({
                         onChange={(e) => setFormFotoUrl(e.target.value)}
                         className="w-full bg-slate-800 border border-slate-700 rounded-lg px-2.5 py-1 text-[11px] text-white placeholder-slate-500"
                       />
+
+                      {formFotoUrl && (
+                        <div className="flex items-center gap-1 pt-0.5">
+                          <span className="text-[10px] font-bold text-slate-400">Rosto:</span>
+                          <button
+                            type="button"
+                            onClick={() => setFormFotoPosicaoY(15)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                              formFotoPosicaoY <= 25 ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                            }`}
+                          >
+                            Topo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormFotoPosicaoY(50)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                              formFotoPosicaoY > 25 && formFotoPosicaoY < 75 ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                            }`}
+                          >
+                            Centro
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFormFotoPosicaoY(85)}
+                            className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                              formFotoPosicaoY >= 75 ? "bg-amber-400 text-slate-950" : "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                            }`}
+                          >
+                            Base
+                          </button>
+                          <span className="text-[10px] font-mono font-bold text-amber-400">
+                            {formFotoPosicaoY}%
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

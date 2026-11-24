@@ -96,6 +96,7 @@ function TalentoCadastroWizardContent() {
 
   // Fotos
   const [fotoUrl, setFotoUrl] = useState("");
+  const [fotoPosicaoY, setFotoPosicaoY] = useState<number>(50);
   const [fotoCapaUrl, setFotoCapaUrl] = useState("");
   const [fotoCapaPosicaoY, setFotoCapaPosicaoY] = useState<number>(50);
 
@@ -109,6 +110,51 @@ function TalentoCadastroWizardContent() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartY, setDragStartY] = useState(0);
   const [dragStartPos, setDragStartPos] = useState(50);
+
+  // Arraste da Foto de Perfil (Live Studio Drag & Drop)
+  const [isDraggingFoto, setIsDraggingFoto] = useState(false);
+  const [dragFotoStartY, setDragFotoStartY] = useState(0);
+  const [dragFotoStartPos, setDragFotoStartPos] = useState(50);
+
+  const handleFotoMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDraggingFoto(true);
+    setDragFotoStartY(e.clientY);
+    setDragFotoStartPos(fotoPosicaoY);
+  };
+
+  const handleFotoMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingFoto) return;
+    const deltaY = e.clientY - dragFotoStartY;
+    const sensibilidade = 0.4;
+    const novaPos = Math.min(100, Math.max(0, Math.round(dragFotoStartPos - deltaY * sensibilidade)));
+    setFotoPosicaoY(novaPos);
+  };
+
+  const handleFotoMouseUp = () => {
+    setIsDraggingFoto(false);
+  };
+
+  const handleFotoTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      e.stopPropagation();
+      setIsDraggingFoto(true);
+      setDragFotoStartY(e.touches[0].clientY);
+      setDragFotoStartPos(fotoPosicaoY);
+    }
+  };
+
+  const handleFotoTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingFoto || e.touches.length !== 1) return;
+    const deltaY = e.touches[0].clientY - dragFotoStartY;
+    const sensibilidade = 0.4;
+    const novaPos = Math.min(100, Math.max(0, Math.round(dragFotoStartPos - deltaY * sensibilidade)));
+    setFotoPosicaoY(novaPos);
+  };
+
+  const handleFotoTouchEnd = () => {
+    setIsDraggingFoto(false);
+  };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -308,6 +354,7 @@ function TalentoCadastroWizardContent() {
         categoria,
         segmentos: segmentosArr,
         foto_url: fotoUrl.trim(),
+        foto_posicao_y: Number(fotoPosicaoY) >= 0 ? Number(fotoPosicaoY) : 50,
         foto_capa_url: fotoCapaUrl.trim() || null,
         foto_capa_posicao_y: Number(fotoCapaPosicaoY) >= 0 ? Number(fotoCapaPosicaoY) : 50,
         cidade_nome: cidade.trim(),
@@ -318,6 +365,7 @@ function TalentoCadastroWizardContent() {
         seguidores_total: seguidores.trim(),
         redes_sociais: {
           whatsapp: whatsapp.trim(),
+          foto_posicao_y: Number(fotoPosicaoY) >= 0 ? Number(fotoPosicaoY) : 50,
           cep: cep.trim() || undefined,
           endereco: endereco.trim() || undefined,
           instagram: instagram.trim() || undefined,
@@ -461,7 +509,8 @@ function TalentoCadastroWizardContent() {
                           alt="Foto de Perfil"
                           fill
                           unoptimized
-                          className="object-cover object-top"
+                          style={{ objectPosition: `center ${fotoPosicaoY}%` }}
+                          className="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs text-center p-2">
@@ -485,6 +534,42 @@ function TalentoCadastroWizardContent() {
                       <p className="text-[11px] text-slate-500">
                         Foto vertical ou quadrada com boa iluminação e rosto nítido.
                       </p>
+
+                      {fotoUrl && (
+                        <div className="flex items-center gap-1.5 pt-1">
+                          <span className="text-[10px] font-bold text-slate-500">Enquadramento inicial:</span>
+                          <button
+                            type="button"
+                            onClick={() => setFotoPosicaoY(15)}
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                              fotoPosicaoY <= 25 ? "bg-amber-400 text-slate-950 shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                            }`}
+                          >
+                            Topo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFotoPosicaoY(50)}
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                              fotoPosicaoY > 25 && fotoPosicaoY < 75 ? "bg-amber-400 text-slate-950 shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                            }`}
+                          >
+                            Centro
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFotoPosicaoY(85)}
+                            className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                              fotoPosicaoY >= 75 ? "bg-amber-400 text-slate-950 shadow-xs" : "bg-slate-100 text-slate-700 hover:bg-slate-200"
+                            }`}
+                          >
+                            Base
+                          </button>
+                          <span className="text-[10px] font-mono font-bold text-amber-700">
+                            {fotoPosicaoY}%
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -927,7 +1012,7 @@ function TalentoCadastroWizardContent() {
             <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-sm">
               {/* 1. Capa Panorâmica com Arraste (Mouse & Touch) */}
               <div
-                className="relative w-full h-80 sm:h-[420px] lg:h-[480px] bg-slate-100 overflow-hidden cursor-grab active:cursor-grabbing select-none"
+                className="relative w-full aspect-[16/9] sm:aspect-[21/9] md:h-[380px] lg:h-[460px] bg-slate-100 overflow-hidden cursor-grab active:cursor-grabbing select-none"
                 onMouseDown={handleMouseDown}
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
@@ -1008,24 +1093,91 @@ function TalentoCadastroWizardContent() {
               </div>
 
               {/* 2. Área de Conteúdo / Cards (Overlap suave idêntico ao público) */}
-              <div className="max-w-6xl mx-auto px-4 sm:px-8 pb-12 -mt-10 sm:-mt-14 relative z-30">
+              <div className="max-w-6xl mx-auto px-4 sm:px-8 pb-12 -mt-6 sm:-mt-10 md:-mt-12 lg:-mt-14 relative z-30">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   {/* Coluna Esquerda: Dados do Perfil */}
                   <div className="lg:col-span-2 space-y-6">
                     <div className="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-md">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5">
-                        <div className="relative w-28 h-28 sm:w-32 sm:h-32 rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-slate-100 shrink-0">
-                          {fotoUrl ? (
-                            <Image
-                              src={fotoUrl}
-                              alt={nome}
-                              fill
-                              unoptimized
-                              className="object-cover object-top"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-slate-400">
-                              Sem foto
+                        <div className="flex flex-col items-center sm:items-start gap-2 shrink-0">
+                          <div
+                            className={`relative w-28 h-28 sm:w-32 sm:h-32 rounded-3xl overflow-hidden border-4 border-white shadow-xl bg-slate-100 shrink-0 select-none ${
+                              fotoUrl ? "cursor-grab active:cursor-grabbing group/avatar" : ""
+                            }`}
+                            onMouseDown={fotoUrl ? handleFotoMouseDown : undefined}
+                            onMouseMove={fotoUrl ? handleFotoMouseMove : undefined}
+                            onMouseUp={fotoUrl ? handleFotoMouseUp : undefined}
+                            onMouseLeave={fotoUrl ? handleFotoMouseUp : undefined}
+                            onTouchStart={fotoUrl ? handleFotoTouchStart : undefined}
+                            onTouchMove={fotoUrl ? handleFotoTouchMove : undefined}
+                            onTouchEnd={fotoUrl ? handleFotoTouchEnd : undefined}
+                            title={fotoUrl ? "Clique e arraste verticalmente para ajustar o enquadramento do rosto" : undefined}
+                          >
+                            {fotoUrl ? (
+                              <>
+                                <Image
+                                  src={fotoUrl}
+                                  alt={nome}
+                                  fill
+                                  unoptimized
+                                  draggable={false}
+                                  className="object-cover transition-none pointer-events-none"
+                                  style={{ objectPosition: `center ${fotoPosicaoY}%` }}
+                                />
+                                {/* Overlay de instrução no hover ou arrastando */}
+                                <div
+                                  className={`absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white text-[10px] font-bold text-center px-1 pointer-events-none transition-opacity ${
+                                    isDraggingFoto ? "opacity-100" : "opacity-0 group-hover/avatar:opacity-100"
+                                  }`}
+                                >
+                                  <MoveVertical className="w-4 h-4 text-amber-400 mb-0.5 animate-pulse" />
+                                  <span>Arraste para enquadrar</span>
+                                  <span className="mt-0.5 px-1.5 py-0.2 rounded bg-amber-400 text-slate-950 text-[9px] font-black">
+                                    {fotoPosicaoY}%
+                                  </span>
+                                </div>
+                              </>
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-slate-400">
+                                Sem foto
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Botões Rápidos de Enquadramento da Foto de Perfil */}
+                          {fotoUrl && (
+                            <div className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200 rounded-xl p-1 shadow-xs">
+                              <span className="text-[10px] font-bold text-slate-500 pl-1">Rosto:</span>
+                              <button
+                                type="button"
+                                onClick={() => setFotoPosicaoY(15)}
+                                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                                  fotoPosicaoY <= 25 ? "bg-amber-400 text-slate-950 shadow-xs" : "text-slate-600 hover:bg-slate-200"
+                                }`}
+                              >
+                                Topo
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFotoPosicaoY(50)}
+                                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                                  fotoPosicaoY > 25 && fotoPosicaoY < 75 ? "bg-amber-400 text-slate-950 shadow-xs" : "text-slate-600 hover:bg-slate-200"
+                                }`}
+                              >
+                                Centro
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setFotoPosicaoY(85)}
+                                className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                                  fotoPosicaoY >= 75 ? "bg-amber-400 text-slate-950 shadow-xs" : "text-slate-600 hover:bg-slate-200"
+                                }`}
+                              >
+                                Base
+                              </button>
+                              <span className="text-[10px] font-mono font-bold text-amber-700 px-1">
+                                {fotoPosicaoY}%
+                              </span>
                             </div>
                           )}
                         </div>

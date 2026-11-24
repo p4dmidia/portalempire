@@ -77,6 +77,8 @@ export async function POST(request: Request) {
       circulacao_estimada,
       circulacao_numero,
       perfil_publico,
+      tipo_modelo,
+      preco_mensal,
       modelo_equipamento,
       tamanho_tela,
       formato_publicidade,
@@ -122,6 +124,8 @@ export async function POST(request: Request) {
       circulacao_estimada: circulacao_estimada?.trim() || "25.000 pessoas/mês",
       circulacao_numero: Number(circulacao_numero) || 25000,
       perfil_publico: perfil_publico || ["Consumidores", "Famílias"],
+      tipo_modelo: tipo_modelo || null,
+      preco_mensal: preco_mensal ? Number(preco_mensal) : null,
       modelo_equipamento: modelo_equipamento?.trim() || "Totem Digital Vertical 55 polegadas",
       tamanho_tela: tamanho_tela?.trim() || "55 polegadas 4K Ultra HD",
       formato_publicidade: formato_publicidade?.trim() || "20 slots de 15 segundos",
@@ -149,11 +153,11 @@ export async function POST(request: Request) {
       .select()
       .single();
 
-    if (error && (error.message?.includes("cep") || error.code === "42703")) {
-      const { cep: _c, ...totemSemCep } = novoTotem;
+    if (error && (error.message?.includes("cep") || error.message?.includes("tipo_modelo") || error.code === "42703")) {
+      const { cep: _c, tipo_modelo: _tm, preco_mensal: _pm, ...totemSemColunasNovas } = novoTotem;
       const retry = await adminSupabase
         .from("totens")
-        .insert(totemSemCep)
+        .insert(totemSemColunasNovas)
         .select()
         .single();
       data = retry.data;

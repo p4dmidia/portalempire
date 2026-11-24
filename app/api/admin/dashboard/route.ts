@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProfile } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { calcularVisualizacoesRealistas } from "@/lib/portal/views-realistas";
 
 export async function GET() {
   try {
@@ -86,7 +87,7 @@ export async function GET() {
     ]);
 
     const totalVisualizacoes = (totalViewsData || []).reduce(
-      (acc, m) => acc + (m.visualizacoes || 0),
+      (acc, m: any) => acc + calcularVisualizacoesRealistas(m),
       0
     );
 
@@ -138,7 +139,10 @@ export async function GET() {
         hoje: materiasHoje || 0,
         semana: materiasSemana || 0,
         totalVisualizacoes,
-        topMaterias: topMateriasData || [],
+        topMaterias: (topMateriasData || []).map((m: any) => ({
+          ...m,
+          visualizacoes: calcularVisualizacoesRealistas(m),
+        })),
       },
       captacao: {
         fontesTotal,

@@ -26,6 +26,7 @@ export async function POST(request: Request) {
       categoria,
       segmentos,
       foto_url,
+      foto_posicao_y,
       foto_capa_url,
       foto_capa_posicao_y,
       cidade_nome,
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
       categoria: categoria || "influenciadores",
       segmentos: Array.isArray(segmentos) ? segmentos : [],
       foto_url: foto_url.trim(),
+      foto_posicao_y: Number(foto_posicao_y) >= 0 ? Number(foto_posicao_y) : 50,
       foto_capa_url: foto_capa_url ? foto_capa_url.trim() : null,
       foto_capa_posicao_y: Number(foto_capa_posicao_y) >= 0 ? Number(foto_capa_posicao_y) : 50,
       cidade_nome: cidade_nome?.trim() || "Uberlândia",
@@ -68,6 +70,7 @@ export async function POST(request: Request) {
       redes_sociais: {
         ...(redes_sociais || {}),
         whatsapp: whatsapp.trim(),
+        foto_posicao_y: Number(foto_posicao_y) >= 0 ? Number(foto_posicao_y) : 50,
         cep: (body.cep || redes_sociais?.cep || "")?.trim() || undefined,
         endereco: (body.endereco || redes_sociais?.endereco || "")?.trim() || undefined,
       },
@@ -89,12 +92,13 @@ export async function POST(request: Request) {
       .single();
 
     // Fallback se colunas novas ainda não estiverem migradas no Postgres
-    if (error && (error.message?.includes("whatsapp") || error.message?.includes("foto_capa_posicao_y") || error.code === "42703" || error.code === "PGRST204")) {
-      const { whatsapp: _w, foto_capa_posicao_y: _pos, ...talentoSemColunasNovas } = novoTalento;
+    if (error && (error.message?.includes("whatsapp") || error.message?.includes("foto_capa_posicao_y") || error.message?.includes("foto_posicao_y") || error.code === "42703" || error.code === "PGRST204")) {
+      const { whatsapp: _w, foto_capa_posicao_y: _pos, foto_posicao_y: _posF, ...talentoSemColunasNovas } = novoTalento;
       if (whatsapp && talentoSemColunasNovas.redes_sociais) {
         talentoSemColunasNovas.redes_sociais = {
           ...talentoSemColunasNovas.redes_sociais,
           whatsapp,
+          foto_posicao_y: Number(foto_posicao_y) >= 0 ? Number(foto_posicao_y) : 50,
         };
       }
       const retry = await adminSupabase

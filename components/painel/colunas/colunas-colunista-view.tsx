@@ -18,9 +18,11 @@ import {
   XCircle,
   MapPin,
   ImageIcon,
+  Eye,
 } from "lucide-react";
 import { ColunaFormDialog } from "./coluna-form-dialog";
 import type { CidadeData, ColunaData } from "@/lib/portal/queries";
+import { calcularVisualizacoesColuna } from "@/lib/portal/views-realistas";
 
 interface ColunasColunistaViewProps {
   initialColunas: ColunaData[];
@@ -219,6 +221,10 @@ export function ColunasColunistaView({
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-300/60 dark:border-amber-800">
                         ⭐ Coluna Oficial
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-slate-600 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                        <Eye className="w-3 h-3 text-amber-500" />
+                        {calcularVisualizacoesColuna(col).toLocaleString("pt-BR")} visualizações
                       </span>
                       <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
                         ✓ Artigos Ilimitados

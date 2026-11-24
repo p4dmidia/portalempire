@@ -10,10 +10,12 @@ import {
   ArrowRight,
   ExternalLink,
   BatteryCharging,
+  Tv,
   Sparkles,
   Building,
 } from "lucide-react";
 import type { Totem } from "@/lib/totens/types";
+import { obterModeloTotem } from "@/lib/totens/types";
 
 interface TotemCardProps {
   totem: Totem;
@@ -21,6 +23,12 @@ interface TotemCardProps {
 }
 
 export function TotemCard({ totem, onOpenSolicitar }: TotemCardProps) {
+  // Modelo e Preço oficial do flyer
+  const modelo = obterModeloTotem(totem);
+  const precoFormatado = totem.preco_mensal
+    ? `R$ ${totem.preco_mensal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}`
+    : modelo.preco_formatado;
+
   // Formata o número do WhatsApp
   const rawWhatsapp = totem.franqueado_whatsapp.replace(/\D/g, "");
   const whatsappFormatado =
@@ -28,8 +36,8 @@ export function TotemCard({ totem, onOpenSolicitar }: TotemCardProps) {
       ? `55${rawWhatsapp}`
       : rawWhatsapp;
 
-  // Mensagem automática solicitada na especificação do projeto
-  const mensagemWhatsApp = `Olá! Encontrei o Totem Empire ${totem.nome} (${totem.estabelecimento_nome} - ${totem.cidade_nome}/${totem.estado}) no Portal Empire Cidades e gostaria de receber informações para anunciar minha empresa.`;
+  // Mensagem automática com modelo e valor oficial do flyer
+  const mensagemWhatsApp = `Olá! Encontrei o Totem Empire ${totem.nome} (${totem.estabelecimento_nome} - ${totem.cidade_nome}/${totem.estado}) no Portal Empire Cidades. Tenho interesse em anunciar neste ponto (${modelo.nome} - ${precoFormatado}/mês). Gostaria de verificar a disponibilidade de slots!`;
   const urlWhatsApp = `https://wa.me/${whatsappFormatado}?text=${encodeURIComponent(
     mensagemWhatsApp
   )}`;
@@ -48,10 +56,6 @@ export function TotemCard({ totem, onOpenSolicitar }: TotemCardProps) {
     totem.google_maps_url ||
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(queryEndereco)}`;
 
-  const temCarregador = totem.recursos_extras?.some((r) =>
-    r.toLowerCase().includes("carregador")
-  );
-
   return (
     <div className="group bg-white rounded-3xl border border-slate-200/90 shadow-sm hover:shadow-xl transition-all duration-300 flex flex-col overflow-hidden hover:-translate-y-1">
       {/* Imagem do Totem com Badges */}
@@ -65,15 +69,21 @@ export function TotemCard({ totem, onOpenSolicitar }: TotemCardProps) {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20" />
 
-        {/* Badge do Nome / ID do Totem */}
+        {/* Badge do Nome / ID do Totem e Selo do Modelo */}
         <div className="absolute top-3 left-3 flex flex-wrap items-center gap-1.5">
           <span className="px-3 py-1 rounded-xl bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md">
             {totem.nome.split(" - ")[0] || totem.nome}
           </span>
-          {temCarregador && (
-            <span className="px-2 py-1 rounded-xl bg-slate-900/80 backdrop-blur-sm text-amber-300 font-bold text-[10.5px] flex items-center gap-1 shadow-md border border-amber-400/40">
-              <BatteryCharging className="w-3 h-3 text-amber-400" />
+
+          {modelo.id === "totem_carregador" ? (
+            <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-sm text-amber-300 font-bold text-[10.5px] flex items-center gap-1 shadow-md border border-amber-400/50">
+              <BatteryCharging className="w-3.5 h-3.5 text-amber-400" />
               <span>Com Carregador</span>
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 rounded-xl bg-slate-950/85 backdrop-blur-sm text-amber-300 font-bold text-[10.5px] flex items-center gap-1 shadow-md border border-amber-400/50">
+              <Tv className="w-3.5 h-3.5 text-amber-400" />
+              <span>Interativo 43&quot; Touch</span>
             </span>
           )}
         </div>
@@ -110,12 +120,30 @@ export function TotemCard({ totem, onOpenSolicitar }: TotemCardProps) {
           </div>
 
           <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed pl-5 italic">
-            "{totem.descricao_ponto}"
+            &ldquo;{totem.descricao_ponto}&rdquo;
           </p>
         </div>
 
+        {/* Box Oficial de Preço e Modelo (Do Flyer R$ 250 e R$ 350) */}
+        <div className="p-3 rounded-2xl bg-gradient-to-r from-amber-500/15 via-amber-400/5 to-slate-50 border border-amber-300/80 flex items-center justify-between">
+          <div className="min-w-0 pr-2">
+            <span className="block text-[10px] uppercase font-black tracking-wider text-amber-800">
+              Plano de Anúncio Mensal
+            </span>
+            <span className="text-xs font-bold text-slate-800 truncate block">
+              {modelo.nome}
+            </span>
+          </div>
+          <div className="text-right shrink-0">
+            <span className="block text-base font-black text-amber-600">
+              {precoFormatado}
+            </span>
+            <span className="text-[10px] text-slate-500 font-medium">/ mês por slot</span>
+          </div>
+        </div>
+
         {/* Métricas: Circulação e Formato de Slots */}
-        <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+        <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
           <div className="p-2.5 rounded-2xl bg-amber-50/70 border border-amber-200/60 flex items-center gap-2">
             <div className="w-7 h-7 rounded-xl bg-amber-400/20 text-amber-700 flex items-center justify-center shrink-0">
               <Users className="w-4 h-4" />
@@ -178,7 +206,7 @@ export function TotemCard({ totem, onOpenSolicitar }: TotemCardProps) {
             className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-amber-400 via-amber-500 to-yellow-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-2 cursor-pointer text-center"
           >
             <Sparkles className="w-4 h-4" />
-            <span>Anunciar neste Totem</span>
+            <span>Anunciar por {precoFormatado}/mês</span>
           </a>
 
           {/* Botões Secundários: Ver no Mapa e Mais Detalhes */}

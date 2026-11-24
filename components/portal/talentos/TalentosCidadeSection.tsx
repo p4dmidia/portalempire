@@ -72,7 +72,14 @@ export function TalentosCidadeSection({
                       alt={talento.nome}
                       fill
                       unoptimized
-                      className="object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      style={{
+                        objectPosition: `center ${
+                          talento.foto_posicao_y !== undefined && talento.foto_posicao_y !== null
+                            ? talento.foto_posicao_y
+                            : talento.redes_sociais?.foto_posicao_y ?? 25
+                        }%`,
+                      }}
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
 

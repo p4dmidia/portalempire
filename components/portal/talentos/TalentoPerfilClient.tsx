@@ -144,8 +144,8 @@ export function TalentoPerfilClient({ talento }: TalentoPerfilClientProps) {
         </div>
       </div>
 
-      {/* 2. Capa Panorâmica com Posicionamento Personalizado */}
-      <div className="relative w-full h-80 sm:h-[420px] lg:h-[480px] xl:h-[520px] bg-slate-200 dark:bg-slate-900 overflow-hidden shadow-inner">
+      {/* 2. Capa Panorâmica com Posicionamento Personalizado & Responsividade Total */}
+      <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] md:h-[380px] lg:h-[460px] xl:h-[500px] bg-slate-200 dark:bg-slate-900 overflow-hidden shadow-inner">
         {talento.foto_capa_url ? (
           <Image
             src={talento.foto_capa_url}
@@ -158,31 +158,62 @@ export function TalentoPerfilClient({ talento }: TalentoPerfilClientProps) {
         ) : (
           <div className="w-full h-full bg-gradient-to-r from-slate-200 via-amber-100/40 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950" />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-50 dark:from-[#090a0f] via-black/15 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
       </div>
 
       {/* 3. Container Principal (Sobreposição Suave para Não Cortar a Capa) */}
-      <div className="max-w-[1440px] mx-auto px-4 -mt-10 sm:-mt-14 relative z-10">
+      <div className="max-w-[1440px] mx-auto px-4 -mt-6 sm:-mt-10 md:-mt-12 lg:-mt-14 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           {/* Coluna Esquerda: Conteúdo do Perfil */}
           <div className="lg:col-span-8 space-y-8">
             {/* Bloco de Apresentação */}
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-md relative">
-              <div className="flex flex-col sm:flex-row gap-6 items-start">
-                {/* Foto com Borda Dourada */}
-                <div className="relative w-32 h-32 sm:w-40 sm:h-40 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-lg shrink-0 bg-slate-100 dark:bg-slate-800">
-                  <Image
-                    src={talento.foto_url}
-                    alt={talento.nome}
-                    fill
-                    unoptimized
-                    className="object-cover object-top"
-                  />
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-md relative">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start">
+                {/* Linha Topo Mobile: Foto + Nome ao Lado / Desktop: Foto à Esquerda */}
+                <div className="flex items-center sm:items-start gap-4 sm:gap-6 w-full sm:w-auto">
+                  {/* Foto com Borda Dourada */}
+                  <div className="relative w-24 h-24 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-lg shrink-0 bg-slate-100 dark:bg-slate-800">
+                    <Image
+                      src={talento.foto_url}
+                      alt={talento.nome}
+                      fill
+                      unoptimized
+                      className="object-cover"
+                      style={{
+                        objectPosition: `center ${
+                          talento.foto_posicao_y !== undefined && talento.foto_posicao_y !== null
+                            ? talento.foto_posicao_y
+                            : talento.redes_sociais?.foto_posicao_y ?? 50
+                        }%`,
+                      }}
+                    />
+                  </div>
+
+                  {/* Nome e Título no Mobile (ao lado da foto) */}
+                  <div className="sm:hidden flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h1 className="text-xl font-black text-slate-900 dark:text-white leading-tight">
+                        {talento.nome}
+                      </h1>
+                      {talento.verificado && (
+                        <span
+                          className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-slate-950 shadow-sm shrink-0"
+                          title="Verificado Oficial Grupo Empire"
+                        >
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-xs font-bold text-amber-700 dark:text-amber-400 leading-snug">
+                      {talento.titulo_profissional}
+                    </p>
+                  </div>
                 </div>
 
-                {/* Informações Principais */}
-                <div className="space-y-2 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
+                {/* Informações Principais (Desktop / Tablet) + Metadados no Mobile */}
+                <div className="space-y-2 flex-1 w-full">
+                  <div className="hidden sm:flex items-center gap-2 flex-wrap">
                     <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">
                       {talento.nome}
                     </h1>
@@ -196,11 +227,11 @@ export function TalentoPerfilClient({ talento }: TalentoPerfilClientProps) {
                     )}
                   </div>
 
-                  <p className="text-sm font-bold text-amber-700 dark:text-amber-400">
+                  <p className="hidden sm:block text-sm font-bold text-amber-700 dark:text-amber-400">
                     {talento.titulo_profissional}
                   </p>
 
-                  <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400 pt-1 flex-wrap">
+                  <div className="flex items-center gap-3 sm:gap-4 text-xs text-slate-500 dark:text-slate-400 pt-1 flex-wrap">
                     {talento.cidade_nome && (
                       <span className="flex items-center gap-1.5">
                         <MapPin className="w-3.5 h-3.5 text-amber-500" />
@@ -219,7 +250,7 @@ export function TalentoPerfilClient({ talento }: TalentoPerfilClientProps) {
 
                   {/* Tags de Segmentos */}
                   {talento.segmentos && talento.segmentos.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5 pt-3">
+                    <div className="flex flex-wrap gap-1.5 pt-2 sm:pt-3">
                       {talento.segmentos.map((seg, idx) => (
                         <span
                           key={idx}

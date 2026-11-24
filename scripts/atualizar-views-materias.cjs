@@ -52,25 +52,52 @@ function calcularVisualizacoes(materia) {
 
   const categoriaSlug = (materia.categoria?.slug || "").toLowerCase();
   const ehUrgente = Boolean(materia.urgente);
+  const ehArtigoColuna = Boolean(materia.coluna_id || materia.coluna || categoriaSlug === "colunistas" || categoriaSlug === "opiniao");
+  const ehCidades = categoriaSlug === "cidades" || categoriaSlug.startsWith("cidade-");
+  const ehNicho = TEMAS_NICHO_BUSCA.has(categoriaSlug);
+  const ehAltaBusca = TEMAS_ALTA_BUSCA.has(categoriaSlug);
 
-  let pisoInicial = 65000;
-  let variacaoPiso = seed % 3500;
-  let potencial24h = 45000;
-  let taxaPor15Min = 5 + (seed % 4);
-
-  if (ehUrgente || TEMAS_ALTA_BUSCA.has(categoriaSlug)) {
-    pisoInicial = 80000;
-    variacaoPiso = seed % 3800;
-    potencial24h = 65000;
-    taxaPor15Min = 8 + (seed % 5);
-  } else if (TEMAS_NICHO_BUSCA.has(categoriaSlug)) {
-    pisoInicial = 50000;
-    variacaoPiso = seed % 2900;
-    potencial24h = 28000;
-    taxaPor15Min = 3 + (seed % 3);
+  // Fator de Viralidade / Repercussão Amplo
+  const tierVariacao = seed % 100;
+  let multiplicadorTier = 1.0;
+  if (tierVariacao < 6) {
+    multiplicadorTier = 2.4 + ((seed % 1200) / 1000);
+  } else if (tierVariacao < 25) {
+    multiplicadorTier = 1.4 + ((seed % 600) / 1000);
+  } else if (tierVariacao < 72) {
+    multiplicadorTier = 0.75 + ((seed % 450) / 1000);
+  } else {
+    multiplicadorTier = 0.35 + ((seed % 300) / 1000);
   }
 
-  const baseInicial = pisoInicial + variacaoPiso;
+  let basePiso = 45000;
+  let amplitude = 40000;
+  let taxaPor15Min = 5 + (seed % 4);
+
+  if (ehArtigoColuna) {
+    basePiso = 6500;
+    amplitude = 18000;
+    taxaPor15Min = 1 + (seed % 2);
+  } else if (ehUrgente) {
+    basePiso = 140000;
+    amplitude = 220000;
+    taxaPor15Min = 12 + (seed % 6);
+  } else if (ehAltaBusca) {
+    basePiso = 68000;
+    amplitude = 95000;
+    taxaPor15Min = 7 + (seed % 4);
+  } else if (ehCidades) {
+    basePiso = 18000;
+    amplitude = 42000;
+    taxaPor15Min = 3 + (seed % 3);
+  } else if (ehNicho) {
+    basePiso = 12000;
+    amplitude = 26000;
+    taxaPor15Min = 2 + (seed % 2);
+  }
+
+  const jitter = (seed % 797) + ((seed * 13) % 199);
+  const baseInicial = Math.round((basePiso + (seed % amplitude) + jitter) * multiplicadorTier);
 
   const dataPublicacaoStr = materia.publicado_em || materia.created_at;
   const dataPublicacao = dataPublicacaoStr ? new Date(dataPublicacaoStr) : new Date();
@@ -82,20 +109,18 @@ function calcularVisualizacoes(materia) {
   let ganhoProgressivo = 0;
 
   if (minutosDecorridos < MINUTOS_24H) {
-    const progresso = Math.pow(minutosDecorridos / MINUTOS_24H, 0.85);
-    const viewsDuranteCurva = Math.floor(potencial24h * progresso);
-    const blocos15MinIniciais = Math.floor(minutosDecorridos / 15);
-    const jitter = (seed + blocos15MinIniciais * 11) % 43;
-    ganhoProgressivo = viewsDuranteCurva + jitter;
+    const progresso = Math.pow(minutosDecorridos / MINUTOS_24H, 0.7);
+    const viewsDuranteCurva = Math.floor(baseInicial * 0.5 * progresso);
+    ganhoProgressivo = viewsDuranteCurva;
   } else {
     const minutosApos24h = minutosDecorridos - MINUTOS_24H;
     const blocosApos24h = Math.floor(minutosApos24h / 15);
     const incrementoBlocos = blocosApos24h * taxaPor15Min;
 
     const diasDecorridos = minutosDecorridos / (24 * 60);
-    const fatorMaturidade = Math.min(3.2, 1 + Math.log10(1 + diasDecorridos / 5));
+    const fatorMaturidade = Math.min(2.2, 1 + Math.log10(1 + diasDecorridos / 10));
 
-    ganhoProgressivo = Math.floor((potencial24h + incrementoBlocos) * fatorMaturidade);
+    ganhoProgressivo = Math.floor(incrementoBlocos * fatorMaturidade);
   }
 
   let visualizacoesEstimadas = baseInicial + ganhoProgressivo;

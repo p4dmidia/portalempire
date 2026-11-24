@@ -79,6 +79,11 @@ export function TalentoLiveStudio({
       ? Number(talento.foto_capa_posicao_y)
       : 50
   );
+  const [fotoPosicaoY, setFotoPosicaoY] = useState<number>(
+    talento.foto_posicao_y !== undefined && talento.foto_posicao_y !== null
+      ? Number(talento.foto_posicao_y)
+      : Number(talento.redes_sociais?.foto_posicao_y) || 50
+  );
   const [cidade, setCidade] = useState(talento.cidade_nome || "Uberlândia");
   const [estado, setEstado] = useState(talento.estado || "MG");
   const [cep, setCep] = useState(talento.redes_sociais?.cep || talento.cep || "");
@@ -110,6 +115,51 @@ export function TalentoLiveStudio({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartY, setDragStartY] = useState(0);
   const [dragStartPos, setDragStartPos] = useState(50);
+
+  // Estados de Drag & Drop para Reposicionar Foto de Perfil
+  const [isDraggingFoto, setIsDraggingFoto] = useState(false);
+  const [dragFotoStartY, setDragFotoStartY] = useState(0);
+  const [dragFotoStartPos, setDragFotoStartPos] = useState(50);
+
+  const handleFotoMouseDown = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsDraggingFoto(true);
+    setDragFotoStartY(e.clientY);
+    setDragFotoStartPos(fotoPosicaoY);
+  };
+
+  const handleFotoMouseMove = (e: React.MouseEvent) => {
+    if (!isDraggingFoto) return;
+    const deltaY = e.clientY - dragFotoStartY;
+    const sensibilidade = 0.4;
+    const novaPos = Math.min(100, Math.max(0, Math.round(dragFotoStartPos - deltaY * sensibilidade)));
+    setFotoPosicaoY(novaPos);
+  };
+
+  const handleFotoMouseUp = () => {
+    setIsDraggingFoto(false);
+  };
+
+  const handleFotoTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      e.stopPropagation();
+      setIsDraggingFoto(true);
+      setDragFotoStartY(e.touches[0].clientY);
+      setDragFotoStartPos(fotoPosicaoY);
+    }
+  };
+
+  const handleFotoTouchMove = (e: React.TouchEvent) => {
+    if (!isDraggingFoto || e.touches.length !== 1) return;
+    const deltaY = e.touches[0].clientY - dragFotoStartY;
+    const sensibilidade = 0.4;
+    const novaPos = Math.min(100, Math.max(0, Math.round(dragFotoStartPos - deltaY * sensibilidade)));
+    setFotoPosicaoY(novaPos);
+  };
+
+  const handleFotoTouchEnd = () => {
+    setIsDraggingFoto(false);
+  };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
@@ -300,6 +350,7 @@ export function TalentoLiveStudio({
       categoria,
       segmentos: segmentosArr,
       foto_url: fotoUrl.trim(),
+      foto_posicao_y: Number(fotoPosicaoY) >= 0 ? Number(fotoPosicaoY) : 50,
       foto_capa_url: fotoCapaUrl.trim() || null,
       foto_capa_posicao_y: Number(fotoCapaPosicaoY) >= 0 ? Number(fotoCapaPosicaoY) : 50,
       cidade_nome: cidade.trim(),
@@ -310,6 +361,7 @@ export function TalentoLiveStudio({
       seguidores_total: seguidores.trim(),
       redes_sociais: {
         whatsapp: whatsapp.trim() || undefined,
+        foto_posicao_y: Number(fotoPosicaoY) >= 0 ? Number(fotoPosicaoY) : 50,
         cep: cep.trim() || undefined,
         endereco: endereco.trim() || undefined,
         instagram: instagram.trim() || undefined,
@@ -409,7 +461,7 @@ export function TalentoLiveStudio({
         )}
 
         {/* CAPA PANORÂMICA (ESTILO FAN PAGE DO FACEBOOK COM DRAG DIRETO) */}
-        <div className="relative w-full h-72 sm:h-96 lg:h-[440px] xl:h-[480px] bg-slate-900 border-b border-slate-800 overflow-hidden group/capa">
+        <div className="relative w-full aspect-[16/9] sm:aspect-[21/9] md:h-[380px] lg:h-[460px] xl:h-[500px] bg-slate-900 border-b border-slate-800 overflow-hidden group/capa">
           {fotoCapaUrl ? (
             <div
               onMouseDown={handleMouseDown}
@@ -527,38 +579,120 @@ export function TalentoLiveStudio({
         </div>
 
         {/* 3. BLOCO DE APRESENTAÇÃO SOBREPOSTO (PREVIEW REAL IDÊNTICO AO SITE PÚBLICO) */}
-        <div className="px-4 sm:px-6 -mt-10 sm:-mt-14 relative z-20">
+        <div className="px-4 sm:px-6 -mt-6 sm:-mt-10 md:-mt-12 lg:-mt-14 relative z-20">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             {/* Coluna Esquerda: Apresentação Principal */}
-            <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-xl relative">
-              <div className="flex flex-col sm:flex-row gap-6 items-start">
-                {/* Foto de Perfil com Botão de Troca (Hover Câmera estilo Facebook) */}
-                <div className="relative group/avatar w-32 h-32 sm:w-40 sm:h-40 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-xl shrink-0 bg-slate-800">
-                  <Image
-                    src={fotoUrl || "/images/placeholder-avatar.png"}
-                    alt={nome}
-                    fill
-                    unoptimized
-                    className="object-cover object-top"
-                  />
+            <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 shadow-xl relative">
+              <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 items-start">
+                {/* Linha Topo Mobile: Foto + Nome ao Lado / Desktop: Foto à Esquerda */}
+                <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 w-full sm:w-auto">
+                  <div className="flex flex-col items-center sm:items-start gap-2 shrink-0">
+                    {/* Foto de Perfil com Botão de Troca e Drag de Enquadramento */}
+                    <div
+                      className={`relative group/avatar w-24 h-24 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-2xl overflow-hidden border-2 border-amber-400 shadow-xl shrink-0 bg-slate-800 select-none ${
+                        fotoUrl ? "cursor-grab active:cursor-grabbing" : ""
+                      }`}
+                      onMouseDown={fotoUrl ? handleFotoMouseDown : undefined}
+                      onMouseMove={fotoUrl ? handleFotoMouseMove : undefined}
+                      onMouseUp={fotoUrl ? handleFotoMouseUp : undefined}
+                      onMouseLeave={fotoUrl ? handleFotoMouseUp : undefined}
+                      onTouchStart={fotoUrl ? handleFotoTouchStart : undefined}
+                      onTouchMove={fotoUrl ? handleFotoTouchMove : undefined}
+                      onTouchEnd={fotoUrl ? handleFotoTouchEnd : undefined}
+                      title="Arraste verticalmente para ajustar o enquadramento do rosto"
+                    >
+                      <Image
+                        src={fotoUrl || "/images/placeholder-avatar.png"}
+                        alt={nome}
+                        fill
+                        unoptimized
+                        draggable={false}
+                        className="object-cover pointer-events-none transition-none"
+                        style={{ objectPosition: `center ${fotoPosicaoY}%` }}
+                      />
 
-                  {/* Botão de Upload da Foto de Perfil */}
-                  <label className="absolute inset-0 bg-black/60 opacity-0 group-hover/avatar:opacity-100 flex flex-col items-center justify-center gap-1 text-white text-[11px] font-bold cursor-pointer transition-opacity backdrop-blur-xs">
-                    <Camera className="w-5 h-5 text-amber-400" />
-                    <span>{fazendoUploadFoto ? "Enviando..." : "Trocar Foto"}</span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleUploadFoto}
-                      className="hidden"
-                      disabled={fazendoUploadFoto}
-                    />
-                  </label>
+                      {/* Overlay com instrução de arraste quando estiver mexendo */}
+                      {isDraggingFoto && (
+                        <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center text-white text-[10px] font-bold text-center px-1 pointer-events-none">
+                          <MoveVertical className="w-4 h-4 text-amber-400 mb-0.5 animate-pulse" />
+                          <span>{fotoPosicaoY}%</span>
+                        </div>
+                      )}
+
+                      {/* Botão de Upload da Foto de Perfil (no topo superior direito da foto) */}
+                      <label
+                        className="absolute top-1.5 right-1.5 p-1.5 rounded-lg bg-black/75 hover:bg-black text-amber-400 opacity-90 group-hover/avatar:opacity-100 cursor-pointer shadow transition-all hover:scale-110 active:scale-95"
+                        title="Trocar Foto de Perfil"
+                      >
+                        <Camera className="w-3.5 h-3.5" />
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleUploadFoto}
+                          className="hidden"
+                          disabled={fazendoUploadFoto}
+                        />
+                      </label>
+                    </div>
+
+                    {/* Botões Rápidos de Enquadramento da Foto de Perfil */}
+                    {fotoUrl && (
+                      <div className="inline-flex items-center gap-1 bg-slate-800 border border-slate-700 rounded-xl p-1 shadow-xs">
+                        <span className="text-[10px] font-bold text-slate-400 pl-1">Rosto:</span>
+                        <button
+                          type="button"
+                          onClick={() => setFotoPosicaoY(15)}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                            fotoPosicaoY <= 25 ? "bg-amber-400 text-slate-950 shadow-xs" : "text-slate-300 hover:bg-slate-700"
+                          }`}
+                        >
+                          Topo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFotoPosicaoY(50)}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                            fotoPosicaoY > 25 && fotoPosicaoY < 75 ? "bg-amber-400 text-slate-950 shadow-xs" : "text-slate-300 hover:bg-slate-700"
+                          }`}
+                        >
+                          Centro
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFotoPosicaoY(85)}
+                          className={`px-2 py-0.5 rounded-lg text-[10px] font-bold transition-colors cursor-pointer ${
+                            fotoPosicaoY >= 75 ? "bg-amber-400 text-slate-950 shadow-xs" : "text-slate-300 hover:bg-slate-700"
+                          }`}
+                        >
+                          Base
+                        </button>
+                        <span className="text-[10px] font-mono font-bold text-amber-400 px-1">
+                          {fotoPosicaoY}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Nome e Título no Mobile (ao lado da foto) */}
+                  <div className="sm:hidden flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h1 className="text-xl font-black text-white leading-tight">{nome}</h1>
+                      {verificado && (
+                        <span
+                          className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-slate-950 shadow-sm shrink-0"
+                          title="Verificado Oficial"
+                        >
+                          <Check className="w-3 h-3 stroke-[3]" />
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs font-bold text-amber-400 leading-snug">{titulo}</p>
+                  </div>
                 </div>
 
-                {/* Dados Principais do Talento (Refletem as edições instantaneamente) */}
-                <div className="space-y-2 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
+                {/* Dados Principais do Talento (Desktop) + Metadados */}
+                <div className="space-y-2 flex-1 w-full">
+                  <div className="hidden sm:flex items-center gap-2 flex-wrap">
                     <h1 className="text-2xl sm:text-3xl font-black text-white">{nome}</h1>
                     {verificado && (
                       <span
@@ -570,9 +704,9 @@ export function TalentoLiveStudio({
                     )}
                   </div>
 
-                  <p className="text-sm font-bold text-amber-400">{titulo}</p>
+                  <p className="hidden sm:block text-sm font-bold text-amber-400">{titulo}</p>
 
-                  <div className="flex items-center gap-4 text-xs text-slate-400 pt-1 flex-wrap">
+                  <div className="flex items-center gap-3 sm:gap-4 text-xs text-slate-400 pt-1 flex-wrap">
                     <span className="flex items-center gap-1.5">
                       <MapPin className="w-3.5 h-3.5 text-amber-500" />
                       {cidade} - {estado}

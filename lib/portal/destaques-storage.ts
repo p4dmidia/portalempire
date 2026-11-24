@@ -1,14 +1,14 @@
 import fs from "fs";
 import path from "path";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
-import { calcularDataExpiracao } from "@/lib/utils/destaque-tempo";
+import { calcularDataExpiracao, type TipoDestaqueTempo } from "@/lib/utils/destaque-tempo";
 
 export { calcularDataExpiracao };
 
 export interface InfoDestaque {
   materia_id: string;
   expira_em: string | null; // ISO string ou null para sem limite
-  tipo: "6h" | "12h" | "24h" | "48h" | "7d" | "sem_limite";
+  tipo: TipoDestaqueTempo;
   criado_em: string;
 }
 
@@ -50,7 +50,7 @@ export function salvarDestaquesExpiracao(dados: Record<string, InfoDestaque>): v
  */
 export function definirExpiracaoDestaque(
   materiaId: string,
-  tipo: "6h" | "12h" | "24h" | "48h" | "7d" | "sem_limite" = "sem_limite"
+  tipo: TipoDestaqueTempo = "sem_limite"
 ): void {
   const mapa = carregarDestaquesExpiracao();
 
@@ -142,11 +142,11 @@ export function verificarDestaqueAtivo(
 export function obterTempoDestaqueMateria(
   materiaId?: string | null,
   conteudo?: unknown
-): "sem_limite" | "6h" | "12h" | "24h" | "48h" | "7d" {
+): "sem_limite" | "4h" | "6h" | "12h" | "24h" | "48h" | "7d" {
   if (conteudo && typeof conteudo === "object") {
     const meta = conteudo as Record<string, unknown>;
     const t = meta.tempo_destaque as string;
-    if (t === "6h" || t === "12h" || t === "24h" || t === "48h" || t === "7d") {
+    if (t === "4h" || t === "6h" || t === "12h" || t === "24h" || t === "48h" || t === "7d") {
       return t;
     }
     if (t === "sem_limite") return "sem_limite";

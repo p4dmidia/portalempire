@@ -20,7 +20,14 @@ export function TalentoCard({ talento, onSolicitarOrcamento }: TalentoCardProps)
           alt={talento.nome}
           fill
           unoptimized
-          className="object-cover object-top transition-transform duration-500 group-hover:scale-105"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+          style={{
+            objectPosition: `center ${
+              talento.foto_posicao_y !== undefined && talento.foto_posicao_y !== null
+                ? talento.foto_posicao_y
+                : talento.redes_sociais?.foto_posicao_y ?? 25
+            }%`,
+          }}
         />
         {/* Gradiente sutil inferior na imagem */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent sm:from-black/40" />

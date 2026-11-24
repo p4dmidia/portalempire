@@ -26,7 +26,7 @@ const materiaSchema = z.object({
   publicado_em: z.string().optional().nullable(),
   urgente: z.boolean().default(false),
   destaque: z.boolean().default(false),
-  tempo_destaque: z.enum(["sem_limite", "6h", "12h", "24h", "48h", "7d"]).optional().default("sem_limite"),
+  tempo_destaque: z.enum(["sem_limite", "4h", "6h", "12h", "24h", "48h", "7d"]).optional().default("sem_limite"),
   tags: z.array(z.string()).default([]),
   seo_titulo: z.string().optional().nullable(),
   seo_descricao: z.string().optional().nullable(),
@@ -255,17 +255,35 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const finalTempoDestaque = data.destaque ? data.tempo_destaque || "sem_limite" : "sem_limite";
+    // REGRA PADRÃO PARA COLUNISTAS:
+    // Toda matéria publicada entra na home como destaque por 4 horas e depois entra na pilha normal.
+    // O colunista não tem opção de escolher tempo de destaque, todas seguem esse padrão de 4h. Apenas o admin tem a opção de customizar.
+    const isColunista = profile.role === "colunista" || profile.role !== "admin";
+    const isPublicando = data.status === "publicado";
+
+    let finalDestaque = data.destaque;
+    let finalTempoDestaque = data.destaque ? data.tempo_destaque || "sem_limite" : "sem_limite";
+
+    if (isColunista) {
+      if (isPublicando) {
+        finalDestaque = true;
+        finalTempoDestaque = "4h";
+      } else {
+        finalDestaque = false;
+        finalTempoDestaque = "sem_limite";
+      }
+    }
+
     const conteudoFinal =
       typeof data.conteudo === "object" && data.conteudo !== null
         ? {
             ...data.conteudo,
             tempo_destaque: finalTempoDestaque,
-            destaque_expira_em: data.destaque ? calcularDataExpiracao(finalTempoDestaque) : null,
+            destaque_expira_em: finalDestaque ? calcularDataExpiracao(finalTempoDestaque) : null,
           }
         : {
             tempo_destaque: finalTempoDestaque,
-            destaque_expira_em: data.destaque ? calcularDataExpiracao(finalTempoDestaque) : null,
+            destaque_expira_em: finalDestaque ? calcularDataExpiracao(finalTempoDestaque) : null,
           };
 
     // Validação de cidade_id para Postgres UUID (evita crash se for ID tipo 'extra-alphaville' ou inválido)
@@ -306,7 +324,7 @@ export async function POST(request: NextRequest) {
         status: data.status,
         publicado_em: publicadoEm,
         urgente: data.urgente,
-        destaque: data.destaque,
+        destaque: finalDestaque,
         tags: data.tags,
         seo_titulo: data.seo_titulo || null,
         seo_descricao: data.seo_descricao || null,

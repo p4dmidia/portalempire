@@ -60,7 +60,14 @@ export function TalentosFaixaHome({ talentos: initialTalentos }: TalentosFaixaHo
                     alt={t.nome}
                     fill
                     unoptimized
-                    className="object-cover object-top"
+                    className="object-cover"
+                    style={{
+                      objectPosition: `center ${
+                        t.foto_posicao_y !== undefined && t.foto_posicao_y !== null
+                          ? t.foto_posicao_y
+                          : t.redes_sociais?.foto_posicao_y ?? 25
+                      }%`,
+                    }}
                   />
                 </div>
               ))}
