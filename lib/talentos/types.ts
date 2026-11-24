@@ -17,9 +17,11 @@ export interface RedesSociais {
   twitter?: string;
   website?: string;
   whatsapp?: string;
+  email?: string;
   cep?: string;
   endereco?: string;
   foto_posicao_y?: number | null;
+  foto_capa_posicao_y?: number | null;
 }
 
 export interface VideoItem {
@@ -34,6 +36,7 @@ export interface Talento {
   nome: string;
   slug: string;
   titulo_profissional: string;
+  email?: string | null;
   whatsapp?: string | null;
   categoria: TalentoCategoria | string;
   segmentos: string[];

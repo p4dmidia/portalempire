@@ -21,6 +21,7 @@ import {
   Sparkles,
   Tv,
   ExternalLink,
+  ShieldCheck,
 } from "lucide-react";
 import type { Talento } from "@/lib/talentos/types";
 import { SolicitarOrcamentoModal } from "./SolicitarOrcamentoModal";
@@ -133,14 +134,25 @@ export function TalentoPerfilClient({ talento }: TalentoPerfilClientProps) {
             <span>Voltar para Catálogo de Talentos</span>
           </Link>
 
-          <button
-            type="button"
-            onClick={handleShare}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors"
-          >
-            <Share2 className="w-3.5 h-3.5" />
-            <span>{copiado ? "Link Copiado!" : "Compartilhar Perfil"}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/talentos/editar"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/60 text-xs font-bold text-amber-800 dark:text-amber-300 transition-colors border border-amber-300 dark:border-amber-700/60 shadow-xs"
+              title="Gerenciar ou editar este perfil"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+              <span>Gerenciar Perfil</span>
+            </Link>
+
+            <button
+              type="button"
+              onClick={handleShare}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 transition-colors"
+            >
+              <Share2 className="w-3.5 h-3.5" />
+              <span>{copiado ? "Link Copiado!" : "Compartilhar Perfil"}</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -153,7 +165,13 @@ export function TalentoPerfilClient({ talento }: TalentoPerfilClientProps) {
             fill
             unoptimized
             className="object-cover transition-all duration-300"
-            style={{ objectPosition: `center ${talento.foto_capa_posicao_y ?? 50}%` }}
+            style={{
+              objectPosition: `center ${
+                talento.foto_capa_posicao_y !== undefined && talento.foto_capa_posicao_y !== null
+                  ? talento.foto_capa_posicao_y
+                  : talento.redes_sociais?.foto_capa_posicao_y ?? 50
+              }%`,
+            }}
           />
         ) : (
           <div className="w-full h-full bg-gradient-to-r from-slate-200 via-amber-100/40 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950" />

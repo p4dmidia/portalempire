@@ -19,6 +19,7 @@ import {
   Video,
   Volume2,
   Sparkles,
+  ShieldCheck,
 } from "lucide-react";
 import type { Talento } from "@/lib/talentos/types";
 import { TalentoCard } from "./TalentoCard";
@@ -171,7 +172,7 @@ export function TalentosVitrineClient({ talentosIniciais }: TalentosVitrineClien
             Contrate o talento ideal para a sua marca, evento ou campanha!
           </div>
 
-          {/* Botão de Auto-Cadastro / Faça Parte */}
+          {/* Botão de Auto-Cadastro / Faça Parte e Gerenciamento */}
           <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
             <Link
               href="/talentos/cadastro"
@@ -179,6 +180,14 @@ export function TalentosVitrineClient({ talentosIniciais }: TalentosVitrineClien
             >
               <Sparkles className="w-4 h-4 text-slate-950 fill-slate-950" />
               <span>Quero Fazer Parte / Cadastrar Perfil de Talento</span>
+            </Link>
+
+            <Link
+              href="/talentos/editar"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-750 text-slate-700 dark:text-slate-200 font-bold text-xs sm:text-sm border border-slate-300 dark:border-slate-700 shadow-sm transition-all cursor-pointer"
+            >
+              <ShieldCheck className="w-4 h-4 text-amber-500" />
+              <span>Já Tenho Perfil (Gerenciar/Editar)</span>
             </Link>
           </div>
 

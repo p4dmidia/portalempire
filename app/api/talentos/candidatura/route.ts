@@ -21,6 +21,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       nome,
+      email,
       titulo_profissional,
       whatsapp,
       categoria,
@@ -40,9 +41,9 @@ export async function POST(request: Request) {
       videos,
     } = body;
 
-    if (!nome?.trim() || !whatsapp?.trim() || !titulo_profissional?.trim() || !foto_url?.trim() || !bio_curta?.trim()) {
+    if (!nome?.trim() || !email?.trim() || !whatsapp?.trim() || !titulo_profissional?.trim() || !foto_url?.trim() || !bio_curta?.trim()) {
       return NextResponse.json(
-        { error: "Por favor, preencha todos os campos obrigatórios (Nome, WhatsApp, Título/Profissão, Foto de Perfil e Apresentação curta)." },
+        { error: "Por favor, preencha todos os campos obrigatórios (Nome, E-mail, WhatsApp, Título/Profissão, Foto de Perfil e Apresentação curta)." },
         { status: 400 }
       );
     }
@@ -53,6 +54,7 @@ export async function POST(request: Request) {
     const novoTalento = {
       nome: nome.trim(),
       slug,
+      email: email.trim().toLowerCase(),
       titulo_profissional: titulo_profissional.trim(),
       whatsapp: whatsapp.trim(),
       categoria: categoria || "influenciadores",
@@ -69,8 +71,10 @@ export async function POST(request: Request) {
       seguidores_total: seguidores_total?.trim() || "+ 100 mil seguidores",
       redes_sociais: {
         ...(redes_sociais || {}),
+        email: email.trim().toLowerCase(),
         whatsapp: whatsapp.trim(),
         foto_posicao_y: Number(foto_posicao_y) >= 0 ? Number(foto_posicao_y) : 50,
+        foto_capa_posicao_y: Number(foto_capa_posicao_y) >= 0 ? Number(foto_capa_posicao_y) : 50,
         cep: (body.cep || redes_sociais?.cep || "")?.trim() || undefined,
         endereco: (body.endereco || redes_sociais?.endereco || "")?.trim() || undefined,
       },
@@ -92,11 +96,12 @@ export async function POST(request: Request) {
       .single();
 
     // Fallback se colunas novas ainda não estiverem migradas no Postgres
-    if (error && (error.message?.includes("whatsapp") || error.message?.includes("foto_capa_posicao_y") || error.message?.includes("foto_posicao_y") || error.code === "42703" || error.code === "PGRST204")) {
-      const { whatsapp: _w, foto_capa_posicao_y: _pos, foto_posicao_y: _posF, ...talentoSemColunasNovas } = novoTalento;
-      if (whatsapp && talentoSemColunasNovas.redes_sociais) {
+    if (error && (error.message?.includes("email") || error.message?.includes("whatsapp") || error.message?.includes("foto_capa_posicao_y") || error.message?.includes("foto_posicao_y") || error.code === "42703" || error.code === "PGRST204")) {
+      const { email: _em, whatsapp: _w, foto_capa_posicao_y: _pos, foto_posicao_y: _posF, ...talentoSemColunasNovas } = novoTalento;
+      if (talentoSemColunasNovas.redes_sociais) {
         talentoSemColunasNovas.redes_sociais = {
           ...talentoSemColunasNovas.redes_sociais,
+          email: email.trim().toLowerCase(),
           whatsapp,
           foto_posicao_y: Number(foto_posicao_y) >= 0 ? Number(foto_posicao_y) : 50,
         };
