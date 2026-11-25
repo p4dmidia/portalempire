@@ -42,16 +42,16 @@ const CATEGORIAS_SIDEBAR = [
 ];
 
 const SERVICOS_DESTAQUE = [
-  { nome: "Comerciais de TV", icon: Tv },
-  { nome: "Desfiles e Passarela", icon: Sparkles },
-  { nome: "Ensaios Fotográficos & Editoriais", icon: Camera },
-  { nome: "Apresentações e Cerimoniais", icon: Mic },
-  { nome: "Cobertura de Eventos", icon: Camera },
-  { nome: "Palestras", icon: Presentation },
-  { nome: "Programas de TV", icon: Video },
-  { nome: "Campanhas Publicitárias", icon: Film },
-  { nome: "Presença VIP", icon: Award },
-  { nome: "Ações com Influenciadores", icon: Volume2 },
+  { nome: "Comerciais de TV", label: "Comerciais de TV", icon: Tv },
+  { nome: "Desfiles e Passarela", label: "Desfiles & Passarela", icon: Sparkles },
+  { nome: "Ensaios Fotográficos & Editoriais", label: "Ensaios & Editoriais", icon: Camera },
+  { nome: "Apresentações e Cerimoniais", label: "Apresentações & Cerimoniais", icon: Mic },
+  { nome: "Cobertura de Eventos", label: "Cobertura de Eventos", icon: Camera },
+  { nome: "Palestras", label: "Palestras", icon: Presentation },
+  { nome: "Programas de TV", label: "Programas de TV", icon: Video },
+  { nome: "Campanhas Publicitárias", label: "Campanhas Publicitárias", icon: Film },
+  { nome: "Presença VIP", label: "Presença VIP", icon: Award },
+  { nome: "Ações com Influenciadores", label: "Ações com Creators", icon: Volume2 },
 ];
 
 export function TalentosVitrineClient({ talentosIniciais }: TalentosVitrineClientProps) {
@@ -103,7 +103,16 @@ export function TalentosVitrineClient({ talentosIniciais }: TalentosVitrineClien
   const talentosFiltrados = useMemo(() => {
     return talentos.filter((t) => {
       if (categoriaAtiva !== "todos" && t.categoria !== categoriaAtiva) return false;
-      if (servicoFiltro && !t.servicos?.includes(servicoFiltro)) return false;
+      if (
+        servicoFiltro &&
+        !t.servicos?.some(
+          (s) =>
+            s.toLowerCase().includes(servicoFiltro.toLowerCase()) ||
+            servicoFiltro.toLowerCase().includes(s.toLowerCase())
+        )
+      ) {
+        return false;
+      }
       if (segmentoFiltro !== "todos" && !t.segmentos?.includes(segmentoFiltro)) return false;
       if (cidadeFiltro !== "todas" && t.cidade_nome !== cidadeFiltro) return false;
 
@@ -191,9 +200,9 @@ export function TalentosVitrineClient({ talentosIniciais }: TalentosVitrineClien
             </Link>
           </div>
 
-          {/* 2. Barra Rápida de Serviços Oferecidos (Preenche a largura sem cortes) */}
+          {/* 2. Barra Rápida de Serviços Oferecidos (Responsivo e sem sobreposição de texto) */}
           <div className="pt-6 w-full max-w-7xl mx-auto">
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2 w-full">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 w-full">
               {SERVICOS_DESTAQUE.map((item) => {
                 const IconComponent = item.icon;
                 const isSelected = servicoFiltro === item.nome;
@@ -202,14 +211,16 @@ export function TalentosVitrineClient({ talentosIniciais }: TalentosVitrineClien
                     key={item.nome}
                     type="button"
                     onClick={() => handleToggleServico(item.nome)}
-                    className={`flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 px-2 py-2.5 rounded-xl text-xs font-bold transition-all duration-200 border cursor-pointer w-full text-center ${
+                    className={`min-w-0 overflow-hidden flex flex-col sm:flex-row items-center justify-center gap-1.5 sm:gap-2 px-2.5 py-2.5 sm:py-2 rounded-xl text-xs font-bold transition-all duration-200 border cursor-pointer w-full text-center ${
                       isSelected
                         ? "bg-amber-500 text-slate-950 border-amber-600 shadow-md scale-[1.02]"
                         : "bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border-slate-200 dark:border-slate-700 shadow-sm hover:border-amber-400"
                     }`}
                   >
                     <IconComponent className={`w-4 h-4 shrink-0 ${isSelected ? "text-slate-950" : "text-amber-500"}`} />
-                    <span className="leading-tight text-[11px] sm:text-xs truncate sm:whitespace-normal">{item.nome}</span>
+                    <span className="leading-snug text-[11px] sm:text-xs font-bold text-center break-words line-clamp-2">
+                      {item.label}
+                    </span>
                   </button>
                 );
               })}
