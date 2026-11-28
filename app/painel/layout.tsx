@@ -1,6 +1,5 @@
 import { requireRole } from "@/lib/auth";
-import { Sidebar } from "@/components/painel/sidebar";
-import { Header } from "@/components/painel/header";
+import { PainelShell } from "@/components/painel/painel-shell";
 
 export default async function PainelLayout({
   children,
@@ -9,15 +8,5 @@ export default async function PainelLayout({
 }) {
   const profile = await requireRole(["admin", "editor", "colunista", "anunciante"]);
 
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex">
-      <Sidebar profile={profile} />
-      <div className="flex-1 flex flex-col min-w-0">
-        <Header profile={profile} />
-        <main className="flex-1 p-6 md:p-8 max-w-7xl w-full mx-auto">
-          {children}
-        </main>
-      </div>
-    </div>
-  );
+  return <PainelShell profile={profile}>{children}</PainelShell>;
 }

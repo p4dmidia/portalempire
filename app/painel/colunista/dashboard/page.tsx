@@ -81,7 +81,7 @@ export default async function ColunistaDashboardPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link href="/painel/colunista/assinatura">
             <Button variant="outline" size="sm" className="gap-1.5">
               <CreditCard className="w-4 h-4 text-emerald-600" />

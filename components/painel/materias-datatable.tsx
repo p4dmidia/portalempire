@@ -382,9 +382,9 @@ export function MateriasDataTable({
             </div>
 
             {/* Filtros em linha */}
-            <div className="flex flex-wrap gap-2.5 w-full md:w-auto items-center">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:flex md:flex-wrap gap-2.5 w-full md:w-auto items-center">
               {/* Filtro de Origem (Essencial para separar matérias do admin de RSS) */}
-              <div className="w-44">
+              <div className="w-full md:w-44">
                 <Select
                   value={filterOrigem}
                   onChange={(e) => {
@@ -400,7 +400,7 @@ export function MateriasDataTable({
               </div>
 
               {/* Filtro de Status */}
-              <div className="w-36">
+              <div className="w-full md:w-36">
                 <Select
                   value={filterStatus}
                   onChange={(e) => {
@@ -418,7 +418,7 @@ export function MateriasDataTable({
               </div>
 
               {/* Filtro de Editoria */}
-              <div className="w-36">
+              <div className="w-full md:w-36">
                 <Select
                   value={filterCategoria}
                   onChange={(e) => {
@@ -437,7 +437,7 @@ export function MateriasDataTable({
               </div>
 
               {/* Filtro de Cidade */}
-              <div className="w-36">
+              <div className="w-full md:w-36">
                 <Select
                   value={filterCidade}
                   onChange={(e) => {
