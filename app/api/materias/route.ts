@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sanitizeContentHtml } from "@/lib/utils/sanitize";
 import { slugify } from "@/lib/utils/slugify";
 import { CATEGORIAS_PADRAO_SISTEMA } from "@/lib/portal/queries";
-import { definirExpiracaoDestaque, calcularDataExpiracao } from "@/lib/portal/destaques-storage";
+import { definirExpiracaoDestaque, calcularDataExpiracao, desativarDestaquesExpirados } from "@/lib/portal/destaques-storage";
 import * as z from "zod";
 
 export const maxDuration = 10;
@@ -124,8 +124,33 @@ export async function GET(request: NextRequest) {
     const total = count || 0;
     const totalPages = Math.ceil(total / limit) || 1;
 
+    // Higienização em tempo real: se alguma matéria tiver destaque vencido, reflete destaque=false
+    // e atualiza silenciosamente no banco
+    const nowIso = new Date().toISOString();
+    const idsExpirados: string[] = [];
+
+    const materiasFormatadas = (materias || []).map((m) => {
+      const meta = (m.conteudo as Record<string, unknown> | null) || null;
+      if (
+        m.destaque &&
+        meta &&
+        typeof meta.destaque_expira_em === "string" &&
+        meta.destaque_expira_em < nowIso
+      ) {
+        idsExpirados.push(m.id);
+        return { ...m, destaque: false };
+      }
+      return m;
+    });
+
+    if (idsExpirados.length > 0) {
+      desativarDestaquesExpirados().catch((e) => {
+        console.warn("[GET /api/materias] Falha ao atualizar destaques expirados no banco:", e);
+      });
+    }
+
     return NextResponse.json({
-      materias: materias || [],
+      materias: materiasFormatadas,
       total,
       page,
       limit,
@@ -337,7 +362,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Configurar prazo de expiração do destaque se aplicável
-    if (data.destaque && novaMateria?.id) {
+    if (finalDestaque && novaMateria?.id) {
       try {
         definirExpiracaoDestaque(novaMateria.id, finalTempoDestaque);
       } catch (err) {

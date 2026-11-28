@@ -557,6 +557,10 @@ export function MateriasDataTable({
                               {mat.titulo}
                               {mat.destaque && (() => {
                                 const meta = (mat.conteudo as Record<string, unknown> | null) || null;
+                                const expiraStr = meta?.destaque_expira_em as string | undefined;
+                                const isExpirado = expiraStr ? new Date(expiraStr).getTime() <= Date.now() : false;
+                                if (isExpirado) return null;
+
                                 const tempo = meta?.tempo_destaque as string;
                                 const rotulo = tempo && tempo !== "sem_limite"
                                   ? `Destaque (${tempo})`
@@ -641,35 +645,49 @@ export function MateriasDataTable({
                               </a>
                             )}
 
-                            {userRole === "admin" ? (
-                              <button
-                                type="button"
-                                onClick={() => handleToggleDestaque(mat)}
-                                className={`p-1.5 rounded-lg transition-colors ${
-                                  mat.destaque
-                                    ? "text-amber-500 hover:text-amber-600 bg-amber-50 dark:bg-amber-950/40"
-                                    : "text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-                                }`}
-                                title={
-                                  mat.destaque
-                                    ? "Remover do Destaque da Capa"
-                                    : "Colocar em Destaque no Topo da Capa (24h)"
-                                }
-                              >
-                                <Star
-                                  className={`w-4 h-4 ${
-                                    mat.destaque ? "fill-amber-400 text-amber-500" : ""
-                                  }`}
-                                />
-                              </button>
-                            ) : mat.destaque ? (
-                              <span
-                                className="p-1.5 rounded-lg text-amber-500 bg-amber-50 dark:bg-amber-950/40 inline-flex items-center cursor-help"
-                                title="Em Destaque Ativo na Capa (Padrão de 4 horas)"
-                              >
-                                <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
-                              </span>
-                            ) : null}
+                            {(() => {
+                              const meta = (mat.conteudo as Record<string, unknown> | null) || null;
+                              const expiraStr = meta?.destaque_expira_em as string | undefined;
+                              const isDestaqueAtivo = mat.destaque && (!expiraStr || new Date(expiraStr).getTime() > Date.now());
+
+                              if (userRole === "admin") {
+                                return (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleDestaque(mat)}
+                                    className={`p-1.5 rounded-lg transition-colors ${
+                                      isDestaqueAtivo
+                                        ? "text-amber-500 hover:text-amber-600 bg-amber-50 dark:bg-amber-950/40"
+                                        : "text-slate-400 hover:text-amber-500 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                    }`}
+                                    title={
+                                      isDestaqueAtivo
+                                        ? "Remover do Destaque da Capa"
+                                        : "Colocar em Destaque no Topo da Capa (24h)"
+                                    }
+                                  >
+                                    <Star
+                                      className={`w-4 h-4 ${
+                                        isDestaqueAtivo ? "fill-amber-400 text-amber-500" : ""
+                                      }`}
+                                    />
+                                  </button>
+                                );
+                              }
+
+                              if (isDestaqueAtivo) {
+                                return (
+                                  <span
+                                    className="p-1.5 rounded-lg text-amber-500 bg-amber-50 dark:bg-amber-950/40 inline-flex items-center cursor-help"
+                                    title="Em Destaque Ativo na Capa (Padrão de 4 horas)"
+                                  >
+                                    <Star className="w-4 h-4 fill-amber-400 text-amber-500" />
+                                  </span>
+                                );
+                              }
+
+                              return null;
+                            })()}
 
                             <Link
                               href={`/painel/editor/materias/${mat.id}`}

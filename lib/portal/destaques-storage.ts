@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { calcularDataExpiracao, type TipoDestaqueTempo } from "@/lib/utils/destaque-tempo";
 
@@ -7,82 +5,69 @@ export { calcularDataExpiracao };
 
 export interface InfoDestaque {
   materia_id: string;
-  expira_em: string | null; // ISO string ou null para sem limite
+  expira_em: string | null;
   tipo: TipoDestaqueTempo;
   criado_em: string;
 }
 
-const ARQUIVO_DESTAQUES = path.join(process.cwd(), "data", "destaques-expiracao.json");
-
-function garantirDiretorio(): void {
-  const dir = path.dirname(ARQUIVO_DESTAQUES);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
-  }
-}
-
-export function carregarDestaquesExpiracao(): Record<string, InfoDestaque> {
-  try {
-    garantirDiretorio();
-    if (!fs.existsSync(ARQUIVO_DESTAQUES)) {
-      return {};
-    }
-    const conteudo = fs.readFileSync(ARQUIVO_DESTAQUES, "utf-8");
-    return JSON.parse(conteudo || "{}");
-  } catch (err) {
-    console.warn("[Portal Empire] Erro ao carregar destaques-expiracao.json:", err);
-    return {};
-  }
-}
-
-export function salvarDestaquesExpiracao(dados: Record<string, InfoDestaque>): void {
-  try {
-    garantirDiretorio();
-    fs.writeFileSync(ARQUIVO_DESTAQUES, JSON.stringify(dados, null, 2), "utf-8");
-  } catch (err) {
-    console.warn("[Portal Empire] Erro ao salvar destaques-expiracao.json:", err);
-  }
-}
-
-
 /**
- * Registra ou remove o prazo de expiração de um destaque
+ * Registra ou remove o prazo de expiração de um destaque.
+ * Mantido para compatibilidade com chamadas existentes.
  */
 export function definirExpiracaoDestaque(
-  materiaId: string,
-  tipo: TipoDestaqueTempo = "sem_limite"
+  _materiaId: string,
+  _tipo: TipoDestaqueTempo = "sem_limite"
 ): void {
-  const mapa = carregarDestaquesExpiracao();
-
-  if (tipo === "sem_limite") {
-    mapa[materiaId] = {
-      materia_id: materiaId,
-      expira_em: null,
-      tipo: "sem_limite",
-      criado_em: new Date().toISOString(),
-    };
-  } else {
-    mapa[materiaId] = {
-      materia_id: materiaId,
-      expira_em: calcularDataExpiracao(tipo),
-      tipo,
-      criado_em: new Date().toISOString(),
-    };
-  }
-
-  salvarDestaquesExpiracao(mapa);
+  // O controle agora é 100% persistido no JSONB da matéria (campo conteudo->destaque_expira_em)
 }
 
-export function removerExpiracaoDestaque(materiaId: string): void {
-  const mapa = carregarDestaquesExpiracao();
-  if (mapa[materiaId]) {
-    delete mapa[materiaId];
-    salvarDestaquesExpiracao(mapa);
+export function removerExpiracaoDestaque(_materiaId: string): void {
+  // O controle agora é 100% persistido no JSONB da matéria
+}
+
+/**
+ * Desativa no banco Supabase todas as matérias que possuem destaque ativo
+ * mas cujo prazo (conteudo->>destaque_expira_em) já expirou.
+ * Retorna o número de matérias desativadas.
+ */
+export async function desativarDestaquesExpirados(): Promise<number> {
+  try {
+    const supabaseAdmin = getSupabaseAdmin();
+    const nowIso = new Date().toISOString();
+
+    const { data: expirados, error } = await supabaseAdmin
+      .from("materias")
+      .select("id, slug, titulo")
+      .eq("destaque", true)
+      .not("conteudo->>destaque_expira_em", "is", null)
+      .filter("conteudo->>destaque_expira_em", "lt", nowIso);
+
+    if (error || !expirados || expirados.length === 0) {
+      return 0;
+    }
+
+    const ids = expirados.map((m) => m.id);
+    const { error: updateError } = await supabaseAdmin
+      .from("materias")
+      .update({ destaque: false })
+      .in("id", ids);
+
+    if (updateError) {
+      console.warn("[destaques-storage] Erro ao desativar destaques expirados:", updateError.message);
+      return 0;
+    }
+
+    console.log(`[destaques-storage] ${expirados.length} destaques expirados foram desativados no banco com sucesso.`);
+    return expirados.length;
+  } catch (err) {
+    console.warn("[destaques-storage] Falha ao desativar destaques expirados:", err);
+    return 0;
   }
 }
 
 /**
- * Valida se a matéria ainda está dentro do período de destaque ativo
+ * Valida se a matéria ainda está dentro do período de destaque ativo.
+ * Se expirou, retorna false e já dispara a desativação no Supabase em segundo plano.
  */
 export function verificarDestaqueAtivo(
   materiaId: string,
@@ -97,50 +82,37 @@ export function verificarDestaqueAtivo(
     if (meta.destaque_expira_em && typeof meta.destaque_expira_em === "string") {
       const expiraMs = new Date(meta.destaque_expira_em).getTime();
       if (!isNaN(expiraMs) && Date.now() > expiraMs) {
+        // Expirou! Desativa silenciosamente no banco em segundo plano
+        try {
+          const supabase = getSupabaseAdmin();
+          supabase
+            .from("materias")
+            .update({ destaque: false })
+            .eq("id", materiaId)
+            .then(() => {});
+        } catch (err) {
+          console.warn(`[destaques-storage] Falha ao desativar matéria expirada ${materiaId}:`, err);
+        }
         return false;
       }
+      return true;
+    }
+
+    // Se possui tempo_destaque "sem_limite", é destaque fixo
+    if (meta.tempo_destaque === "sem_limite") {
+      return true;
     }
   }
 
-  // 2. Fallback no mapa local em disco
-  const mapa = carregarDestaquesExpiracao();
-  const info = mapa[materiaId];
-
-  // Se não tiver registro ou for sem_limite, é destaque permanente (ex: matéria da ALLVITY)
-  if (!info || !info.expira_em) {
-    return true;
-  }
-
-  // Verifica se o tempo limite já passou
-  const expiraEm = new Date(info.expira_em).getTime();
-  const agora = Date.now();
-
-  if (agora > expiraEm) {
-    // Expirou! Desativa silenciosamente no banco em segundo plano
-    try {
-      delete mapa[materiaId];
-      salvarDestaquesExpiracao(mapa);
-
-      const supabase = getSupabaseAdmin();
-      supabase
-        .from("materias")
-        .update({ destaque: false })
-        .eq("id", materiaId)
-        .then(() => {});
-    } catch (err) {
-      console.warn(`[Portal Empire] Falha ao desativar destaque expirado da matéria ${materiaId}:`, err);
-    }
-    return false;
-  }
-
+  // Se destaqueDb for true e não houver data de expiração gravada, é destaque permanente
   return true;
 }
 
 /**
- * Retorna o tipo de destaque configurado para a matéria ("6h", "12h", "24h", "48h", "7d", "sem_limite")
+ * Retorna o tipo de destaque configurado para a matéria ("4h", "6h", "12h", "24h", "48h", "7d", "sem_limite")
  */
 export function obterTempoDestaqueMateria(
-  materiaId?: string | null,
+  _materiaId?: string | null,
   conteudo?: unknown
 ): "sem_limite" | "4h" | "6h" | "12h" | "24h" | "48h" | "7d" {
   if (conteudo && typeof conteudo === "object") {
@@ -152,14 +124,6 @@ export function obterTempoDestaqueMateria(
     if (t === "sem_limite") return "sem_limite";
   }
 
-  if (materiaId) {
-    const mapa = carregarDestaquesExpiracao();
-    const info = mapa[materiaId];
-    if (info?.tipo && info.tipo !== "sem_limite") {
-      return info.tipo;
-    }
-  }
-
   return "sem_limite";
 }
 
@@ -167,7 +131,7 @@ export function obterTempoDestaqueMateria(
  * Retorna o texto amigável do status do destaque para a UI
  */
 export function obterRotuloDestaque(
-  materiaId: string,
+  _materiaId: string,
   destaqueDb: boolean,
   conteudo?: unknown
 ): string | null {
@@ -186,15 +150,6 @@ export function obterRotuloDestaque(
     }
   }
 
-  if (!expiraEmStr) {
-    const mapa = carregarDestaquesExpiracao();
-    const info = mapa[materiaId];
-    if (info) {
-      expiraEmStr = info.expira_em;
-      tipoDestaque = info.tipo;
-    }
-  }
-
   if (!expiraEmStr || tipoDestaque === "sem_limite") {
     return "Destaque Fixo";
   }
@@ -203,7 +158,7 @@ export function obterRotuloDestaque(
   const diffHoras = Math.round((expiraEm - Date.now()) / (3600 * 1000));
 
   if (diffHoras <= 0) {
-    return "Destaque (Expirando)";
+    return "Destaque (Expirado)";
   }
 
   if (diffHoras < 24) {
@@ -213,4 +168,3 @@ export function obterRotuloDestaque(
   const diffDias = Math.ceil(diffHoras / 24);
   return `Destaque (${diffDias}d restantes)`;
 }
-

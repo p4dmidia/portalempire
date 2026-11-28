@@ -5,6 +5,7 @@ import { getColunasAtivas, getCidades, getPortalData } from "@/lib/portal/querie
 import { getClassificadosPorPagina } from "@/lib/portal/classificados-queries";
 import { ClassificadosFaixaSection } from "@/components/portal/ClassificadosFaixaSection";
 import { BotaoFavoritarColuna } from "@/components/portal/BotaoFavoritarColuna";
+import { ColunasFiltroCidades } from "@/components/portal/ColunasFiltroCidades";
 import {
   User,
   MapPin,
@@ -66,33 +67,8 @@ export default async function ColunasIndexPage({
           </Link>
         </div>
 
-        {/* Filtro por Cidade */}
-        <div className="flex flex-wrap items-center gap-2 mt-5 pt-4 border-t border-slate-100 dark:border-slate-800">
-          <span className="text-xs font-bold text-slate-400">Filtrar por cidade:</span>
-          <Link
-            href="/colunas"
-            className={`text-xs px-3 py-1 rounded-full font-medium transition-colors ${
-              !cidade
-                ? "bg-primary text-white"
-                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
-            }`}
-          >
-            Todas
-          </Link>
-          {cidades.map((cid) => (
-            <Link
-              key={cid.id}
-              href={`/colunas?cidade=${cid.slug}`}
-              className={`text-xs px-3 py-1 rounded-full font-medium transition-colors ${
-                cidade === cid.slug
-                  ? "bg-primary text-white"
-                  : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200"
-              }`}
-            >
-              {cid.nome}
-            </Link>
-          ))}
-        </div>
+        {/* Filtro por Cidade (Responsivo: Menu Sanduíche Dropdown no Mobile/Tablet e Pills no Desktop) */}
+        <ColunasFiltroCidades cidades={cidades} cidadeAtiva={cidade} />
       </div>
 
       {/* Grid de Colunas */}

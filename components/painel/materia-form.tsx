@@ -228,16 +228,45 @@ export function MateriaForm({
 
     const isColunista = userRole === "colunista" || userRole !== "admin";
     const isPublicando = data.status === "publicado";
+    const isPublicandoAgora = (!initialMateria || initialMateria.status !== "publicado") && isPublicando;
+    const isJaPublicado = initialMateria?.status === "publicado" && isPublicando;
+
+    const initialMeta = (initialMateria?.conteudo as Record<string, unknown> | null) || null;
+    const expiraAtualStr = initialMeta?.destaque_expira_em as string | undefined;
+    const jaExpirou = expiraAtualStr ? new Date(expiraAtualStr).getTime() < Date.now() : false;
 
     let finalDestaque = data.destaque;
     let finalTempoDestaque = data.destaque ? data.tempo_destaque || "sem_limite" : "sem_limite";
+    let finalExpiraEm: string | null = null;
 
     if (isColunista) {
-      if (isPublicando) {
+      if (isPublicandoAgora) {
         finalDestaque = true;
         finalTempoDestaque = "4h";
+        finalExpiraEm = calcularDataExpiracao("4h");
+      } else if (isJaPublicado) {
+        if (jaExpirou) {
+          finalDestaque = false;
+          finalExpiraEm = expiraAtualStr || null;
+        } else {
+          finalDestaque = initialMateria?.destaque || false;
+          finalExpiraEm = expiraAtualStr || null;
+        }
       } else {
         finalDestaque = false;
+        finalTempoDestaque = "sem_limite";
+        finalExpiraEm = null;
+      }
+    } else {
+      // ADMIN
+      if (finalDestaque) {
+        if (!initialMateria?.destaque || data.tempo_destaque !== initialMeta?.tempo_destaque) {
+          finalExpiraEm = calcularDataExpiracao(finalTempoDestaque);
+        } else {
+          finalExpiraEm = expiraAtualStr || (finalTempoDestaque !== "sem_limite" ? calcularDataExpiracao(finalTempoDestaque) : null);
+        }
+      } else {
+        finalExpiraEm = null;
         finalTempoDestaque = "sem_limite";
       }
     }
@@ -248,13 +277,13 @@ export function MateriaForm({
             ...(conteudoJson as Record<string, unknown>),
             exibir_capa_artigo: exibirCapaArtigo,
             tempo_destaque: finalTempoDestaque,
-            destaque_expira_em: finalDestaque ? calcularDataExpiracao(finalTempoDestaque) : null,
+            destaque_expira_em: finalDestaque ? finalExpiraEm : null,
           }
         : {
             type: "doc",
             exibir_capa_artigo: exibirCapaArtigo,
             tempo_destaque: finalTempoDestaque,
-            destaque_expira_em: finalDestaque ? calcularDataExpiracao(finalTempoDestaque) : null,
+            destaque_expira_em: finalDestaque ? finalExpiraEm : null,
           };
 
     const finalCidadeId =

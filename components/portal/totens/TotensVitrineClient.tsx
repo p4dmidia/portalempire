@@ -185,7 +185,7 @@ export function TotensVitrineClient({
         </div>
       </section>
 
-      {/* 2. SHOWCASE COMPARATIVO DOS MODELOS DE TOTENS (Do Flyer Oficial: R$ 250 e R$ 350) */}
+      {/* 2. SHOWCASE COMPARATIVO DOS MODELOS DE TOTENS */}
       <TotensModelosShowcase
         modeloAtivo={modeloSelecionado}
         onFiltrarModelo={handleFiltrarModelo}

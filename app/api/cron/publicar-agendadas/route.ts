@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath, revalidateTag } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { desativarDestaquesExpirados } from "@/lib/portal/destaques-storage";
 
 export const maxDuration = 60;
 
@@ -40,29 +41,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: fetchError.message }, { status: 500 });
     }
 
-    if (!agendadas || agendadas.length === 0) {
-      return NextResponse.json({
-        success: true,
-        message: "Nenhuma matéria agendada para publicação no momento.",
-        publicadas: 0,
-      });
-    }
+    let publicadasCount = 0;
 
-    const ids = agendadas.map((m) => m.id);
+    if (agendadas && agendadas.length > 0) {
+      const ids = agendadas.map((m) => m.id);
 
-    // 2. Atualizar status para 'publicado'
-    const { error: updateError } = await supabaseAdmin
-      .from("materias")
-      .update({ status: "publicado" })
-      .in("id", ids);
+      // 2. Atualizar status para 'publicado'
+      const { error: updateError } = await supabaseAdmin
+        .from("materias")
+        .update({ status: "publicado" })
+        .in("id", ids);
 
-    if (updateError) {
-      return NextResponse.json({ error: updateError.message }, { status: 500 });
-    }
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
 
-    // 3. Revalidar cache do portal, das matérias e das colunas afetadas
-    try {
-      revalidatePath("/");
+      publicadasCount = agendadas.length;
+
+      // Revalidar páginas das matérias publicadas
       agendadas.forEach((m) => {
         revalidatePath(`/materia/${m.slug}`);
         const colSlug = (m as any).coluna?.slug;
@@ -70,17 +66,28 @@ export async function POST(request: NextRequest) {
           revalidatePath(`/coluna/${colSlug}`);
         }
       });
+    }
+
+    // 3. Desativar destaques cujo prazo expirou (4h, 6h, 24h, etc)
+    const destaquesExpiradosDesativados = await desativarDestaquesExpirados();
+
+    // 4. Revalidar cache da Home se houve matérias publicadas ou destaques desativados
+    if (publicadasCount > 0 || destaquesExpiradosDesativados > 0) {
       try {
-        revalidateTag("materias");
-      } catch {}
-    } catch (e) {
-      console.error("[publicar-agendadas] Falha ao revalidar cache:", e);
+        revalidatePath("/");
+        try {
+          revalidateTag("materias");
+        } catch {}
+      } catch (e) {
+        console.error("[publicar-agendadas] Falha ao revalidar cache:", e);
+      }
     }
 
     return NextResponse.json({
       success: true,
-      message: `${agendadas.length} matérias agendadas foram publicadas com sucesso.`,
-      publicadas: agendadas.length,
+      message: `${publicadasCount} matérias agendadas publicadas e ${destaquesExpiradosDesativados} destaques expirados desativados.`,
+      publicadas: publicadasCount,
+      destaques_expirados_desativados: destaquesExpiradosDesativados,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Erro desconhecido";

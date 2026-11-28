@@ -441,6 +441,7 @@ export async function getMaterias(options?: {
         slug,
         subtitulo,
         resumo,
+        conteudo,
         imagem_url,
         imagem_credito,
         origem,

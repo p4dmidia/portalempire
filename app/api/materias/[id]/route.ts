@@ -185,24 +185,54 @@ export async function PUT(
       }
     }
 
-    // REGRA PADRÃO PARA COLUNISTAS:
-    // Toda matéria publicada entra na home como destaque por 4 horas e depois entra na pilha normal.
-    // O colunista não tem opção de escolher tempo de destaque (todas seguem 4h). Apenas o admin tem a opção de customizar.
+    // REGRA PADRÃO PARA COLUNISTAS E ADMIN:
+    // Ao publicar pela 1ª vez, a matéria de colunista entra como destaque por 4 horas.
+    // Se a matéria já estava publicada e o colunista apenas edita o texto, o prazo original é mantido
+    // (não reinicia as 4 horas e não ressuscita destaque expirado).
     const isColunista = profile.role === "colunista" || profile.role !== "admin";
     const statusAtual = data.status !== undefined ? data.status : materia.status;
-    const isPublicado = statusAtual === "publicado";
+    const isPublicandoAgora = materia.status !== "publicado" && statusAtual === "publicado";
+    const isJaPublicado = materia.status === "publicado" && statusAtual === "publicado";
+
+    const materiaMeta = (materia.conteudo as Record<string, unknown> | null) || null;
+    const expiraAtualStr = materiaMeta?.destaque_expira_em as string | undefined;
+    const jaExpirou = expiraAtualStr ? new Date(expiraAtualStr).getTime() < Date.now() : false;
 
     let isDestaque = data.destaque !== undefined ? data.destaque : materia.destaque;
     let finalTempoDestaque = isDestaque
-      ? data.tempo_destaque || (materia.conteudo as Record<string, unknown> | null)?.tempo_destaque || "sem_limite"
+      ? data.tempo_destaque || (materiaMeta?.tempo_destaque as string) || "sem_limite"
       : "sem_limite";
 
+    let finalExpiraEm: string | null = null;
+
     if (isColunista) {
-      if (isPublicado) {
+      if (isPublicandoAgora) {
         isDestaque = true;
         finalTempoDestaque = "4h";
+        finalExpiraEm = calcularDataExpiracao("4h");
+      } else if (isJaPublicado) {
+        if (jaExpirou) {
+          isDestaque = false;
+          finalExpiraEm = expiraAtualStr || null;
+        } else {
+          isDestaque = materia.destaque;
+          finalExpiraEm = expiraAtualStr || null;
+        }
       } else {
         isDestaque = false;
+        finalTempoDestaque = "sem_limite";
+        finalExpiraEm = null;
+      }
+    } else {
+      // ADMIN
+      if (isDestaque) {
+        if (data.tempo_destaque || !materia.destaque) {
+          finalExpiraEm = calcularDataExpiracao(finalTempoDestaque as string);
+        } else {
+          finalExpiraEm = expiraAtualStr || (finalTempoDestaque !== "sem_limite" ? calcularDataExpiracao(finalTempoDestaque as string) : null);
+        }
+      } else {
+        finalExpiraEm = null;
         finalTempoDestaque = "sem_limite";
       }
     }
@@ -210,12 +240,12 @@ export async function PUT(
     const baseConteudo =
       typeof (updateData.conteudo || data.conteudo) === "object" && (updateData.conteudo || data.conteudo) !== null
         ? ((updateData.conteudo || data.conteudo) as Record<string, unknown>)
-        : ((materia.conteudo as Record<string, unknown> | null) || {});
+        : (materiaMeta || {});
 
     updateData.conteudo = {
       ...baseConteudo,
       tempo_destaque: finalTempoDestaque,
-      destaque_expira_em: isDestaque ? calcularDataExpiracao(finalTempoDestaque as string) : null,
+      destaque_expira_em: isDestaque ? finalExpiraEm : null,
     };
 
     if (data.urgente !== undefined) updateData.urgente = data.urgente;
